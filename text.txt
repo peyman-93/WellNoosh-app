@@ -1,40 +1,23 @@
-# WellNoosh React Native App - Continuation
+Continue WellNoosh React Native app development - Step 5
 
-I'm building a React Native nutrition app called WellNoosh with Expo. Here's the current status:
+We completed Step 4: Added swipe gestures to LandingScreen + working AuthModal with login/signup functionality.
 
-## CURRENT STATUS:
-✅ Landing page working (Figma design implemented)
-✅ Sign Up/Sign In screens working with navigation
-✅ Onboarding flow: Welcome → Diet Preferences → Allergies → (Need to complete remaining screens)
-✅ Google OAuth setup (needs Google Cloud configuration)
-✅ Expo setup complete with tunnel mode
+Current status:
+✅ LandingScreen with swipe navigation (5 slides)
+✅ AuthModal with forms, validation, Google auth placeholder
+✅ App.tsx handles authentication state
+✅ React Native/Expo setup working perfectly
 
-## TECH STACK:
-- React Native with Expo
-- TypeScript
-- @react-navigation/native + @react-navigation/stack
-- expo-linear-gradient
-- Running with: npx expo start --tunnel
+Current structure:
+- V2/src/screens/LandingScreen.tsx (with swipe gestures)
+- V2/src/components/AuthModal.tsx (full login/signup)
+- V2/App.tsx (navigation + auth state)
+- V2/assets/ (Expo assets)
 
-## CURRENT WORKING FLOW:
-1. 🍏 Landing Page → "Start Free Trial"
-2. 📝 Sign Up Form → Fill details → "Create Account"
-3. ✅ Success Alert → "Continue"
-4. 👋 Onboarding Welcome → "Let's Personalize Your Experience" → "Continue"
-5. 🥗 Diet Preferences → Select diet type → "Continue"
-6. ⚠️ Allergies → Select allergies → "Continue" (Working with alerts)
+Next Step 5: Add OnboardingFlow after successful authentication
+- Convert OnboardingFlow.tsx from Figma files to React Native
+- Add diet preferences, allergies, medical conditions screens
+- Connect to authentication flow
+- Add progress tracking and navigation
 
-## WHAT I NEED HELP WITH:
-1. Complete the remaining onboarding screens (Medical Conditions, Family Setup, Personalization)
-2. Fix navigation flow to main app after onboarding
-3. Implement the main dashboard and tab navigation
-4. Convert Figma-generated components to React Native equivalents
-
-## KEY FILES TO INCLUDE:
-1. App.tsx (main navigation setup)
-2. Current onboarding screens (OnboardingWelcomeScreen.tsx, DietPreferencesScreen.tsx, AllergiesScreen.tsx)
-3. Auth screens (SignUpScreen.tsx, SignInScreen.tsx, LandingScreen.tsx)
-4. Google auth files (GoogleAuthService.ts, useGoogleAuth.ts)
-5. Any specific error messages or issues I'm facing
-
-Please help me continue building this app with the same structure and design patterns.
+Ready to implement post-authentication onboarding experience.
