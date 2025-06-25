@@ -1,0 +1,40 @@
+# WellNoosh React Native App - Continuation
+
+I'm building a React Native nutrition app called WellNoosh with Expo. Here's the current status:
+
+## CURRENT STATUS:
+✅ Landing page working (Figma design implemented)
+✅ Sign Up/Sign In screens working with navigation
+✅ Onboarding flow: Welcome → Diet Preferences → Allergies → (Need to complete remaining screens)
+✅ Google OAuth setup (needs Google Cloud configuration)
+✅ Expo setup complete with tunnel mode
+
+## TECH STACK:
+- React Native with Expo
+- TypeScript
+- @react-navigation/native + @react-navigation/stack
+- expo-linear-gradient
+- Running with: npx expo start --tunnel
+
+## CURRENT WORKING FLOW:
+1. 🍏 Landing Page → "Start Free Trial"
+2. 📝 Sign Up Form → Fill details → "Create Account"
+3. ✅ Success Alert → "Continue"
+4. 👋 Onboarding Welcome → "Let's Personalize Your Experience" → "Continue"
+5. 🥗 Diet Preferences → Select diet type → "Continue"
+6. ⚠️ Allergies → Select allergies → "Continue" (Working with alerts)
+
+## WHAT I NEED HELP WITH:
+1. Complete the remaining onboarding screens (Medical Conditions, Family Setup, Personalization)
+2. Fix navigation flow to main app after onboarding
+3. Implement the main dashboard and tab navigation
+4. Convert Figma-generated components to React Native equivalents
+
+## KEY FILES TO INCLUDE:
+1. App.tsx (main navigation setup)
+2. Current onboarding screens (OnboardingWelcomeScreen.tsx, DietPreferencesScreen.tsx, AllergiesScreen.tsx)
+3. Auth screens (SignUpScreen.tsx, SignInScreen.tsx, LandingScreen.tsx)
+4. Google auth files (GoogleAuthService.ts, useGoogleAuth.ts)
+5. Any specific error messages or issues I'm facing
+
+Please help me continue building this app with the same structure and design patterns.
