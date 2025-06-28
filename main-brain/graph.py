@@ -8,18 +8,24 @@ from langgraph.graph import StateGraph, END
 from pydantic import ValidationError
 
 import config
-from schemas import MealOption # We still use this for validation
+from schemas import MealOption
 
-# --- 1. Define the State of our Graph (No Changes) ---
+# --- 1. Define the State of our Graph ---
+# This is the "memory" of our application. It holds all the data that needs to be
+# passed between the different steps (nodes) of our graph.
 class GraphState(TypedDict):
     user_id: str
     user_profile: dict
     rejected_meals: List[str]
     current_suggestion: Optional[MealOption]
+    image_url: Optional[str]
     final_recipe: Optional[MealOption]
 
 # --- 2. Define the Nodes of our Graph ---
+# Each node is a function that performs a specific action and updates the state.
+
 def get_user_profile_node(state: GraphState) -> GraphState:
+    """Node to load the user's profile from the 'database'."""
     print("---NODE: Getting User Profile---")
     db_path = "data/user_database.json"
     with open(db_path, 'r') as f:
@@ -30,13 +36,13 @@ def get_user_profile_node(state: GraphState) -> GraphState:
     return {"user_profile": profile}
 
 def generate_meal_suggestion_node(state: GraphState) -> GraphState:
+    """Node that calls the LLM to generate a single meal idea using the robust prompt."""
     print("---NODE: Generating Meal Suggestion---")
     profile = state["user_profile"]
     rejected = state["rejected_meals"]
-    meal_time = "dinner" # Hardcoding for consistency
+    meal_time = "dinner"  # Hardcoding for consistency in prompts
 
-    # ###--- THE ULTIMATE SCHEMA ENFORCEMENT PROMPT ---###
-    # This is our most robust prompt yet. It includes the actual Pydantic schema definition.
+    # This is the "Ultimate Schema Enforcement Prompt" we developed.
     prompt = f"""
     You are a backend AI model responsible for generating a JSON object for the WellNoosh app.
     Your response will be validated against a strict Pydantic schema. You MUST follow the structure exactly.
@@ -102,36 +108,70 @@ def generate_meal_suggestion_node(state: GraphState) -> GraphState:
             continue
             
     print("All models failed to provide a valid, structured response.")
-    return {"current_suggestion": None} # Return a clear failure state
+    return {"current_suggestion": None}
 
-def get_user_feedback_node(state: GraphState) -> GraphState:
-    print("---NODE: Getting User Feedback---")
+def generate_image_node(state: GraphState) -> GraphState:
+    """Node that calls the DALL-E 3 API to generate an image of the meal."""
+    print("---NODE: Generating Meal Image---")
     suggestion = state["current_suggestion"]
     if not suggestion:
+        return {"image_url": None}
+
+    meal_name = suggestion.meal_summary.meal_name
+    description = suggestion.meal_summary.description
+    
+    image_prompt = f"A vibrant, photorealistic photo of '{meal_name}'. {description}. The dish is plated beautifully on a rustic wooden table, with soft, natural lighting, looking delicious and healthy."
+    
+    try:
+        print(f"Generating image for: {meal_name}...")
+        response = openai.images.generate(
+            model="dall-e-3",
+            prompt=image_prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+        image_url = response.data[0].url
+        print("✅ Image generated successfully.")
+        return {"image_url": image_url}
+    except Exception as e:
+        print(f"❌ DALL-E Error: Could not generate image. {e}")
+        return {"image_url": None}
+
+def get_user_feedback_node(state: GraphState) -> GraphState:
+    """Node that presents the meal and image to the user and gets their feedback."""
+    print("---NODE: Getting User Feedback---")
+    suggestion = state["current_suggestion"]
+    image_url = state["image_url"]
+
+    if not suggestion:
         print("No suggestion was generated, so we cannot get feedback.")
-        # We explicitly set final_recipe to None to indicate failure to the edge.
         return {"final_recipe": None}
 
     meal_name = suggestion.meal_summary.meal_name
     print(f"\nHere is a suggestion for you: ✨ {meal_name} ✨")
+    
+    if image_url:
+        print(f"🖼️ Here's how it could look: {image_url}")
+    else:
+        print("🖼️ (Could not generate an image preview)")
+
     feedback = input("Do you like this idea? (yes/no): ").lower().strip()
     
     if feedback == "yes":
         return {"final_recipe": suggestion}
     else:
-        rejected_list = state.get("rejected_meals", []) # Safely get the list
+        rejected_list = state.get("rejected_meals", [])
         rejected_list.append(meal_name)
-        return {"rejected_meals": rejected_list, "final_recipe": None}
+        return {"rejected_meals": rejected_list, "final_recipe": None, "image_url": None}
 
 def display_final_recipe_node(state: GraphState):
-    """Node that displays the final approved recipe."""
+    """Node that displays the final approved recipe in a user-friendly format."""
     print("---NODE: Displaying Final Recipe---")
-    # This node will now only be reached if final_recipe exists.
     final_recipe = state["final_recipe"]
     summary = final_recipe.meal_summary
     recipe = final_recipe.full_recipe
     
-    # This is the full display logic that needs to be present
     print("\n" + "="*60)
     print(f"  Here is your recipe for: {summary.meal_name}")
     print("="*60)
@@ -156,35 +196,41 @@ def should_continue_edge(state: GraphState) -> str:
     """The conditional edge that controls the feedback loop."""
     print("---EDGE: Checking for next step---")
     
-    # ###--- NEW: SAFER CHECKING LOGIC ---###
-    if state.get("final_recipe"): # Use .get() for safety
-        # If the user said "yes", we have a final recipe.
+    if state.get("final_recipe"):
         return "display_recipe"
     elif state.get("current_suggestion") is None:
-        # If generation failed completely, end the graph.
         print("Ending graph because generation failed.")
         return END
     else:
-        # If the user said "no", loop back to generate another.
         return "generate_suggestion"
 
-# --- 4. Assemble the Graph (No changes needed here) ---
+# --- 4. Assemble the Graph ---
 workflow = StateGraph(GraphState)
+
+# Add the nodes
 workflow.set_entry_point("get_profile")
 workflow.add_node("get_profile", get_user_profile_node)
 workflow.add_node("generate_suggestion", generate_meal_suggestion_node)
+workflow.add_node("generate_image", generate_image_node)
 workflow.add_node("get_feedback", get_user_feedback_node)
 workflow.add_node("display_recipe", display_final_recipe_node)
+
+# Add the edges to define the flow
 workflow.add_edge("get_profile", "generate_suggestion")
-workflow.add_edge("generate_suggestion", "get_feedback")
+workflow.add_edge("generate_suggestion", "generate_image")
+workflow.add_edge("generate_image", "get_feedback")
+
+# The conditional edge creates the feedback loop or ends the process
 workflow.add_conditional_edges(
     "get_feedback",
     should_continue_edge,
     {
         "display_recipe": "display_recipe",
         "generate_suggestion": "generate_suggestion",
-        END: END # Handle the end case
+        END: END
     }
 )
 workflow.add_edge("display_recipe", END)
+
+# Compile the graph into a runnable application object
 app = workflow.compile()
