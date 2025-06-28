@@ -1,0 +1,290 @@
+{
+    "user_0": {
+        "user_id": "user_0",
+        "name": "Bob",
+        "gender": "Male",
+        "health_profile": {
+            "allergies": [],
+            "medical_conditions": [
+                "Celiac Disease",
+                "Gout"
+            ],
+            "biometrics": {
+                "age": 25,
+                "weight": {
+                    "value": 69,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 158,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Balanced",
+            "custom_preference": ""
+        },
+        "family_size": 4
+    },
+    "user_1": {
+        "user_id": "user_1",
+        "name": "Mohammad",
+        "gender": "Male",
+        "health_profile": {
+            "allergies": [
+                "Gluten",
+                "Dairy",
+                "Lactose Intolerance"
+            ],
+            "medical_conditions": [],
+            "biometrics": {
+                "age": 32,
+                "weight": {
+                    "value": 88,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 178,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Balanced",
+            "custom_preference": ""
+        },
+        "family_size": 1
+    },
+    "user_2": {
+        "user_id": "user_2",
+        "name": "Mahsa",
+        "gender": "Female",
+        "health_profile": {
+            "allergies": [
+                "Lactose Intolerance"
+                
+            ],
+            "medical_conditions": [
+
+            ],
+            "biometrics": {
+                "age": 32,
+                "weight": {
+                    "value": 62,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 173,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Balanced",
+            "custom_preference": ""
+        },
+        "family_size": 1
+    },
+    "user_3": {
+        "user_id": "user_3",
+        "name": "Diana",
+        "gender": "Male",
+        "health_profile": {
+            "allergies": [
+                "Histamine Intolerance",
+                "Lactose Intolerance"
+            ],
+            "medical_conditions": [],
+            "biometrics": {
+                "age": 26,
+                "weight": {
+                    "value": 75,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 189,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Mediterranean",
+            "custom_preference": ""
+        },
+        "family_size": 1
+    },
+    "user_4": {
+        "user_id": "user_4",
+        "name": "George",
+        "gender": "Male",
+        "health_profile": {
+            "allergies": [
+                "Shellfish",
+                "Nuts"
+            ],
+            "medical_conditions": [
+                "Chronic Kidney Disease"
+            ],
+            "biometrics": {
+                "age": 52,
+                "weight": {
+                    "value": 77,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 176,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Vegan",
+            "custom_preference": ""
+        },
+        "family_size": 1
+    },
+    "user_5": {
+        "user_id": "user_5",
+        "name": "Ethan",
+        "gender": "Male",
+        "health_profile": {
+            "allergies": [],
+            "medical_conditions": [
+                "Cardiovascular Disease"
+            ],
+            "biometrics": {
+                "age": 20,
+                "weight": {
+                    "value": 92,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 150,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Paleo",
+            "custom_preference": ""
+        },
+        "family_size": 3
+    },
+    "user_6": {
+        "user_id": "user_6",
+        "name": "Bob",
+        "gender": "Female",
+        "health_profile": {
+            "allergies": [
+                "Shellfish",
+                "Gluten"
+            ],
+            "medical_conditions": [],
+            "biometrics": {
+                "age": 21,
+                "weight": {
+                    "value": 77,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 166,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Vegetarian",
+            "custom_preference": ""
+        },
+        "family_size": 4
+    },
+    "user_7": {
+        "user_id": "user_7",
+        "name": "Hannah",
+        "gender": "Female",
+        "health_profile": {
+            "allergies": [
+                "Histamine Intolerance",
+                "Sesame"
+            ],
+            "medical_conditions": [
+                "Anemia",
+                "Gout"
+            ],
+            "biometrics": {
+                "age": 38,
+                "weight": {
+                    "value": 86,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 185,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Balanced",
+            "custom_preference": ""
+        },
+        "family_size": 4
+    },
+    "user_8": {
+        "user_id": "user_8",
+        "name": "Charlie",
+        "gender": "Male",
+        "health_profile": {
+            "allergies": [
+                "Egg"
+            ],
+            "medical_conditions": [],
+            "biometrics": {
+                "age": 23,
+                "weight": {
+                    "value": 77,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 156,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Ketogenic",
+            "custom_preference": ""
+        },
+        "family_size": 2
+    },
+    "user_9": {
+        "user_id": "user_9",
+        "name": "Alice",
+        "gender": "Male",
+        "health_profile": {
+            "allergies": [
+                "Lactose Intolerance"
+            ],
+            "medical_conditions": [
+                "Cardiovascular Disease",
+                "Celiac Disease"
+            ],
+            "biometrics": {
+                "age": 47,
+                "weight": {
+                    "value": 60,
+                    "unit": "kg"
+                },
+                "height": {
+                    "value": 179,
+                    "unit": "cm"
+                }
+            }
+        },
+        "diet": {
+            "name": "Vegan",
+            "custom_preference": ""
+        },
+        "family_size": 2
+    }
+}

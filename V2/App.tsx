@@ -8,11 +8,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LandingScreen from './src/screens/LandingScreen';
 import AuthModal from './src/components/AuthModal';
 import OnboardingFlow from './src/screens/OnboardingFlow';
+import MainApp from './src/screens/MainApp';
 
 const Stack = createStackNavigator();
 
 interface User {
   name: string;
+  fullName: string; // Keep full name for records
   email: string;
   onboardingComplete: boolean;
   onboardingData?: any;
@@ -42,15 +44,20 @@ export default function App() {
     setAuthMode(authMode === 'login' ? 'signup' : 'login');
   };
 
-  // FIX: This function now receives userData from AuthModal
+  // FIXED: Extract first name and remove Alert message
   const handleAuthenticated = (userData: { name: string; email: string; mode: string }) => {
     console.log('🎉 Authentication successful!');
     console.log('📧 Email:', userData.email);
-    console.log('👤 Name:', userData.name);
+    console.log('👤 Full Name:', userData.name);
     console.log('🔐 Mode:', userData.mode);
     
+    // Extract first name (first word before space)
+    const firstName = userData.name.split(' ')[0] || 'User';
+    console.log('✨ First Name:', firstName);
+    
     const newUser: User = {
-      name: userData.name || 'User',
+      name: firstName, // Use first name for display
+      fullName: userData.name, // Keep full name for records
       email: userData.email,
       onboardingComplete: false,
       onboardingData: null
@@ -62,12 +69,11 @@ export default function App() {
     setIsAuthenticated(true);
     setShowAuth(false);
     
-    Alert.alert('Success!', `Welcome ${newUser.name}! 🎉`);
+    // FIXED: Removed Alert.alert - smooth transition to onboarding
   };
 
   const handleOnboardingComplete = (onboardingData: any) => {
     if (user) {
-      // Update user with onboarding data
       const updatedUser: User = {
         ...user,
         onboardingComplete: true,
@@ -79,19 +85,32 @@ export default function App() {
       
       setUser(updatedUser);
       
-      Alert.alert(
-        'Setup Complete!', 
-        'Your personalized nutrition experience is ready! 🌟\n\nCheck the console to see your data.',
-        [
-          {
-            text: 'Great!',
-            onPress: () => {
-              console.log('✅ User ready for main app');
-            }
-          }
-        ]
-      );
+      // FIXED: Simplified completion message - no popup, just console log
+      console.log('🌟 Setup complete! User entering main app...');
     }
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: () => {
+            console.log('🚪 User signed out');
+            setUser(null);
+            setIsAuthenticated(false);
+            setShowAuth(false);
+          }
+        }
+      ]
+    );
   };
 
   // Show onboarding if user is authenticated but hasn't completed onboarding
@@ -101,36 +120,21 @@ export default function App() {
         <StatusBar style="auto" />
         <OnboardingFlow 
           onComplete={handleOnboardingComplete}
-          userName={user.name}
+          userName={user.name} // Pass first name to onboarding
         />
       </View>
     );
   }
 
-  // Show completion message if user has completed onboarding
+  // Show main app if user has completed onboarding
   if (isAuthenticated && user && user.onboardingComplete) {
     return (
       <View style={styles.container}>
         <StatusBar style="auto" />
-        <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>
-            🎉 Onboarding Complete!
-          </Text>
-          <Text style={styles.completionText}>
-            Welcome {user.name}!
-          </Text>
-          <Text style={styles.completionSubtext}>
-            Your data has been logged to the console.
-            {'\n\n'}Step 6 (Main App) will be implemented next.
-          </Text>
-          <Text style={styles.debugInfo}>
-            Debug Info:{'\n'}
-            Diet: {user.onboardingData?.dietType}{'\n'}
-            Allergies: {user.onboardingData?.allergies?.length || 0}{'\n'}
-            Medical: {user.onboardingData?.medicalConditions?.length || 0}{'\n'}
-            Family: {user.onboardingData?.justMe ? 'Just Me' : `${user.onboardingData?.familyMembers?.length || 0} members`}
-          </Text>
-        </View>
+        <MainApp 
+          user={user}
+          onSignOut={handleSignOut}
+        />
       </View>
     );
   }
@@ -174,42 +178,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  completionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    paddingHorizontal: 32,
-  },
-  completionTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  completionText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#3B82F6',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  completionSubtext: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  debugInfo: {
-    fontSize: 14,
-    color: '#374151',
-    backgroundColor: '#F3F4F6',
-    padding: 16,
-    borderRadius: 12,
-    fontFamily: 'monospace',
-    textAlign: 'left',
   },
 });

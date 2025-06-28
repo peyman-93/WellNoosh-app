@@ -8,7 +8,6 @@ import {
   Dimensions,
   StatusBar,
   SafeAreaView,
-  Alert,
   PanResponder
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -65,13 +64,13 @@ export default function LandingScreen({ onShowLogin, onShowSignup }: LandingScre
     setCurrentSlide(index);
   };
 
+  // FIXED: Removed Alert.alert - directly call onShowSignup
   const handleSignup = () => {
-    Alert.alert('Signup', 'Signup button pressed!');
     onShowSignup();
   };
 
+  // FIXED: Removed Alert.alert - directly call onShowLogin
   const handleLogin = () => {
-    Alert.alert('Login', 'Login button pressed!');
     onShowLogin();
   };
 
