@@ -11,7 +11,6 @@ class Macros(BaseModel):
 class MealSummary(BaseModel):
     meal_name: str
     description: str
-    # suitability_reasoning: str  # ###--- REMOVED THIS FIELD ---###
     macros: Macros
 
 class Ingredient(BaseModel):
