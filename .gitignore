@@ -62,3 +62,12 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+
+# Only generated directories
+
+product_images/
+debug/
+
+food_products_*.csv
+multi_store_food_summary.csv
+store_comparison.csv
