@@ -71,3 +71,6 @@ debug/
 food_products_*.csv
 multi_store_food_summary.csv
 store_comparison.csv
+
+# Python virtual environment
+.venv/
