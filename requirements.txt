@@ -1,0 +1,27 @@
+# --- Core AI and Orchestration Libraries ---
+openai
+langchain
+langgraph
+
+# --- Data Validation and Manipulation ---
+pydantic
+pandas
+
+# --- Web Scraping and HTTP Requests ---
+# The core library for browser automation
+playwright
+# For parsing HTML content retrieved by Playwright
+beautifulsoup4
+# For making simple HTTP requests (e.g., downloading images)
+requests
+
+# --- Environment Variable Management ---
+python-dotenv
+
+opencv-python
+sounddevice
+scipy
+langchain-community
+"langgraph[sqlite]"
+langchain-core
+numpy
