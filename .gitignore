@@ -1,3 +1,6 @@
+# ===================
+# NODE.JS / REACT NATIVE / EXPO
+# ===================
 # Dependencies
 node_modules/
 npm-debug.log*
@@ -25,21 +28,177 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
+# Optional npm cache directory
+.npm
 
-# local env files
-.env*.local
-.env
+# Optional eslint cache
+.eslintcache
 
 # typescript
 *.tsbuildinfo
 
-# IDE
+# ===================
+# PYTHON / WELLNOOSH
+# ===================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+wellib/
+.venv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# ===================
+# WELLNOOSH LEFTOVER TRACKER
+# ===================
+# User data and databases
+data/
+data/user_database.json
+data/leftover_data/
+data/leftover_data/user_inventory.json
+data/leftover_data/leftover_memory.db
+
+# Temporary audio/image files
+temp_ingredients.wav
+temp_fridge_image.jpg
+*.wav
+*.mp3
+*.m4a
+
+# Other temp files
+temp_*
+tmp_*
+*.tmp
+
+# SQLite databases
+*.sqlite
+*.sqlite3
+*.db
+
+# ===================
+# ENVIRONMENT & CONFIG
+# ===================
+# local env files
+.env*.local
+.env
+config_local.py
+
+# ===================
+# OPERATING SYSTEM
+# ===================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+*.pem
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===================
+# IDE / EDITOR
+# ===================
 .vscode/
 .idea/
 
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ===================
+# LOGS & DEBUGGING
+# ===================
 # Logs
 logs
 *.log
@@ -50,24 +209,43 @@ pids
 *.seed
 *.pid.lock
 
+# ===================
+# TESTING & COVERAGE
+# ===================
 # Coverage directory used by tools like istanbul
 coverage/
 
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
+# ===================
+# TEMPORARY FOLDERS
+# ===================
 # Temporary folders
 tmp/
 temp/
 
-# Only generated directories
-
+# ===================
+# PROJECT SPECIFIC
+# ===================
+# Generated directories
 product_images/
 debug/
 
+# CSV files (your existing ones)
 food_products_*.csv
 multi_store_food_summary.csv
 store_comparison.csv
+
+# ===================
+# BACKUP FILES
+# ===================
+*.bak
+*.backup
+*.old
+*.orig
+
+# ===================
+# SECURITY
+# ===================
+# Certificate files
+*.pem
+*.crt
+*.cer
