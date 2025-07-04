@@ -766,7 +766,7 @@ export default function App() {
   }
 
   return (
-    <div className="iphone-app">
+    <div className="iphone-app" style={{ backgroundColor: '#f2f6f9' }}>
       <div className="iphone-status-bar">
         <div className="status-bar-content">
           <div className="status-left">

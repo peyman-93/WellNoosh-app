@@ -1,9 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
-import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
-
-@custom-variant dark (&:is(.dark *));
 
 :root {
   /* iPhone 16 Specific Dimensions */
@@ -283,7 +280,7 @@ import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;
   }
 
   /* Bottom Navigation */
-  .iphone-navigation {
+  .ios-navigation {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -675,7 +672,7 @@ import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;
     flex-direction: row;
   }
   
-  .iphone-navigation {
+  .ios-navigation {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -697,7 +694,7 @@ import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;
     background: rgba(255, 255, 255, 0.3);
   }
   
-  .iphone-navigation {
+  .ios-navigation {
     background: rgba(28, 28, 30, 0.95);
     border-top-color: rgba(255, 255, 255, 0.1);
   }
