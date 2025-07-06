@@ -5,36 +5,29 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "scheme": "wellnoosh",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": ["**/*"],
+    "plugins": [],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wellnoosh.app",
-      "scheme": "wellnoosh"
+      "bundleIdentifier": "com.wellnoosh.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.wellnoosh.app",
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "data": [{"scheme": "wellnoosh"}],
-          "category": ["BROWSABLE", "DEFAULT"]
-        }
-      ]
+      "package": "com.wellnoosh.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
-    },
-    "scheme": "wellnoosh"
+    }
   }
 }
