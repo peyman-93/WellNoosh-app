@@ -14,39 +14,26 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { signIn, session } = useAuth()
 
-  // Monitor session changes and navigate manually if automatic navigation fails
+  // Monitor session changes and navigate manually if needed
   useEffect(() => {
     console.log('SignInScreen: Session changed:', session ? 'AUTHENTICATED' : 'NOT_AUTHENTICATED')
     
     if (session) {
-      console.log('SignInScreen: User is authenticated, attempting manual navigation...')
-      // Wait a bit to see if App.tsx handles navigation automatically
-      const timeout = setTimeout(() => {
-        console.log('SignInScreen: Manual navigation timeout - this might indicate App.tsx navigation failed')
-        // This would only run if App.tsx didn't handle the navigation
-        Alert.alert(
-          'Login Successful!',
-          'Welcome to WellNoosh! (Manual navigation)',
-          [
-            {
-              text: 'Continue',
-              onPress: () => {
-                console.log('SignInScreen: Forcing manual navigation since App.tsx failed...')
-                // Force navigation reset to break out of the current stack
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'MainTabs' }],
-                })
-              }
-            }
-          ]
-        )
-      }, 2000)
-
-      // If navigation happens automatically, this component will unmount and clear the timeout
-      return () => clearTimeout(timeout)
+      console.log('SignInScreen: User is authenticated - attempting manual navigation as fallback')
+      // Give App.tsx a chance, then navigate manually
+      setTimeout(() => {
+        console.log('SignInScreen: Force navigating to MainTabs...')
+        try {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' }],
+          })
+        } catch (error) {
+          console.error('SignInScreen: Navigation failed:', error)
+        }
+      }, 1000)
     }
-  }, [session])
+  }, [session, navigation])
 
   const handleSignIn = async () => {
     setIsLoading(true)
@@ -67,6 +54,16 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
+          {/* Back Button */}
+          <View style={styles.backButtonContainer}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <Text style={styles.backButtonText}>←</Text>
+            </Pressable>
+          </View>
+
           <View style={styles.header}>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>
@@ -135,9 +132,25 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 20,
     justifyContent: 'center',
     minHeight: 500,
+  },
+  backButtonContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonText: {
+    fontSize: 18,
+    color: '#6B7280',
   },
   header: {
     alignItems: 'center',

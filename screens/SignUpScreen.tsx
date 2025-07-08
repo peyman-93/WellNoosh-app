@@ -46,6 +46,16 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
+          {/* Back Button */}
+          <View style={styles.backButtonContainer}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <Text style={styles.backButtonText}>←</Text>
+            </Pressable>
+          </View>
+
           <View style={styles.header}>
             <Text style={styles.title}>Create Your Account</Text>
             <Text style={styles.subtitle}>
@@ -125,9 +135,25 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 20,
     justifyContent: 'center',
     minHeight: 600,
+  },
+  backButtonContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonText: {
+    fontSize: 18,
+    color: '#6B7280',
   },
   header: {
     alignItems: 'center',

@@ -142,14 +142,59 @@ export default function V3HomeScreen() {
   const [waterCount, setWaterCount] = useState<number>(0)
   const [isSigningOut, setIsSigningOut] = useState(false)
   
-  // Monitor session changes for debugging
+  // Monitor session changes and navigate manually if needed
   useEffect(() => {
     console.log('V3HomeScreen: Session state changed:', session ? 'AUTHENTICATED' : 'NOT_AUTHENTICATED')
+    console.log('V3HomeScreen: isSigningOut state:', isSigningOut)
     
-    if (!session && isSigningOut) {
-      console.log('V3HomeScreen: Session cleared, should navigate to Welcome')
+    if (!session) {
+      console.log('V3HomeScreen: No session detected - starting navigation to Welcome')
+      setTimeout(() => {
+        console.log('V3HomeScreen: Force navigating to Welcome...')
+        try {
+          // Navigate up the navigation hierarchy to find root
+          let currentNav = navigation
+          let rootNav = navigation
+          let levels = 0
+          
+          // Walk up the navigation tree to find the root
+          while (currentNav.getParent()) {
+            currentNav = currentNav.getParent()
+            rootNav = currentNav
+            levels++
+            console.log(`V3HomeScreen: Found parent navigator level ${levels}`)
+          }
+          
+          console.log(`V3HomeScreen: Found root navigator after ${levels} levels`)
+          
+          // Try to get the state to see what screens are available
+          const state = rootNav.getState()
+          console.log('V3HomeScreen: Root navigator state:', state)
+          console.log('V3HomeScreen: Available routes:', state?.routeNames || 'No route names found')
+          
+          // Try both possible screen names
+          const screenName = state?.routeNames?.includes('SignIn') ? 'SignIn' : 'SignInScreen'
+          console.log(`V3HomeScreen: Using root-most navigator to reset to ${screenName}`)
+          rootNav.reset({
+            index: 0,
+            routes: [{ name: screenName }],
+          })
+          
+          setIsSigningOut(false) // Reset loading state
+          console.log('V3HomeScreen: Navigation after sign out completed')
+        } catch (error) {
+          console.error('V3HomeScreen: Navigation failed:', error)
+          setIsSigningOut(false)
+          // Show alert with manual instruction  
+          Alert.alert(
+            'Signed Out Successfully',
+            'You have been signed out. Please use the app navigation to sign in again.',
+            [{ text: 'OK' }]
+          )
+        }
+      }, 1000)
     }
-  }, [session, isSigningOut])
+  }, [session, navigation])
   
   // Get current time for greeting
   const getGreeting = () => {
@@ -173,28 +218,8 @@ export default function V3HomeScreen() {
     try {
       console.log('V3HomeScreen: Starting sign out process...')
       await signOut()
-      console.log('V3HomeScreen: Sign out completed, waiting for automatic navigation...')
-      
-      // Wait for automatic navigation, then fallback to manual if needed
-      setTimeout(() => {
-        console.log('V3HomeScreen: Automatic navigation timeout - forcing manual navigation...')
-        try {
-          // Force navigation reset to Welcome screen
-          (navigation as any).reset({
-            index: 0,
-            routes: [{ name: 'Welcome' }],
-          })
-          console.log('V3HomeScreen: Manual navigation to Welcome completed')
-        } catch (navError: any) {
-          console.error('V3HomeScreen: Manual navigation failed:', navError)
-          // Force reload as last resort
-          Alert.alert(
-            'Signed Out',
-            'You have been signed out successfully. Please restart the app.',
-            [{ text: 'OK' }]
-          )
-        }
-      }, 2000)
+      console.log('V3HomeScreen: Sign out completed - App.tsx should handle navigation automatically')
+      // Navigation is now handled by App.tsx useEffect, no manual fallback needed
       
     } catch (error: any) {
       console.error('V3HomeScreen: Sign out failed:', error)

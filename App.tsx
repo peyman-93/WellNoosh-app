@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar'
 
 // Context Providers
 import { QueryProvider } from '@/context/query-provider'
-import { AuthProvider } from '@/context/supabase-provider'
+import { AuthProvider, setGlobalNavigationRef } from '@/context/supabase-provider'
 
 // Screens
 import WelcomeScreen from '@/screens/WelcomeScreen'
@@ -18,25 +18,22 @@ import { useAuth } from '@/context/supabase-provider'
 const Stack = createNativeStackNavigator()
 
 function AppNavigator() {
-  const authContext = useAuth()
-  const { session, initialized } = authContext
+  const { session, initialized } = useAuth()
+  const navigationRef = useRef<any>(null)
 
-  // Monitor session changes and force re-renders
+  // Set global navigation reference for auth provider to use
   useEffect(() => {
-    console.log('🔄 AppNavigator: Session changed!', {
-      hasSession: !!session,
-      userEmail: session?.user?.email,
-      timestamp: new Date().toISOString(),
-      renderKey: (authContext as any)._renderKey
-    })
-    
-    // Force re-render by logging the decision
-    if (session) {
-      console.log('🔄 AppNavigator: Should show MAIN_TABS')
-    } else {
-      console.log('🔄 AppNavigator: Should show AUTH_STACK')
+    if (navigationRef.current) {
+      console.log('🔗 Setting global navigation ref...')
+      setGlobalNavigationRef(navigationRef.current)
     }
-  }, [session, (authContext as any)._renderKey])
+  }, [])
+
+  // Also set it when navigation container is ready
+  const onNavigationReady = () => {
+    console.log('🔗 Navigation container ready, setting global ref...')
+    setGlobalNavigationRef(navigationRef.current)
+  }
 
   // Force re-render debug
   console.log('=== APP NAVIGATOR DEBUG ===')
@@ -44,7 +41,6 @@ function AppNavigator() {
   console.log('Initialized:', initialized)
   console.log('Session exists:', !!session)
   console.log('Session user:', session?.user?.email)
-  console.log('Session object:', session ? 'HAS_SESSION' : 'NO_SESSION')
 
   if (!initialized) {
     console.log('App not initialized yet, showing splash...')
@@ -54,48 +50,33 @@ function AppNavigator() {
   console.log('Navigation decision:', session ? 'MAIN_TABS' : 'AUTH_STACK')
 
   return (
-    <NavigationContainer>
+    <NavigationContainer 
+      ref={navigationRef}
+      onReady={onNavigationReady}
+    >
       <StatusBar style="auto" />
       <Stack.Navigator 
-        key={`${session ? 'authenticated' : 'unauthenticated'}-${(authContext as any)._renderKey || 0}`}
+        initialRouteName={session ? 'MainTabs' : 'Welcome'}
         screenOptions={{ headerShown: false }}
       >
-        {session ? (
-          // User is signed in
-          <>
-            <Stack.Screen name="MainTabs" component={MainTabs} />
-            {/* Add Welcome to authenticated stack for sign out fallback */}
-            <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          </>
-        ) : (
-          // User is not signed in
-          <>
-            <Stack.Screen name="Welcome" component={WelcomeScreen} />
-            <Stack.Screen name="SignUp" component={SignUpScreen} />
-            <Stack.Screen name="SignIn" component={SignInScreen} />
-            <Stack.Screen name="Onboarding" component={OnboardingStack} />
-          </>
-        )}
+        {/* Always include all screens - navigation is handled by auth provider */}
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
+        <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="SignIn" component={SignInScreen} />
+        <Stack.Screen name="Onboarding" component={OnboardingStack} />
+        <Stack.Screen name="MainTabs" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   )
 }
 
-// Wrapper component to ensure AuthProvider is properly connected
-function AppContent() {
-  console.log('=== APP CONTENT RENDER ===')
-  const { session, initialized } = useAuth()
-  
-  console.log('AppContent render - Session:', !!session, 'Initialized:', initialized)
-  
-  return <AppNavigator />
-}
-
 export default function App() {
+  console.log('🚀 APP: Main App component rendering...')
+  
   return (
     <QueryProvider>
       <AuthProvider>
-        <AppContent />
+        <AppNavigator />
       </AuthProvider>
     </QueryProvider>
   )

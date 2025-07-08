@@ -10,6 +10,13 @@ import { Session } from "@supabase/supabase-js"
 import { supabase, isSupabaseConfigured } from "@/config/supabase"
 import { createGoogleAuthService, GoogleAuthResult } from "@/services/GoogleAuthService"
 
+// Global navigation reference for direct navigation control
+let globalNavigationRef: any = null
+export const setGlobalNavigationRef = (ref: any) => {
+  globalNavigationRef = ref
+  console.log('Global navigation ref set:', !!ref)
+}
+
 SplashScreen.preventAutoHideAsync()
 
 type AuthState = {
@@ -219,6 +226,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // Force state update with multiple state changes to ensure re-renders
       setSession(session)
       setForceRender(prev => prev + 1)
+      
+      // Direct navigation control using global ref
+      if (globalNavigationRef) {
+        if (session) {
+          console.log('🚀 AUTH: User authenticated - using global nav to go to MainTabs')
+          setTimeout(() => {
+            globalNavigationRef.reset({
+              index: 0,
+              routes: [{ name: 'MainTabs' }],
+            })
+          }, 200)
+        } else {
+          console.log('🚀 AUTH: User signed out - using global nav to go to Welcome')
+          setTimeout(() => {
+            globalNavigationRef.reset({
+              index: 0,
+              routes: [{ name: 'Welcome' }],
+            })
+          }, 200)
+        }
+      } else {
+        console.log('❌ AUTH: No global navigation ref available')
+      }
       
       // Force multiple renders to ensure all components update (especially for sign out)
       setTimeout(() => {
