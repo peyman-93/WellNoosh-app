@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, SafeAreaView, Alert, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,14 +12,51 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, session } = useAuth()
+
+  // Monitor session changes and navigate manually if automatic navigation fails
+  useEffect(() => {
+    console.log('SignInScreen: Session changed:', session ? 'AUTHENTICATED' : 'NOT_AUTHENTICATED')
+    
+    if (session) {
+      console.log('SignInScreen: User is authenticated, attempting manual navigation...')
+      // Wait a bit to see if App.tsx handles navigation automatically
+      const timeout = setTimeout(() => {
+        console.log('SignInScreen: Manual navigation timeout - this might indicate App.tsx navigation failed')
+        // This would only run if App.tsx didn't handle the navigation
+        Alert.alert(
+          'Login Successful!',
+          'Welcome to WellNoosh! (Manual navigation)',
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                console.log('SignInScreen: Forcing manual navigation since App.tsx failed...')
+                // Force navigation reset to break out of the current stack
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'MainTabs' }],
+                })
+              }
+            }
+          ]
+        )
+      }, 2000)
+
+      // If navigation happens automatically, this component will unmount and clear the timeout
+      return () => clearTimeout(timeout)
+    }
+  }, [session])
 
   const handleSignIn = async () => {
     setIsLoading(true)
     try {
+      console.log('SignInScreen: Starting sign in process...')
       await signIn(email, password)
-      // Navigation will be handled automatically by the auth state change
+      console.log('SignInScreen: Sign in completed, waiting for automatic navigation...')
+      // Navigation will be handled automatically by the auth state change via useEffect above
     } catch (error: any) {
+      console.error('SignInScreen: Sign in failed:', error)
       Alert.alert('Error', error.message || 'Failed to sign in')
     } finally {
       setIsLoading(false)
@@ -76,7 +113,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
               <Text style={styles.footerText}>
                 Don't have an account?{' '}
               </Text>
-              <Pressable onPress={() => navigation.navigate('SignUp')}>
+              <Pressable onPress={() => navigation.navigate('SignUpScreen')}>
                 <Text style={styles.link}>Sign Up</Text>
               </Pressable>
             </View>

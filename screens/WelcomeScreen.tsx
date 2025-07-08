@@ -1,13 +1,51 @@
-import React from 'react'
-import { View, Text, SafeAreaView, Pressable, StyleSheet } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text, SafeAreaView, Pressable, StyleSheet, Alert } from 'react-native'
 import { Button } from '@/components/ui/button'
 import { Colors } from '@/constants/DesignTokens'
+import { useAuth } from '@/context/supabase-provider'
 
 interface WelcomeScreenProps {
   navigation: any
 }
 
 export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const { signInWithGoogle } = useAuth()
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true)
+    try {
+      const result = await signInWithGoogle()
+      
+      if (result.type === 'success') {
+        console.log('Google sign-in successful')
+        // Navigation will be handled automatically by auth state change
+        // For demo mode, we might need to manually navigate
+        if (result.session) {
+          // Session is available immediately, navigation should happen
+          console.log('Session available, navigation should occur automatically')
+        } else {
+          // For OAuth flow, wait a bit for auth state change
+          console.log('Waiting for OAuth callback...')
+          setTimeout(() => {
+            // If still no session after 5 seconds, show message
+            Alert.alert('Info', 'Please complete the authentication in your browser, then return to the app.')
+          }, 5000)
+        }
+      } else if (result.type === 'cancel') {
+        console.log('Google sign-in cancelled')
+        Alert.alert('Cancelled', 'Google sign-in was cancelled')
+      } else {
+        Alert.alert('Error', result.error || 'Google sign-in failed')
+      }
+    } catch (error: any) {
+      console.error('Google sign-in error:', error)
+      Alert.alert('Error', error.message || 'Google sign-in failed')
+    } finally {
+      setIsGoogleLoading(false)
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -20,12 +58,27 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         </View>
         
         <View style={styles.buttonContainer}>
-          <Button size="lg" onPress={() => navigation.navigate('SignUp')} style={[styles.buttonWrapper, styles.getStartedButton]}>
-            Get Started
+          <Button 
+            size="lg" 
+            onPress={handleGoogleSignIn}
+            disabled={isGoogleLoading}
+            style={[styles.buttonWrapper, styles.googleButton]}
+          >
+            {isGoogleLoading ? 'Signing in...' : '🔍 Continue with Google'}
           </Button>
           
-          <Button variant="outline" size="lg" onPress={() => navigation.navigate('SignIn')} style={styles.buttonWrapper}>
-            Sign In
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+          
+          <Button size="lg" onPress={() => navigation.navigate('SignUpScreen')} style={[styles.buttonWrapper, styles.getStartedButton]}>
+            Get Started with Email
+          </Button>
+          
+          <Button variant="outline" size="lg" onPress={() => navigation.navigate('SignInScreen')} style={styles.buttonWrapper}>
+            Sign In with Email
           </Button>
         </View>
       </View>
@@ -80,5 +133,23 @@ const styles = StyleSheet.create({
   },
   getStartedButton: {
     backgroundColor: Colors.success, // Health-focused green
+  },
+  googleButton: {
+    backgroundColor: '#4285f4', // Google blue
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#6B7280',
   },
 })

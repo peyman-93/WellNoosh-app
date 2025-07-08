@@ -32,7 +32,9 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
       // We'll handle actual account creation after onboarding is complete
       console.log('User info validated:', { email, password })
       Alert.alert('Success', 'Account info validated! Let\'s complete your profile.')
-      navigation.navigate('Onboarding')
+      navigation.navigate('OnboardingStack', { 
+        userCredentials: { email, password } 
+      })
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to validate account info')
     } finally {
@@ -101,7 +103,7 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
               <Text style={styles.footerText}>
                 Already have an account?{' '}
               </Text>
-              <Pressable onPress={() => navigation.navigate('SignIn')}>
+              <Pressable onPress={() => navigation.navigate('SignInScreen')}>
                 <Text style={styles.link}>Sign In</Text>
               </Pressable>
             </View>

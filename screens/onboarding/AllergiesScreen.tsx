@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -33,12 +33,29 @@ const allergyOptions: AllergyOption[] = [
 
 interface AllergiesScreenProps {
   navigation: any
+  route: any
 }
 
-export default function AllergiesScreen({ navigation }: AllergiesScreenProps) {
+export default function AllergiesScreen({ navigation, route }: AllergiesScreenProps) {
   const [selectedAllergies, setSelectedAllergies] = useState<AllergyType[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const { signUp } = useAuth()
+  const [hasCompletedAuth, setHasCompletedAuth] = useState(false)
+  const { signUp, signIn, session } = useAuth()
+
+  // Monitor session changes and navigate to main app when authenticated
+  useEffect(() => {
+    console.log('AllergiesScreen: Session state changed:', session ? 'AUTHENTICATED' : 'NOT_AUTHENTICATED')
+    
+    if (session && !isLoading) {
+      console.log('AllergiesScreen: User is authenticated, should navigate to main app')
+      // The navigation will be handled by App.tsx, but we can reset the stack
+      // Force navigation reset to ensure we go to MainTabs
+      setTimeout(() => {
+        console.log('AllergiesScreen: Attempting to reset navigation stack...')
+        // This will trigger the App.tsx navigation logic to switch to MainTabs
+      }, 1000)
+    }
+  }, [session, isLoading])
 
   const handleAllergyToggle = (allergyId: AllergyType) => {
     setSelectedAllergies(prev => {
@@ -51,26 +68,121 @@ export default function AllergiesScreen({ navigation }: AllergiesScreenProps) {
   }
 
   const completeOnboarding = async () => {
+    if (hasCompletedAuth) {
+      console.log('Authentication already completed, skipping...')
+      return
+    }
+    
     setIsLoading(true)
     try {
-      // Create the account now that onboarding is complete
-      await signUp('demo@example.com', 'password123')
-      console.log('Account created and onboarding completed:', { selectedAllergies })
+      // Get the user credentials from navigation params
+      const userCredentials = route.params?.userCredentials;
       
-      Alert.alert(
-        'Welcome to WellNoosh!', 
-        `${selectedAllergies.length > 0 ? 'Your allergies have been saved!' : 'Account created successfully!'} You're all set!`,
-        [
-          {
-            text: 'Get Started',
-            onPress: () => {
-              // The auth state change will automatically navigate to MainTabs
+      console.log('DEBUG: Route params:', route.params);
+      console.log('DEBUG: User credentials:', userCredentials);
+      
+      // Check if user is already authenticated (e.g., Google OAuth)
+      if (!userCredentials) {
+        // User might be already authenticated via Google OAuth
+        // Just save the preferences and continue
+        console.log('No credentials found - user may be authenticated via OAuth');
+        console.log('Onboarding completed with allergies:', selectedAllergies);
+        
+        Alert.alert(
+          'Welcome to WellNoosh!', 
+          `${selectedAllergies.length > 0 ? 'Your allergies have been saved!' : 'Profile setup complete!'} You're all set!`,
+          [
+            {
+              text: 'Get Started',
+              onPress: () => {
+                // The auth state change will automatically navigate to MainTabs
+              }
             }
+          ]
+        )
+        return;
+      }
+      
+      console.log('DEBUG: Attempting to create account with:', userCredentials.email);
+      
+      try {
+        // Try to create the account first
+        await signUp(userCredentials.email, userCredentials.password)
+        setHasCompletedAuth(true)
+        console.log('Account created and onboarding completed:', { 
+          email: userCredentials.email,
+          selectedAllergies 
+        })
+        
+        Alert.alert(
+          'Welcome to WellNoosh!', 
+          `${selectedAllergies.length > 0 ? 'Your allergies have been saved!' : 'Account created successfully!'} You're all set!`,
+          [
+            {
+              text: 'Get Started',
+              onPress: () => {
+                // The auth state change will automatically navigate to MainTabs
+              }
+            }
+          ]
+        )
+      } catch (signUpError: any) {
+        // If user already exists, try to sign them in instead
+        if (signUpError.message?.includes('already registered') || signUpError.code === 'user_already_exists') {
+          console.log('User already exists, attempting to sign in...');
+          
+          try {
+            await signIn(userCredentials.email, userCredentials.password)
+            setHasCompletedAuth(true)
+            console.log('User signed in successfully, onboarding completed:', { 
+              email: userCredentials.email,
+              selectedAllergies 
+            })
+            
+            Alert.alert(
+              'Welcome back!', 
+              `${selectedAllergies.length > 0 ? 'Your allergies have been updated!' : 'Profile updated!'} You're all set!`,
+              [
+                {
+                  text: 'Continue',
+                  onPress: () => {
+                    console.log('User pressed Continue, checking if navigation will happen...')
+                    // Check if the session exists after a delay
+                    setTimeout(() => {
+                      if (session) {
+                        console.log('✅ Session exists, App.tsx should navigate to MainTabs')
+                      } else {
+                        console.log('❌ No session found, navigation will not occur')
+                      }
+                    }, 1000)
+                  }
+                }
+              ]
+            )
+          } catch (signInError: any) {
+            console.error('Sign in failed after existing user detected:', signInError);
+            Alert.alert(
+              'Sign In Required', 
+              'This account already exists. Please check your password and try again, or use the Sign In screen.',
+              [
+                {
+                  text: 'Go to Sign In',
+                  onPress: () => navigation.navigate('SignInScreen')
+                },
+                {
+                  text: 'Try Again',
+                  style: 'cancel'
+                }
+              ]
+            )
           }
-        ]
-      )
+        } else {
+          // Different error, rethrow
+          throw signUpError;
+        }
+      }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to complete setup. Please try again.')
+      Alert.alert('Error', `Failed to complete setup: ${error.message}. Please try again.`)
       console.error('Onboarding completion error:', error)
     } finally {
       setIsLoading(false)

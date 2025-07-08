@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, SafeAreaView, ScrollView, StyleSheet, Pressable } from 'react-native'
+import { View, Text, SafeAreaView, ScrollView, StyleSheet, Pressable, Alert } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/context/supabase-provider'
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/DesignTokens'
+import { useNavigation } from '@react-navigation/native'
 
 interface WaterTrackerProps {
   waterCount: number
@@ -137,7 +138,18 @@ function QuickActions({ onNavigateToTab }: QuickActionsProps) {
 
 export default function V3HomeScreen() {
   const { session, signOut } = useAuth()
+  const navigation = useNavigation()
   const [waterCount, setWaterCount] = useState<number>(0)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  
+  // Monitor session changes for debugging
+  useEffect(() => {
+    console.log('V3HomeScreen: Session state changed:', session ? 'AUTHENTICATED' : 'NOT_AUTHENTICATED')
+    
+    if (!session && isSigningOut) {
+      console.log('V3HomeScreen: Session cleared, should navigate to Welcome')
+    }
+  }, [session, isSigningOut])
   
   // Get current time for greeting
   const getGreeting = () => {
@@ -149,6 +161,46 @@ export default function V3HomeScreen() {
 
   const addWater = () => {
     setWaterCount(prev => Math.min(prev + 1, 10))
+  }
+
+  const handleSignOut = async () => {
+    if (isSigningOut) {
+      console.log('V3HomeScreen: Sign out already in progress, ignoring...')
+      return
+    }
+    
+    setIsSigningOut(true)
+    try {
+      console.log('V3HomeScreen: Starting sign out process...')
+      await signOut()
+      console.log('V3HomeScreen: Sign out completed, waiting for automatic navigation...')
+      
+      // Wait for automatic navigation, then fallback to manual if needed
+      setTimeout(() => {
+        console.log('V3HomeScreen: Automatic navigation timeout - forcing manual navigation...')
+        try {
+          // Force navigation reset to Welcome screen
+          (navigation as any).reset({
+            index: 0,
+            routes: [{ name: 'Welcome' }],
+          })
+          console.log('V3HomeScreen: Manual navigation to Welcome completed')
+        } catch (navError: any) {
+          console.error('V3HomeScreen: Manual navigation failed:', navError)
+          // Force reload as last resort
+          Alert.alert(
+            'Signed Out',
+            'You have been signed out successfully. Please restart the app.',
+            [{ text: 'OK' }]
+          )
+        }
+      }, 2000)
+      
+    } catch (error: any) {
+      console.error('V3HomeScreen: Sign out failed:', error)
+      Alert.alert('Error', 'Failed to sign out. Please try again.')
+      setIsSigningOut(false)
+    }
   }
 
   const userName = session?.user?.email?.split('@')[0] || 'there'
@@ -214,8 +266,13 @@ export default function V3HomeScreen() {
 
             {/* Sign Out */}
             <View style={styles.signOutSection}>
-              <Button variant="outline" onPress={signOut} style={styles.signOutButton}>
-                Sign Out
+              <Button 
+                variant="outline" 
+                onPress={handleSignOut} 
+                disabled={isSigningOut}
+                style={styles.signOutButton}
+              >
+                {isSigningOut ? 'Signing Out...' : 'Sign Out'}
               </Button>
             </View>
           </View>
