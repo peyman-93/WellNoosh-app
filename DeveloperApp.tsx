@@ -6,7 +6,6 @@ import { QueryProvider } from './context/query-provider';
 import { AuthProvider } from './context/supabase-provider';
 
 // Import the screens
-import DeveloperDashboard from './screens/DeveloperDashboard';
 import WelcomeScreen from './screens/WelcomeScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import SignInScreen from './screens/SignInScreen';
@@ -14,7 +13,6 @@ import OnboardingStack from './screens/OnboardingStack';
 import MainTabs from './screens/MainTabs';
 
 export type RootStackParamList = {
-  DeveloperDashboard: undefined;
   WelcomeScreen: undefined;
   SignUpScreen: undefined;
   SignInScreen: undefined;
@@ -32,9 +30,8 @@ export default function DeveloperApp() {
           <StatusBar style="auto" />
           <Stack.Navigator 
             screenOptions={{ headerShown: false }}
-            initialRouteName="DeveloperDashboard"
+            initialRouteName="WelcomeScreen"
           >
-            <Stack.Screen name="DeveloperDashboard" component={DeveloperDashboard} />
             <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
             <Stack.Screen name="SignUpScreen" component={SignUpScreen} />
             <Stack.Screen name="SignInScreen" component={SignInScreen} />

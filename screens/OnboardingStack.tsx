@@ -2,7 +2,7 @@ import React from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 
 // Import onboarding screens (we'll convert the expo-router ones)
-import OnboardingWelcomeScreen from '@/screens/onboarding/WelcomeScreen'
+import OnboardingWelcomeScreen from '@/screens/onboarding/OnboardingIntroScreen'
 import DietPreferencesScreen from '@/screens/onboarding/DietPreferencesScreen'
 import AllergiesScreen from '@/screens/onboarding/AllergiesScreen'
 

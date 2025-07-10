@@ -3,40 +3,40 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { View, Text } from 'react-native'
 
 // Import tab screens
-import V3HomeScreen from '@/screens/tabs/V3HomeScreen'
-import V3PlannerScreen from '@/screens/tabs/V3PlannerScreen'
-import V3PantryScreen from '@/screens/tabs/V3PantryScreen'
+import V3DashboardScreen from '@/screens/tabs/V3DashboardScreen'
 import V3InspirationScreen from '@/screens/tabs/V3InspirationScreen'
+import V3CommunityScreen from '@/screens/tabs/V3CommunityScreen'
+import V3GroceryListScreen from '@/screens/tabs/V3GroceryListScreen'
 import V3ProfileScreen from '@/screens/tabs/V3ProfileScreen'
 
-// Simple icon components (replacing lucide for now)
+// Tab icon components
 const HomeIcon = ({ color, size }: { color: string; size: number }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ color, fontSize: size * 0.6 }}>🏠</Text>
+    <Text style={{ fontSize: size * 0.8 }}>🏠</Text>
   </View>
 )
 
-const CalendarIcon = ({ color, size }: { color: string; size: number }) => (
+const CuisinesIcon = ({ color, size }: { color: string; size: number }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ color, fontSize: size * 0.6 }}>📅</Text>
+    <Text style={{ fontSize: size * 0.8 }}>🌍</Text>
   </View>
 )
 
-const ShoppingCartIcon = ({ color, size }: { color: string; size: number }) => (
+const CommunityIcon = ({ color, size }: { color: string; size: number }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ color, fontSize: size * 0.6 }}>🛒</Text>
+    <Text style={{ fontSize: size * 0.8 }}>👥</Text>
   </View>
 )
 
-const BookIcon = ({ color, size }: { color: string; size: number }) => (
+const GroceryIcon = ({ color, size }: { color: string; size: number }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ color, fontSize: size * 0.6 }}>📖</Text>
+    <Text style={{ fontSize: size * 0.8 }}>🛒</Text>
   </View>
 )
 
-const UserIcon = ({ color, size }: { color: string; size: number }) => (
+const ProfileIcon = ({ color, size }: { color: string; size: number }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ color, fontSize: size * 0.6 }}>👤</Text>
+    <Text style={{ fontSize: size * 0.8 }}>👤</Text>
   </View>
 )
 
@@ -53,49 +53,58 @@ export default function MainTabs() {
           borderTopColor: '#e5e7eb',
           paddingBottom: 8,
           paddingTop: 8,
-          height: 80,
+          height: 70,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 8,
         },
-        tabBarActiveTintColor: '#3b82f6',
+        tabBarActiveTintColor: '#10B981',
         tabBarInactiveTintColor: '#9ca3af',
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 10,
+          fontWeight: '600',
+          fontFamily: 'System',
         },
       }}
     >
       <Tab.Screen
         name="Home"
-        component={V3HomeScreen}
+        component={V3DashboardScreen}
         options={{
           tabBarIcon: HomeIcon,
         }}
       />
       <Tab.Screen
-        name="Planner"
-        component={V3PlannerScreen}
-        options={{
-          tabBarIcon: CalendarIcon,
-        }}
-      />
-      <Tab.Screen
-        name="Pantry"
-        component={V3PantryScreen}
-        options={{
-          tabBarIcon: ShoppingCartIcon,
-        }}
-      />
-      <Tab.Screen
-        name="Inspiration"
+        name="Cuisines"
         component={V3InspirationScreen}
         options={{
-          tabBarIcon: BookIcon,
+          tabBarIcon: CuisinesIcon,
+        }}
+      />
+      <Tab.Screen
+        name="Community"
+        component={V3CommunityScreen}
+        options={{
+          tabBarIcon: CommunityIcon,
+        }}
+      />
+      <Tab.Screen
+        name="GroceryList"
+        component={V3GroceryListScreen}
+        options={{
+          tabBarIcon: GroceryIcon,
+          tabBarLabel: 'Grocery List',
         }}
       />
       <Tab.Screen
         name="Profile"
         component={V3ProfileScreen}
         options={{
-          tabBarIcon: UserIcon,
+          tabBarIcon: ProfileIcon,
         }}
       />
     </Tab.Navigator>
