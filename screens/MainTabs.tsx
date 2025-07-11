@@ -5,9 +5,10 @@ import { View, Text } from 'react-native'
 // Import tab screens
 import V3DashboardScreen from '@/screens/tabs/V3DashboardScreen'
 import V3InspirationScreen from '@/screens/tabs/V3InspirationScreen'
+import V3PlannerScreen from '@/screens/tabs/V3PlannerScreen'
 import V3CommunityScreen from '@/screens/tabs/V3CommunityScreen'
 import V3GroceryListScreen from '@/screens/tabs/V3GroceryListScreen'
-import V3ProfileScreen from '@/screens/tabs/V3ProfileScreen'
+import V3FridgeScreen from '@/screens/tabs/V3FridgeScreen'
 
 // Tab icon components
 const HomeIcon = ({ color, size }: { color: string; size: number }) => (
@@ -19,6 +20,12 @@ const HomeIcon = ({ color, size }: { color: string; size: number }) => (
 const CuisinesIcon = ({ color, size }: { color: string; size: number }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Text style={{ fontSize: size * 0.8 }}>🌍</Text>
+  </View>
+)
+
+const PlannerIcon = ({ color, size }: { color: string; size: number }) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Text style={{ fontSize: size * 0.8 }}>📅</Text>
   </View>
 )
 
@@ -34,9 +41,9 @@ const GroceryIcon = ({ color, size }: { color: string; size: number }) => (
   </View>
 )
 
-const ProfileIcon = ({ color, size }: { color: string; size: number }) => (
+const FridgeIcon = ({ color, size }: { color: string; size: number }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ fontSize: size * 0.8 }}>👤</Text>
+    <Text style={{ fontSize: size * 0.8 }}>❄️</Text>
   </View>
 )
 
@@ -86,6 +93,13 @@ export default function MainTabs() {
         }}
       />
       <Tab.Screen
+        name="Planner"
+        component={V3PlannerScreen}
+        options={{
+          tabBarIcon: PlannerIcon,
+        }}
+      />
+      <Tab.Screen
         name="Community"
         component={V3CommunityScreen}
         options={{
@@ -101,10 +115,11 @@ export default function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Profile"
-        component={V3ProfileScreen}
+        name="Fridge"
+        component={V3FridgeScreen}
         options={{
-          tabBarIcon: ProfileIcon,
+          tabBarIcon: FridgeIcon,
+          tabBarLabel: 'Fridge',
         }}
       />
     </Tab.Navigator>

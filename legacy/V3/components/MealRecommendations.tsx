@@ -19,7 +19,6 @@ interface UserData {
   fullName: string;
   email: string;
   country: string;
-  city: string;
   postalCode: string;
   age?: number;
   gender?: string;
