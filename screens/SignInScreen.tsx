@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, SafeAreaView, Alert, Pressable, StyleSheet, ScrollView } from 'react-native'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { 
+  View, 
+  Text, 
+  SafeAreaView, 
+  Alert, 
+  Pressable, 
+  StyleSheet, 
+  ScrollView,
+  TextInput,
+  TouchableOpacity
+} from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '@/context/supabase-provider'
 
 interface SignInScreenProps {
@@ -11,8 +20,10 @@ interface SignInScreenProps {
 export default function SignInScreen({ navigation }: SignInScreenProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn, session } = useAuth()
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const { signIn, signInWithGoogle, session } = useAuth()
 
   // Monitor session changes and navigate manually if needed
   useEffect(() => {
@@ -35,7 +46,42 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
     }
   }, [session, navigation])
 
+  const handleInputChange = (field: string, value: string) => {
+    if (field === 'email') setEmail(value)
+    if (field === 'password') setPassword(value)
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    // Email validation
+    if (!email) {
+      newErrors.email = 'Email is required'
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Please enter a valid email'
+    }
+
+    // Password validation
+    if (!password) {
+      newErrors.password = 'Password is required'
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSignIn = async () => {
+    if (!validateForm()) {
+      return
+    }
+
     setIsLoading(true)
     try {
       console.log('SignInScreen: Starting sign in process...')
@@ -50,142 +96,343 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    try {
+      console.log('SignInScreen: Starting Google sign in...')
+      const result = await signInWithGoogle()
+      if (result.type === 'error') {
+        Alert.alert('Error', result.error || 'Google sign-in failed')
+      }
+    } catch (error: any) {
+      console.error('SignInScreen: Google sign in failed:', error)
+      Alert.alert('Error', 'Failed to sign in with Google')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          {/* Back Button */}
-          <View style={styles.backButtonContainer}>
-            <Pressable
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            >
-              <Text style={styles.backButtonText}>←</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>
-              Sign in to your WellNoosh account
-            </Text>
-          </View>
-
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <Input
-                placeholder="Enter your email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
+    <LinearGradient
+      colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logo}>
+              <Text style={styles.logoText}>🌿</Text>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <Input
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="current-password"
-              />
-            </View>
-          </View>
-
-          <View style={styles.actions}>
-            <Button
-              size="lg"
-              onPress={handleSignIn}
-              disabled={isLoading || !email || !password}
-              style={styles.buttonWrapper}
-            >
-              {isLoading ? 'Signing In...' : 'Sign In'}
-            </Button>
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                Don't have an account?{' '}
-              </Text>
-              <Pressable onPress={() => navigation.navigate('SignUpScreen')}>
-                <Text style={styles.link}>Sign Up</Text>
-              </Pressable>
-            </View>
+            <Text style={styles.brandTitle}>WellNoosh</Text>
+            <Text style={styles.brandSubtitle}>Your AI-powered nutrition companion</Text>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+
+        {/* Auth Form */}
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.formContainer}>
+            <View style={styles.formWrapper}>
+              {/* Google Sign-In Button */}
+              <TouchableOpacity
+                onPress={handleGoogleSignIn}
+                disabled={isLoading}
+                style={styles.googleButton}
+              >
+                <Text style={styles.googleIcon}>🌐</Text>
+                <Text style={styles.googleButtonText}>
+                  {isLoading ? 'Signing in...' : 'Continue with Google'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Or continue with email</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Email */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email Address</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputIcon}>📧</Text>
+                  <TextInput
+                    style={[styles.input, errors.email && styles.inputError]}
+                    placeholder="Enter your email"
+                    value={email}
+                    onChangeText={(value) => handleInputChange('email', value)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+                {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+              </View>
+
+              {/* Password */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputIcon}>🔒</Text>
+                  <TextInput
+                    style={[styles.input, errors.password && styles.inputError]}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChangeText={(value) => handleInputChange('password', value)}
+                    secureTextEntry={!showPassword}
+                    autoComplete="current-password"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeButton}
+                  >
+                    <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                  </TouchableOpacity>
+                </View>
+                {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+              </View>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                onPress={handleSignIn}
+                disabled={isLoading}
+                style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#3B82F6', '#8B5CF6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.submitButtonGradient}
+                >
+                  {isLoading ? (
+                    <View style={styles.loadingContainer}>
+                      <View style={styles.loadingSpinner} />
+                      <Text style={styles.submitButtonText}>Signing In...</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.submitButtonText}>Sign In</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Forgot Password */}
+              <View style={styles.forgotPasswordContainer}>
+                <TouchableOpacity>
+                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Footer */}
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>
+                  Don't have an account?{' '}
+                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('SignUpScreen')}>
+                  <Text style={styles.footerLink}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  header: {
+    paddingTop: 32,
+    paddingBottom: 24,
+    alignItems: 'center',
+  },
+  logoContainer: {
+    alignItems: 'center',
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  logoText: {
+    fontSize: 36,
+  },
+  brandTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+    fontFamily: 'System',
+  },
+  brandSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'System',
   },
   scrollView: {
     flex: 1,
   },
-  content: {
-    flex: 1,
+  formContainer: {
     paddingHorizontal: 24,
-    paddingTop: 20,
-    justifyContent: 'center',
-    minHeight: 500,
+    paddingBottom: 24,
   },
-  backButtonContainer: {
-    alignItems: 'flex-start',
-    marginBottom: 20,
+  formWrapper: {
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F9FAFB',
+  googleButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  backButtonText: {
-    fontSize: 18,
-    color: '#6B7280',
+  googleIcon: {
+    fontSize: 20,
+    marginRight: 12,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  subtitle: {
+  googleButtonText: {
     fontSize: 16,
-    textAlign: 'center',
-    color: '#6B7280',
-    lineHeight: 24,
+    fontWeight: '600',
+    color: '#1F2937',
+    fontFamily: 'System',
   },
-  form: {
-    gap: 20,
-    marginBottom: 32,
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'System',
   },
   inputGroup: {
-    gap: 8,
+    marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1F2937',
+    marginBottom: 8,
+    fontFamily: 'System',
   },
-  actions: {
-    gap: 24,
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
-  buttonWrapper: {
-    width: '100%',
+  inputIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 12,
+    fontFamily: 'System',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  eyeButton: {
+    padding: 4,
+  },
+  eyeIcon: {
+    fontSize: 20,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    fontFamily: 'System',
+  },
+  submitButton: {
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  submitButtonGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingSpinner: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderTopColor: '#FFFFFF',
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  submitButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontFamily: 'System',
+  },
+  forgotPasswordContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: '#3B82F6',
+    fontWeight: '500',
+    fontFamily: 'System',
   },
   footer: {
     flexDirection: 'row',
@@ -195,10 +442,12 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#6B7280',
+    fontFamily: 'System',
   },
-  link: {
+  footerLink: {
     fontSize: 14,
     color: '#3B82F6',
-    fontWeight: '500',
+    fontWeight: '600',
+    fontFamily: 'System',
   },
 })

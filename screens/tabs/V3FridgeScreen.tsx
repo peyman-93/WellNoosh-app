@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Modal, TextInput } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import RecipeDetailScreen from '../RecipeDetailScreen'
 
 interface LeftoverItem {
   id: string
@@ -29,6 +30,8 @@ export default function V3FridgeScreen() {
   const [leftovers, setLeftovers] = useState<LeftoverItem[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
   const [showMealCompletionModal, setShowMealCompletionModal] = useState(false)
+  const [showRecipeDetail, setShowRecipeDetail] = useState(false)
+  const [selectedRecipe, setSelectedRecipe] = useState<any>(null)
   const [showRecipeGeneratorModal, setShowRecipeGeneratorModal] = useState(false)
   const [showCookingPreferencesModal, setShowCookingPreferencesModal] = useState(false)
   const [newLeftover, setNewLeftover] = useState({
@@ -48,11 +51,10 @@ export default function V3FridgeScreen() {
     healthFocus: 'balanced' as 'healthy' | 'balanced' | 'delicious',
     difficulty: 'easy' as 'easy' | 'medium' | 'challenging'
   })
+  const [userRatings, setUserRatings] = useState<{[key: string]: number}>({})
 
   useEffect(() => {
     loadLeftovers()
-    // Simulate a completed meal for demo
-    simulateCompletedMeal()
   }, [])
 
   const loadLeftovers = async () => {
@@ -222,18 +224,57 @@ export default function V3FridgeScreen() {
           clearInterval(progressInterval)
           return 100
         }
-        return prev + 2 // 2% every 100ms = 5 seconds total
+        return prev + 10 // 10% every 100ms = 1 second total
       })
     }, 100)
 
-    // Generate recipe after 5 seconds
+    // Generate recipe after 1.5 seconds
     setTimeout(() => {
       const selectedItems = leftovers.filter(item => selectedLeftovers.includes(item.id))
       const recipe = createRecipeFromLeftovers(selectedItems)
-      setGeneratedRecipe(recipe)
+      setSelectedRecipe(recipe)
       setIsGeneratingRecipe(false)
       setRecipeGenerationProgress(0)
-    }, 5000)
+      setShowRecipeGeneratorModal(false)
+      setShowRecipeDetail(true)
+      clearSelection()
+    }, 1500)
+  }
+
+  const handleStartCooking = () => {
+    // This will trigger the meal completion screen after cooking
+    setShowRecipeDetail(false)
+    setSelectedRecipe(null)
+    
+    // Simulate cooking completion and show meal completion modal
+    setTimeout(() => {
+      const mockMeal: MealCompletionItem = {
+        mealName: selectedRecipe?.name || "Your Recipe",
+        date: new Date().toISOString().split('T')[0],
+        portions: {
+          consumed: selectedRecipe?.baseServings - 1 || 3,
+          leftover: 1,
+          total: selectedRecipe?.baseServings || 4
+        },
+        leftovers: [
+          {
+            id: `leftover-${Date.now()}`,
+            name: `${selectedRecipe?.name} leftovers`,
+            addedDate: new Date().toISOString(),
+            quantity: "1 portion",
+            category: 'other',
+            status: 'fresh'
+          }
+        ]
+      }
+      setCurrentMeal(mockMeal)
+      setShowMealCompletionModal(true)
+    }, 1000)
+  }
+
+  const handleAddToGroceryList = (ingredient: any) => {
+    console.log('Adding to grocery list:', ingredient)
+    Alert.alert('Added to Grocery List', `${ingredient.name} has been added to your grocery list.`)
   }
 
   const createRecipeFromLeftovers = (items: LeftoverItem[]) => {
@@ -319,6 +360,7 @@ export default function V3FridgeScreen() {
     }
 
     const instructions = generateInstructions(cookingMethod, items, additionalIngredients)
+    const nutrition = getNutritionInfo(healthFocus, items.length)
     
     const tags = ['leftover-friendly', 'sustainable', cookingMethod]
     if (healthFocus === 'healthy') tags.push('healthy', 'nutritious')
@@ -333,22 +375,36 @@ export default function V3FridgeScreen() {
       description = `An indulgent and flavorful recipe that transforms your leftovers into something truly special!`
     }
 
+    // Format recipe for RecipeDetailScreen compatibility
     return {
       id: `recipe-${Date.now()}`,
       name: recipeName,
       image: getRecipeImage(cookingMethod, healthFocus),
       cookTime: getCookTime(cookingMethod, timePreference),
-      servings: Math.max(2, Math.ceil(items.length / 2)),
       difficulty: getDifficulty(difficulty),
       rating: 4.2 + Math.random() * 0.6,
       tags,
       description,
+      baseServings: Math.max(2, Math.ceil(items.length / 2)),
       ingredients: [
-        ...items.map(item => ({ name: item.name, amount: item.quantity || '1 portion', category: item.category })),
-        ...additionalIngredients.map(ingredient => ({ name: ingredient, amount: 'to taste', category: 'pantry' }))
+        ...items.map(item => ({ 
+          name: item.name, 
+          amount: item.quantity || '1', 
+          unit: 'portion', 
+          category: item.category 
+        })),
+        ...additionalIngredients.map(ingredient => ({ 
+          name: ingredient, 
+          amount: 'to', 
+          unit: 'taste', 
+          category: 'pantry' 
+        }))
       ],
       instructions,
-      nutrition: getNutritionInfo(healthFocus, items.length),
+      calories: nutrition.calories,
+      protein: nutrition.protein,
+      carbs: nutrition.carbs,
+      fat: nutrition.fat,
       usesLeftovers: items.map(item => item.name)
     }
   }
@@ -482,11 +538,93 @@ export default function V3FridgeScreen() {
     setSelectedLeftovers([])
   }
 
+  const removeSelectedItems = () => {
+    Alert.alert(
+      'Remove Items',
+      `Are you sure you want to remove ${selectedLeftovers.length} selected items?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            const updatedLeftovers = leftovers.filter(item => !selectedLeftovers.includes(item.id))
+            setLeftovers(updatedLeftovers)
+            saveLeftovers(updatedLeftovers)
+            setSelectedLeftovers([])
+          }
+        }
+      ]
+    )
+  }
+
   const filteredLeftovers = selectedCategory === 'all' 
     ? leftovers 
     : leftovers.filter(item => item.category === selectedCategory)
 
   const categories: Array<'all' | LeftoverItem['category']> = ['all', 'vegetables', 'proteins', 'grains', 'dairy', 'condiments', 'other']
+
+  // Create a custom Start Cooking handler that triggers meal completion
+  const handleCustomStartCooking = () => {
+    // Hide recipe detail and trigger meal completion
+    setShowRecipeDetail(false)
+    
+    // Simulate cooking completion after a brief delay
+    setTimeout(() => {
+      const mockMeal: MealCompletionItem = {
+        mealName: selectedRecipe.name,
+        date: new Date().toISOString().split('T')[0],
+        portions: {
+          consumed: selectedRecipe.baseServings - 1,
+          leftover: 1,
+          total: selectedRecipe.baseServings
+        },
+        leftovers: [
+          {
+            id: `leftover-${Date.now()}`,
+            name: `${selectedRecipe.name} leftovers`,
+            addedDate: new Date().toISOString(),
+            quantity: "1 portion",
+            category: 'other',
+            status: 'fresh'
+          }
+        ]
+      }
+      setCurrentMeal(mockMeal)
+      setShowMealCompletionModal(true)
+    }, 1000)
+  }
+
+  const handleRateRecipe = (recipeId: string, rating: number) => {
+    setUserRatings(prev => ({
+      ...prev,
+      [recipeId]: rating
+    }))
+  }
+
+  // Create a custom RecipeDetailScreen with meal completion integration
+  const CustomRecipeDetailScreen = () => (
+    <RecipeDetailScreen
+      recipe={selectedRecipe}
+      onNavigateBack={() => setShowRecipeDetail(false)}
+      fridgeItems={leftovers.map(item => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        quantity: 1,
+        unit: 'item'
+      }))}
+      onAddToGroceryList={handleAddToGroceryList}
+      onStartCooking={handleCustomStartCooking}
+      onRateRecipe={handleRateRecipe}
+      userRating={userRatings[selectedRecipe?.id]}
+    />
+  )
+
+  // Show recipe detail screen if recipe is selected
+  if (showRecipeDetail && selectedRecipe) {
+    return <CustomRecipeDetailScreen />
+  }
 
   return (
     <LinearGradient
@@ -500,10 +638,7 @@ export default function V3FridgeScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
-              <View style={styles.fridgeLogo}>
-                <Text style={styles.fridgeLogoIcon}>❄️</Text>
-              </View>
-              <Text style={styles.title}>My Fridge & Pantry</Text>
+              <Text style={styles.title}>❄️ Fridge & Pantry</Text>
             </View>
             <Text style={styles.subtitle}>Track your leftovers and reduce food waste</Text>
           </View>
@@ -511,17 +646,14 @@ export default function V3FridgeScreen() {
           {/* Stats Cards */}
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
-              <Text style={styles.statIcon}>📊</Text>
               <Text style={styles.statValue}>{leftovers.length}</Text>
               <Text style={styles.statLabel}>Items Tracked</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statIcon}>✨</Text>
               <Text style={styles.statValue}>{leftovers.filter(item => item.status === 'fresh').length}</Text>
               <Text style={styles.statLabel}>Fresh Items</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statIcon}>⚠️</Text>
               <Text style={styles.statValue}>{leftovers.filter(item => item.status === 'expiring').length}</Text>
               <Text style={styles.statLabel}>Use Soon</Text>
             </View>
@@ -556,11 +688,11 @@ export default function V3FridgeScreen() {
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={[styles.addButton, { flex: 1 }]}
-              onPress={() => setShowAddModal(true)}
+              style={[selectedLeftovers.length > 0 ? styles.removeSelectedButton : styles.addButton, { flex: 1 }]}
+              onPress={() => selectedLeftovers.length > 0 ? removeSelectedItems() : setShowAddModal(true)}
             >
-              <Text style={styles.addButtonIcon}>➕</Text>
-              <Text style={styles.addButtonText}>Add Item</Text>
+              <Text style={styles.addButtonIcon}>{selectedLeftovers.length > 0 ? '🗑️' : '➕'}</Text>
+              <Text style={styles.addButtonText}>{selectedLeftovers.length > 0 ? 'Remove Items' : 'Add Item'}</Text>
             </TouchableOpacity>
 
             {selectedLeftovers.length > 0 && (
@@ -617,11 +749,6 @@ export default function V3FridgeScreen() {
                   >
                     <View style={styles.leftoverHeader}>
                       <View style={styles.leftoverTitleRow}>
-                        <View style={styles.selectionCheckbox}>
-                          <Text style={styles.checkboxIcon}>
-                            {isSelected ? '☑️' : '☐'}
-                          </Text>
-                        </View>
                         <Text style={styles.leftoverIcon}>{getCategoryIcon(item.category)}</Text>
                         <Text style={styles.leftoverName}>{item.name}</Text>
                         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
@@ -1241,14 +1368,14 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
+    gap: 8,
+    marginBottom: 20,
   },
   statCard: {
     flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 10,
+    padding: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -1259,8 +1386,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   statIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+    fontSize: 16,
+    marginBottom: 6,
   },
   statValue: {
     fontSize: 20,
@@ -1326,6 +1453,20 @@ const styles = StyleSheet.create({
     elevation: 4,
     gap: 8,
   },
+  removeSelectedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 8,
+  },
   generateRecipeButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1381,7 +1522,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   leftoversList: {
-    gap: 12,
+    gap: 8,
   },
   emptyState: {
     alignItems: 'center',
@@ -1405,8 +1546,8 @@ const styles = StyleSheet.create({
   },
   leftoverCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 10,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#000',
@@ -1420,26 +1561,20 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: 'rgba(124, 58, 237, 0.05)',
   },
-  selectionCheckbox: {
-    marginRight: 8,
-  },
-  checkboxIcon: {
-    fontSize: 18,
-  },
   leftoverHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   leftoverTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 8,
+    gap: 6,
   },
   leftoverIcon: {
-    fontSize: 20,
+    fontSize: 16,
   },
   leftoverName: {
     fontSize: 16,
@@ -1448,14 +1583,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   statusBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
   },
   removeButton: {
     padding: 4,

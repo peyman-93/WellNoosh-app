@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
+import { CommonActions } from '@react-navigation/native'
 
 interface CookedRecipe {
   id: string
@@ -77,7 +78,10 @@ export function RecentActivity({ cookedRecipes }: RecentActivityProps) {
       
       <Pressable 
         style={styles.viewAllButton}
-        onPress={() => navigation.navigate('Profile' as never)}
+        onPress={() => {
+          console.log('🔍 Recent Activity - navigating to Profile...');
+          navigation.navigate('Profile' as never);
+        }}
       >
         <Text style={styles.viewAllText}>View All Activity →</Text>
       </Pressable>

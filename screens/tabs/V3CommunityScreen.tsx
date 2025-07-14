@@ -182,7 +182,7 @@ export default function V3CommunityScreen() {
       style={styles.container}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Community</Text>
+        <Text style={styles.title}>👥</Text>
         <Text style={styles.subtitle}>Join challenges and connect with others</Text>
         
         {/* Tab Navigation */}

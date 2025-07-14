@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar'
 // Context Providers
 import { QueryProvider } from '@/context/query-provider'
 import { AuthProvider, setGlobalNavigationRef } from '@/context/supabase-provider'
+import { UserDataProvider } from '@/context/user-data-provider'
 
 // Screens
 import WelcomeScreen from '@/screens/WelcomeScreen'
@@ -35,6 +36,38 @@ function AppNavigator() {
     setGlobalNavigationRef(navigationRef.current)
   }
 
+  // Handle navigation when session changes  
+  useEffect(() => {
+    // Wait a bit after initialization to ensure navigation is ready
+    const timer = setTimeout(() => {
+      if (!initialized || !navigationRef.current?.isReady()) {
+        return
+      }
+
+      const currentRoute = navigationRef.current.getCurrentRoute()?.name
+      console.log('Current route:', currentRoute, 'Session:', !!session)
+
+      // Navigate to MainTabs when authenticated
+      if (session && currentRoute !== 'MainTabs') {
+        console.log('User authenticated, navigating to MainTabs')
+        navigationRef.current.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        })
+      }
+      // Navigate to WelcomeScreen when signed out (but only if we're on MainTabs)
+      else if (!session && currentRoute === 'MainTabs') {
+        console.log('User signed out, navigating to WelcomeScreen')
+        navigationRef.current.reset({
+          index: 0,
+          routes: [{ name: 'WelcomeScreen' }],
+        })
+      }
+    }, 500) // Wait 500ms to ensure navigation is ready
+
+    return () => clearTimeout(timer)
+  }, [session, initialized])
+
   // Force re-render debug
   console.log('=== APP NAVIGATOR DEBUG ===')
   console.log('Render timestamp:', new Date().toISOString())
@@ -53,17 +86,19 @@ function AppNavigator() {
     <NavigationContainer 
       ref={navigationRef}
       onReady={onNavigationReady}
+      onStateChange={(state) => {
+        console.log('Navigation state changed:', state?.routes[state.index]?.name)
+      }}
     >
       <StatusBar style="auto" />
       <Stack.Navigator 
-        initialRouteName={session ? 'MainTabs' : 'Welcome'}
+        initialRouteName={session ? 'MainTabs' : 'WelcomeScreen'}
         screenOptions={{ headerShown: false }}
       >
-        {/* Always include all screens - navigation is handled by auth provider */}
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="SignIn" component={SignInScreen} />
-        <Stack.Screen name="Onboarding" component={OnboardingStack} />
+        <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
+        <Stack.Screen name="SignUpScreen" component={SignUpScreen} />
+        <Stack.Screen name="SignInScreen" component={SignInScreen} />
+        <Stack.Screen name="OnboardingStack" component={OnboardingStack} />
         <Stack.Screen name="MainTabs" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>
@@ -76,7 +111,9 @@ export default function App() {
   return (
     <QueryProvider>
       <AuthProvider>
-        <AppNavigator />
+        <UserDataProvider>
+          <AppNavigator />
+        </UserDataProvider>
       </AuthProvider>
     </QueryProvider>
   )

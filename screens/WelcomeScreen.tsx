@@ -12,10 +12,12 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const { signInWithGoogle } = useAuth()
 
   const handleGetStarted = () => {
+    console.log('WelcomeScreen: Navigating to SignUpScreen')
     navigation.navigate('SignUpScreen')
   }
 
   const handleSignIn = () => {
+    console.log('WelcomeScreen: Navigating to SignInScreen')
     navigation.navigate('SignInScreen')
   }
 

@@ -8,7 +8,6 @@ import {
   Image 
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { IPhoneWrapper } from '@/components/iphone/IPhoneWrapper'
 
 interface LandingScreenProps {
   onGetStarted: () => void
@@ -20,13 +19,12 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   onSignIn 
 }) => {
   return (
-    <IPhoneWrapper>
-      <LinearGradient
-        colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.container}
-      >
+    <LinearGradient
+      colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
         {/* Header with Logo */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -129,8 +127,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             </View>
           </View>
         </ScrollView>
-      </LinearGradient>
-    </IPhoneWrapper>
+    </LinearGradient>
   )
 }
 

@@ -227,28 +227,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setSession(session)
       setForceRender(prev => prev + 1)
       
-      // Direct navigation control using global ref
-      if (globalNavigationRef) {
-        if (session) {
-          console.log('🚀 AUTH: User authenticated - using global nav to go to MainTabs')
-          setTimeout(() => {
-            globalNavigationRef.reset({
-              index: 0,
-              routes: [{ name: 'MainTabs' }],
-            })
-          }, 200)
-        } else {
-          console.log('🚀 AUTH: User signed out - using global nav to go to Welcome')
-          setTimeout(() => {
-            globalNavigationRef.reset({
-              index: 0,
-              routes: [{ name: 'Welcome' }],
-            })
-          }, 200)
-        }
-      } else {
-        console.log('❌ AUTH: No global navigation ref available')
-      }
+      // Navigation is now handled by conditional rendering in App.tsx
+      console.log('AUTH: Session state changed, navigation will be handled by conditional rendering')
       
       // Force multiple renders to ensure all components update (especially for sign out)
       setTimeout(() => {

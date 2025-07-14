@@ -26,26 +26,56 @@ A cross-platform mobile meal-planning app built with React Native and Expo. Well
 
 ### Installation
 
-1. **Install dependencies**:
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd WellNoosh-app
+   ```
+
+2. **Install dependencies**:
    ```bash
    npm install
    ```
 
-2. **Set up environment variables**:
+3. **Set up environment variables**:
+   Create a `.env` file in the root directory with your Supabase credentials:
    ```bash
-   cp .env.example .env
-   # Edit .env with your Supabase credentials
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url_here
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
    ```
 
-3. **Start the development server**:
+4. **Start the development server**:
    ```bash
    npm start
    ```
 
-4. **Run on your platform**:
+5. **Run on your platform**:
    - Press `i` for iOS Simulator
-   - Press `a` for Android Emulator
+   - Press `a` for Android Emulator  
+   - Press `w` for web browser
    - Scan QR code with Expo Go app for physical device
+
+### Quick Start Commands
+
+```bash
+# Start development server
+npm start
+
+# Run on iOS simulator
+npm run ios
+
+# Run on Android emulator
+npm run android
+
+# Run on web
+npm run web
+
+# Type checking
+npm run typecheck
+
+# Linting and formatting
+npm run lint
+```
 
 ## 📱 App Structure
 

@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '@/context/supabase-provider'
+import { useUserData } from '@/context/user-data-provider'
 
 type AllergyType = 'gluten' | 'dairy' | 'nuts' | 'shellfish' | 'soy' | 'eggs' | 'fish' | 'sesame'
 
@@ -41,6 +42,7 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
   const [isLoading, setIsLoading] = useState(false)
   const [hasCompletedAuth, setHasCompletedAuth] = useState(false)
   const { signUp, signIn, session } = useAuth()
+  const { updateUserData } = useUserData()
 
   // Monitor session changes and navigate to main app when authenticated
   useEffect(() => {
@@ -167,7 +169,7 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
               [
                 {
                   text: 'Go to Sign In',
-                  onPress: () => navigation.navigate('SignInScreen')
+                  onPress: () => navigation.navigate('MedicalConditions')
                 },
                 {
                   text: 'Try Again',
@@ -189,11 +191,33 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
     }
   }
 
-  const handleContinue = () => {
-    completeOnboarding()
+  const handleContinue = async () => {
+    console.log('Selected allergies:', selectedAllergies)
+    
+    try {
+      // Save allergies data to UserDataContext
+      await updateUserData({
+        allergies: selectedAllergies
+      })
+      console.log('📚 AllergiesScreen: Saved allergies data:', selectedAllergies)
+    } catch (error) {
+      console.error('📚 AllergiesScreen: Error saving allergies:', error)
+    }
+    
+    navigation.navigate('MedicalConditions')
   }
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    try {
+      // Save empty allergies data to UserDataContext
+      await updateUserData({
+        allergies: []
+      })
+      console.log('📚 AllergiesScreen: Saved empty allergies data (skipped)')
+    } catch (error) {
+      console.error('📚 AllergiesScreen: Error saving allergies:', error)
+    }
+    
     completeOnboarding()
   }
 

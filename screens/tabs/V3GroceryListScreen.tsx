@@ -351,7 +351,7 @@ export default function V3GroceryListScreen() {
     >
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          <Text style={styles.title}>Grocery List</Text>
+          <Text style={styles.title}>🛒</Text>
           <Text style={styles.subtitle}>Smart shopping lists based on your meal plans</Text>
           
           {/* Search Bar */}

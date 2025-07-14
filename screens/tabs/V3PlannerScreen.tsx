@@ -718,10 +718,7 @@ export default function V3PlannerScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
-              <View style={styles.wellnessLogo}>
-                <Text style={styles.wellnessLogoIcon}>🌿</Text>
-              </View>
-              <Text style={styles.title}>Meal Planner</Text>
+              <Text style={styles.title}>🗓️ Meal Planner</Text>
             </View>
           </View>
 

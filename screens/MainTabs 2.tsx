@@ -9,7 +9,6 @@ import V3PlannerScreen from '@/screens/tabs/V3PlannerScreen'
 import V3CommunityScreen from '@/screens/tabs/V3CommunityScreen'
 import V3GroceryListScreen from '@/screens/tabs/V3GroceryListScreen'
 import V3FridgeScreen from '@/screens/tabs/V3FridgeScreen'
-import ProfileScreen from '@/screens/ProfileScreen'
 
 // Tab icon components
 const HomeIcon = ({ color, size }: { color: string; size: number }) => (
@@ -88,14 +87,14 @@ export default function MainTabs() {
           marginBottom: 2,
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 8,
           marginBottom: 0,
         },
         tabBarItemStyle: {
           paddingVertical: 0,
           justifyContent: 'flex-start',
           alignItems: 'center',
-          paddingTop: 4,
+          paddingTop: 8,
         },
       }}
     >
@@ -140,22 +139,6 @@ export default function MainTabs() {
         component={V3FridgeScreen}
         options={{
           tabBarIcon: FridgeIcon,
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
-          tabBarIconStyle: { display: 'none' },
-          tabBarLabelStyle: { display: 'none' },
-          tabBarBadgeStyle: { display: 'none' },
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault(); // Prevent default tab behavior
-          },
         }}
       />
     </Tab.Navigator>
