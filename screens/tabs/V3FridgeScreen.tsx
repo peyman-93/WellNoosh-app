@@ -40,6 +40,9 @@ export default function V3FridgeScreen() {
     category: 'other' as LeftoverItem['category'],
     expiryDays: 3
   })
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordedAudio, setRecordedAudio] = useState<string | null>(null)
+  const [recordingDuration, setRecordingDuration] = useState(0)
   const [currentMeal, setCurrentMeal] = useState<MealCompletionItem | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<'all' | LeftoverItem['category']>('all')
   const [selectedLeftovers, setSelectedLeftovers] = useState<string[]>([])
@@ -143,6 +146,62 @@ export default function V3FridgeScreen() {
       expired: '🚫'
     }
     return icons[status]
+  }
+
+  // Voice recording functions
+  const startRecording = async () => {
+    setIsRecording(true)
+    setRecordingDuration(0)
+    
+    // Simulate recording duration counter
+    const interval = setInterval(() => {
+      setRecordingDuration(prev => prev + 1)
+    }, 1000)
+    
+    // Store interval reference for cleanup
+    setTimeout(() => {
+      clearInterval(interval)
+    }, 30000) // Max 30 seconds
+  }
+  
+  const stopRecording = () => {
+    setIsRecording(false)
+    // Simulate recorded audio file
+    setRecordedAudio(`voice-note-${Date.now()}.m4a`)
+    Alert.alert(
+      'Voice Note Recorded! 🎤', 
+      `Recorded ${recordingDuration} seconds of audio. You can transcribe it or save as is.`,
+      [
+        { text: 'Transcribe to Text', onPress: transcribeAudio },
+        { text: 'Keep as Voice Note', onPress: () => {} }
+      ]
+    )
+  }
+  
+  const transcribeAudio = () => {
+    // Simulate transcription - in real app, this would call a speech-to-text service
+    const mockTranscriptions = [
+      "leftover chicken from dinner, about 2 portions",
+      "half a bowl of rice from lunch",
+      "some vegetables from yesterday's stir fry",
+      "pasta with tomato sauce, 1 serving",
+      "grilled salmon, one piece"
+    ]
+    const transcribed = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)]
+    
+    // Parse the transcription to fill the form
+    setNewLeftover(prev => ({
+      ...prev,
+      name: transcribed
+    }))
+    
+    Alert.alert('Voice Transcribed! ✨', `"${transcribed}" has been added to the item name.`)
+    setRecordedAudio(null)
+  }
+  
+  const deleteRecording = () => {
+    setRecordedAudio(null)
+    setRecordingDuration(0)
   }
 
   const addLeftover = () => {
@@ -638,9 +697,8 @@ export default function V3FridgeScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>❄️ Fridge & Pantry</Text>
+              <Text style={styles.headerIcon}>❄️</Text>
             </View>
-            <Text style={styles.subtitle}>Track your leftovers and reduce food waste</Text>
           </View>
 
           {/* Stats Cards */}
@@ -814,6 +872,62 @@ export default function V3FridgeScreen() {
                 placeholder="e.g., Leftover pasta, Roasted vegetables"
                 placeholderTextColor="#9CA3AF"
               />
+              
+              {/* Voice Recording Section */}
+              <View style={styles.voiceRecordingSection}>
+                <Text style={styles.voiceRecordingLabel}>or record a voice note</Text>
+                
+                {!isRecording && !recordedAudio && (
+                  <TouchableOpacity 
+                    style={styles.voiceRecordButton}
+                    onPress={startRecording}
+                  >
+                    <Text style={styles.voiceRecordIcon}>🎤</Text>
+                    <Text style={styles.voiceRecordText}>Tap to record</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {isRecording && (
+                  <View style={styles.recordingActive}>
+                    <View style={styles.recordingIndicator}>
+                      <View style={styles.recordingDot} />
+                      <Text style={styles.recordingText}>Recording... {recordingDuration}s</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.stopRecordButton}
+                      onPress={stopRecording}
+                    >
+                      <Text style={styles.stopRecordText}>Stop</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                
+                {recordedAudio && (
+                  <View style={styles.recordedAudioContainer}>
+                    <View style={styles.audioInfo}>
+                      <Text style={styles.audioIcon}>🎵</Text>
+                      <View style={styles.audioDetails}>
+                        <Text style={styles.audioFileName}>Voice note recorded</Text>
+                        <Text style={styles.audioDuration}>{recordingDuration} seconds</Text>
+                      </View>
+                    </View>
+                    <View style={styles.audioActions}>
+                      <TouchableOpacity 
+                        style={styles.transcribeButton}
+                        onPress={transcribeAudio}
+                      >
+                        <Text style={styles.transcribeButtonText}>Transcribe</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.deleteAudioButton}
+                        onPress={deleteRecording}
+                      >
+                        <Text style={styles.deleteAudioText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
@@ -1337,8 +1451,10 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+    justifyContent: 'flex-start',
+  },
+  headerIcon: {
+    fontSize: 28,
   },
   fridgeLogo: {
     width: 40,
@@ -2289,5 +2405,132 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  
+  // Voice Recording Styles
+  voiceRecordingSection: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  voiceRecordingLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  voiceRecordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    gap: 8,
+  },
+  voiceRecordIcon: {
+    fontSize: 20,
+  },
+  voiceRecordText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  recordingActive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  recordingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  recordingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  stopRecordButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+  },
+  stopRecordText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  recordedAudioContainer: {
+    padding: 16,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  audioInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  audioIcon: {
+    fontSize: 24,
+  },
+  audioDetails: {
+    flex: 1,
+  },
+  audioFileName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#166534',
+  },
+  audioDuration: {
+    fontSize: 14,
+    color: '#16A34A',
+  },
+  audioActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  transcribeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#10B981',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  transcribeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  deleteAudioButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#F87171',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteAudioText: {
+    fontSize: 16,
   },
 })

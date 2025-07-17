@@ -24,8 +24,6 @@ export default function OnboardingWelcomeScreen({ navigation }: OnboardingWelcom
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: '16.67%' }]} />
         </View>
-        <Text style={styles.stepText}>Step 1</Text>
-        <Text style={styles.stepCount}>6 Steps</Text>
       </View>
 
       {/* Main Content */}

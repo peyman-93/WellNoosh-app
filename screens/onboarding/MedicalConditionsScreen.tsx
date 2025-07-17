@@ -6,11 +6,15 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useUserData } from '@/context/user-data-provider'
 
 const medicalConditions = [
+  { id: 'none', name: 'None', emoji: '✅' },
   { id: 'diabetes', name: 'Diabetes', emoji: '🩺' },
   { id: 'high-blood-pressure', name: 'High Blood Pressure', emoji: '💓' },
   { id: 'high-cholesterol', name: 'High Cholesterol', emoji: '🧈' },
@@ -21,7 +25,6 @@ const medicalConditions = [
   { id: 'digestive-issues', name: 'Digestive Issues', emoji: '🫄' },
   { id: 'eating-disorder', name: 'Eating Disorder', emoji: '🧠' },
   { id: 'other', name: 'Other', emoji: '📋' },
-  { id: 'none', name: 'None', emoji: '✅' },
 ]
 
 interface MedicalConditionsScreenProps {
@@ -30,12 +33,28 @@ interface MedicalConditionsScreenProps {
 
 export default function MedicalConditionsScreen({ navigation }: MedicalConditionsScreenProps) {
   const [selectedConditions, setSelectedConditions] = useState<string[]>([])
+  const [showCustomInput, setShowCustomInput] = useState(false)
+  const [customCondition, setCustomCondition] = useState('')
   const { updateUserData } = useUserData()
 
   const handleConditionToggle = (conditionId: string) => {
     if (conditionId === 'none') {
       // If "None" is selected, clear all other selections
       setSelectedConditions(['none'])
+      setShowCustomInput(false)
+      setCustomCondition('')
+    } else if (conditionId === 'other') {
+      // If "Other" is selected, show custom input
+      const updatedConditions = selectedConditions.filter(id => id !== 'none')
+      
+      if (selectedConditions.includes(conditionId)) {
+        setSelectedConditions(updatedConditions.filter(id => id !== conditionId))
+        setShowCustomInput(false)
+        setCustomCondition('')
+      } else {
+        setSelectedConditions([...updatedConditions, conditionId])
+        setShowCustomInput(true)
+      }
     } else {
       // If any other condition is selected, remove "None"
       const updatedConditions = selectedConditions.filter(id => id !== 'none')
@@ -49,14 +68,19 @@ export default function MedicalConditionsScreen({ navigation }: MedicalCondition
   }
 
   const handleContinue = async () => {
-    console.log('Selected medical conditions:', selectedConditions)
+    const conditionsData = {
+      selectedConditions,
+      customCondition: showCustomInput ? customCondition : null
+    }
+    console.log('Selected medical conditions:', conditionsData)
     
     try {
       // Save medical conditions data to UserDataContext
       await updateUserData({
-        medicalConditions: selectedConditions
+        medicalConditions: selectedConditions,
+        customMedicalCondition: showCustomInput ? customCondition : null
       })
-      console.log('📚 MedicalConditionsScreen: Saved medical conditions data:', selectedConditions)
+      console.log('📚 MedicalConditionsScreen: Saved medical conditions data:', conditionsData)
     } catch (error) {
       console.error('📚 MedicalConditionsScreen: Error saving medical conditions:', error)
     }
@@ -81,7 +105,6 @@ export default function MedicalConditionsScreen({ navigation }: MedicalCondition
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '50%' }]} />
           </View>
-          <Text style={styles.stepText}>Step 3</Text>
         </View>
       </View>
 
@@ -124,6 +147,27 @@ export default function MedicalConditionsScreen({ navigation }: MedicalCondition
             </Pressable>
           ))}
         </View>
+
+        {/* Custom Input Field */}
+        {showCustomInput && (
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.customInputContainer}
+          >
+            <Text style={styles.customInputLabel}>
+              Please describe your medical condition:
+            </Text>
+            <TextInput
+              style={styles.customInput}
+              placeholder="e.g., Celiac disease, GERD, Food intolerance..."
+              multiline
+              numberOfLines={3}
+              value={customCondition}
+              onChangeText={setCustomCondition}
+              textAlignVertical="top"
+            />
+          </KeyboardAvoidingView>
+        )}
       </ScrollView>
 
       {/* Bottom Section */}
@@ -298,5 +342,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  customInputContainer: {
+    marginBottom: 24,
+  },
+  customInputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  customInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 80,
+    backgroundColor: '#F9FAFB',
   },
 })

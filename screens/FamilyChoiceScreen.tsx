@@ -7,11 +7,13 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   Alert,
-  Pressable
+  Pressable,
+  Modal
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/DesignTokens'
 import StarRating from '@/components/StarRating'
+import FamilyMemberSelectionScreen from './FamilyMemberSelectionScreen'
 
 interface Recipe {
   id: string
@@ -42,11 +44,145 @@ interface FamilyChoiceScreenProps {
   initialRecipe?: Recipe
 }
 
+interface ShareModalProps {
+  visible: boolean
+  onClose: () => void
+  onShareWhatsApp: () => void
+  onShareInApp: () => void
+  selectedRecipes: Recipe[]
+}
+
 interface FilterBarProps {
   activeFilters: string[]
   activeCuisineFilters: string[]
   onFilterToggle: (filter: string) => void
   onCuisineFilterToggle: (filter: string) => void
+}
+
+function ShareModal({ visible, onClose, onShareWhatsApp, onShareInApp, selectedRecipes }: ShareModalProps) {
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inapp'>('inapp')
+
+  return (
+    <View style={shareModalStyles.modalOverlay}>
+      <View style={shareModalStyles.modalContainer}>
+        <View style={shareModalStyles.modalHeader}>
+          <Text style={shareModalStyles.modalTitle}>Share Voting Session</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={shareModalStyles.closeButton}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tab Buttons */}
+        <View style={shareModalStyles.tabContainer}>
+          <TouchableOpacity
+            style={[
+              shareModalStyles.tabButton,
+              activeTab === 'inapp' && shareModalStyles.activeTab
+            ]}
+            onPress={() => setActiveTab('inapp')}
+          >
+            <Text style={shareModalStyles.tabIcon}>👥</Text>
+            <Text style={[
+              shareModalStyles.tabText,
+              activeTab === 'inapp' && shareModalStyles.activeTabText
+            ]}>
+              Community
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              shareModalStyles.tabButton,
+              activeTab === 'whatsapp' && shareModalStyles.activeTab
+            ]}
+            onPress={() => setActiveTab('whatsapp')}
+          >
+            <Text style={shareModalStyles.tabIcon}>💬</Text>
+            <Text style={[
+              shareModalStyles.tabText,
+              activeTab === 'whatsapp' && shareModalStyles.activeTabText
+            ]}>
+              WhatsApp
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tab Content */}
+        <View style={shareModalStyles.tabContent}>
+          {activeTab === 'inapp' ? (
+            <View>
+              <Text style={shareModalStyles.description}>
+                Share with family members who are already using WellNoosh
+              </Text>
+              
+              <View style={shareModalStyles.featureList}>
+                <View style={shareModalStyles.featureItem}>
+                  <Text style={shareModalStyles.featureIcon}>✅</Text>
+                  <Text style={shareModalStyles.featureText}>Real-time voting updates</Text>
+                </View>
+                <View style={shareModalStyles.featureItem}>
+                  <Text style={shareModalStyles.featureIcon}>📊</Text>
+                  <Text style={shareModalStyles.featureText}>Live results dashboard</Text>
+                </View>
+                <View style={shareModalStyles.featureItem}>
+                  <Text style={shareModalStyles.featureIcon}>🔔</Text>
+                  <Text style={shareModalStyles.featureText}>Automatic notifications</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={shareModalStyles.shareButton}
+                onPress={onShareInApp}
+              >
+                <Text style={shareModalStyles.shareButtonText}>Share in Community</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
+              <Text style={shareModalStyles.description}>
+                Send voting link via WhatsApp to family members
+              </Text>
+              
+              <View style={shareModalStyles.featureList}>
+                <View style={shareModalStyles.featureItem}>
+                  <Text style={shareModalStyles.featureIcon}>🔗</Text>
+                  <Text style={shareModalStyles.featureText}>Simple voting link</Text>
+                </View>
+                <View style={shareModalStyles.featureItem}>
+                  <Text style={shareModalStyles.featureIcon}>📱</Text>
+                  <Text style={shareModalStyles.featureText}>No app required</Text>
+                </View>
+                <View style={shareModalStyles.featureItem}>
+                  <Text style={shareModalStyles.featureIcon}>👨‍👩‍👧‍👦</Text>
+                  <Text style={shareModalStyles.featureText}>Easy for all family members</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={[shareModalStyles.shareButton, shareModalStyles.whatsappButton]}
+                onPress={onShareWhatsApp}
+              >
+                <Text style={shareModalStyles.shareButtonText}>Share via WhatsApp</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Selected Recipes Preview */}
+        <View style={shareModalStyles.recipePreview}>
+          <Text style={shareModalStyles.previewTitle}>Recipes for voting:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {selectedRecipes.map((recipe, index) => (
+              <View key={recipe.id} style={shareModalStyles.recipePreviewItem}>
+                <Text style={shareModalStyles.recipePreviewEmoji}>{recipe.image}</Text>
+                <Text style={shareModalStyles.recipePreviewName}>{recipe.name}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </View>
+  )
 }
 
 function FilterBar({ activeFilters, activeCuisineFilters, onFilterToggle, onCuisineFilterToggle }: FilterBarProps) {
@@ -206,6 +342,8 @@ export default function FamilyChoiceScreen({
   const [activeCuisineFilters, setActiveCuisineFilters] = useState<string[]>([])
   const [selectedRecipes, setSelectedRecipes] = useState<string[]>(initialRecipe ? [initialRecipe.id] : [])
   const [favoriteRecipes] = useState<string[]>(['1', '3', '5']) // Mock favorites
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [showFamilySelection, setShowFamilySelection] = useState(false)
 
   // Mock recipe data - in real app, this would come from your recipe service
   const recipes: Recipe[] = [
@@ -419,8 +557,46 @@ export default function FamilyChoiceScreen({
       return
     }
 
+    setShowShareModal(true)
+  }
+
+  const handleShareWhatsApp = () => {
     const selectedRecipeObjects = recipes.filter(recipe => selectedRecipes.includes(recipe.id))
-    onCreateVote?.(selectedRecipeObjects)
+    
+    // Generate WhatsApp share message
+    const message = `🗳️ Family Dinner Vote!\n\nPlease vote for tonight's dinner:\n\n${
+      selectedRecipeObjects.map((recipe, index) => 
+        `${index + 1}. ${recipe.image} ${recipe.name}`
+      ).join('\n')
+    }\n\nClick here to vote: [voting link]`
+    
+    // In a real app, you would use Linking API to open WhatsApp
+    Alert.alert(
+      'WhatsApp Share',
+      'Voting link will be shared via WhatsApp',
+      [{ text: 'OK', onPress: () => {
+        setShowShareModal(false)
+        onCreateVote?.(selectedRecipeObjects)
+      }}]
+    )
+  }
+
+  const handleShareInApp = () => {
+    setShowShareModal(false)
+    setShowFamilySelection(true)
+  }
+
+  const handleFamilyMemberSelection = (memberIds: string[], groupId?: string) => {
+    const selectedRecipeObjects = recipes.filter(recipe => selectedRecipes.includes(recipe.id))
+    
+    Alert.alert(
+      'Vote Created!',
+      `Voting session shared with ${memberIds.length} family member${memberIds.length !== 1 ? 's' : ''}${groupId ? ' in selected group' : ''}`,
+      [{ text: 'OK', onPress: () => {
+        setShowFamilySelection(false)
+        onCreateVote?.(selectedRecipeObjects)
+      }}]
+    )
   }
 
   // Filter recipes based on active filters
@@ -466,6 +642,16 @@ export default function FamilyChoiceScreen({
 
     return passesMainFilter && passesCuisineFilter
   })
+
+  // Show family member selection screen if requested
+  if (showFamilySelection) {
+    return (
+      <FamilyMemberSelectionScreen
+        onBack={() => setShowFamilySelection(false)}
+        onSelectMembers={handleFamilyMemberSelection}
+      />
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -554,6 +740,22 @@ export default function FamilyChoiceScreen({
           </View>
         </ScrollView>
       </LinearGradient>
+
+      {/* Share Modal */}
+      <Modal
+        visible={showShareModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <ShareModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          onShareWhatsApp={handleShareWhatsApp}
+          onShareInApp={handleShareInApp}
+          selectedRecipes={recipes.filter(r => selectedRecipes.includes(r.id))}
+        />
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -846,5 +1048,142 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.small,
     color: Colors.primaryForeground,
     fontWeight: Typography.weights.medium,
+  },
+})
+
+const shareModalStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: BorderRadius.lg,
+    margin: Spacing.lg,
+    padding: Spacing.lg,
+    maxHeight: '80%',
+    width: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.bold,
+    color: Colors.foreground,
+  },
+  closeButton: {
+    fontSize: Typography.sizes.xl,
+    color: Colors.mutedForeground,
+    padding: Spacing.xs,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.secondary,
+    borderRadius: BorderRadius.md,
+    padding: 4,
+    marginBottom: Spacing.lg,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    gap: Spacing.xs,
+  },
+  activeTab: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabIcon: {
+    fontSize: 18,
+  },
+  tabText: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.medium,
+    color: Colors.mutedForeground,
+  },
+  activeTabText: {
+    color: Colors.foreground,
+  },
+  tabContent: {
+    marginBottom: Spacing.lg,
+  },
+  description: {
+    fontSize: Typography.sizes.base,
+    color: Colors.mutedForeground,
+    marginBottom: Spacing.lg,
+    lineHeight: 22,
+  },
+  featureList: {
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  featureIcon: {
+    fontSize: 18,
+    width: 24,
+  },
+  featureText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.foreground,
+    flex: 1,
+  },
+  shareButton: {
+    backgroundColor: Colors.accent,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  whatsappButton: {
+    backgroundColor: '#25D366',
+  },
+  shareButtonText: {
+    color: 'white',
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.semibold,
+  },
+  recipePreview: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: Spacing.md,
+  },
+  previewTitle: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.medium,
+    color: Colors.mutedForeground,
+    marginBottom: Spacing.sm,
+  },
+  recipePreviewItem: {
+    alignItems: 'center',
+    marginRight: Spacing.md,
+    width: 80,
+  },
+  recipePreviewEmoji: {
+    fontSize: 36,
+    marginBottom: Spacing.xs,
+  },
+  recipePreviewName: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.foreground,
+    textAlign: 'center',
+    numberOfLines: 2,
   },
 })

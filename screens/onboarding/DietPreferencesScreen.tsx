@@ -6,6 +6,10 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 
@@ -87,15 +91,32 @@ interface DietPreferencesScreenProps {
 
 export default function DietPreferencesScreen({ navigation }: DietPreferencesScreenProps) {
   const [selectedDiet, setSelectedDiet] = useState<DietType | null>(null)
+  const [showCustomModal, setShowCustomModal] = useState(false)
+  const [customDietText, setCustomDietText] = useState('')
 
   const handleDietSelect = (dietId: DietType) => {
-    setSelectedDiet(dietId)
+    if (dietId === 'custom') {
+      setShowCustomModal(true)
+    } else {
+      setSelectedDiet(dietId)
+    }
   }
 
   const handleContinue = () => {
     if (!selectedDiet) return
-    console.log('Selected diet:', selectedDiet)
-    navigation.navigate('Allergies')
+    const dietData = {
+      selectedDiet,
+      customDietText: selectedDiet === 'custom' ? customDietText : null
+    }
+    console.log('Selected diet:', dietData)
+    navigation.navigate('BasicHealthProfile')
+  }
+
+  const handleCustomDietSave = () => {
+    if (customDietText.trim()) {
+      setSelectedDiet('custom')
+      setShowCustomModal(false)
+    }
   }
 
   const goBack = () => {
@@ -118,7 +139,6 @@ export default function DietPreferencesScreen({ navigation }: DietPreferencesScr
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '33.33%' }]} />
           </View>
-          <Text style={styles.stepText}>Step 2</Text>
         </View>
       </View>
 
@@ -189,6 +209,64 @@ export default function DietPreferencesScreen({ navigation }: DietPreferencesScr
           </LinearGradient>
         </Pressable>
       </View>
+
+      {/* Custom Diet Modal */}
+      <Modal
+        visible={showCustomModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCustomModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalContainer}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Custom Diet Preferences</Text>
+              <Pressable
+                onPress={() => setShowCustomModal(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>×</Text>
+              </Pressable>
+            </View>
+            
+            <Text style={styles.modalDescription}>
+              Describe your dietary preferences, restrictions, or eating habits
+            </Text>
+            
+            <TextInput
+              style={styles.customInput}
+              placeholder="e.g., I follow a gluten-free diet with limited dairy..."
+              multiline
+              numberOfLines={4}
+              value={customDietText}
+              onChangeText={setCustomDietText}
+              textAlignVertical="top"
+            />
+            
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => setShowCustomModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.saveButton, !customDietText.trim() && styles.disabledSaveButton]}
+                onPress={handleCustomDietSave}
+                disabled={!customDietText.trim()}
+              >
+                <Text style={[styles.saveButtonText, !customDietText.trim() && styles.disabledSaveButtonText]}>
+                  Save
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -350,6 +428,95 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   disabledButtonText: {
+    color: '#6B7280',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  closeButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#6B7280',
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  customInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 100,
+    marginBottom: 24,
+    backgroundColor: '#F9FAFB',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  saveButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disabledSaveButton: {
+    backgroundColor: '#E5E7EB',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  disabledSaveButtonText: {
     color: '#6B7280',
   },
 })

@@ -13,6 +13,7 @@ export interface Challenge {
   currentStreak?: number
   isJoined?: boolean
   progress?: number
+  rating?: number // Overall challenge rating
 }
 
 interface ChallengeCardProps {
@@ -45,6 +46,19 @@ export function ChallengeCard({ challenge, onPress, onJoin }: ChallengeCardProps
   const categoryColor = getCategoryColor(challenge.category)
   const difficultyBadge = getDifficultyBadge(challenge.difficulty)
 
+  const renderStars = (rating: number) => {
+    const stars = []
+    for (let i = 1; i <= 5; i++) {
+      const filled = i <= rating
+      stars.push(
+        <Text key={i} style={[styles.star, filled && styles.starFilled]}>
+          {filled ? '★' : '☆'}
+        </Text>
+      )
+    }
+    return stars
+  }
+
   return (
     <Pressable style={styles.container} onPress={onPress}>
       <View style={[styles.categoryBar, { backgroundColor: categoryColor }]} />
@@ -73,6 +87,17 @@ export function ChallengeCard({ challenge, onPress, onJoin }: ChallengeCardProps
         <Text style={styles.description} numberOfLines={2}>
           {challenge.description}
         </Text>
+        
+        {challenge.rating && (
+          <View style={styles.ratingContainer}>
+            <View style={styles.starsContainer}>
+              {renderStars(Math.round(challenge.rating))}
+            </View>
+            <Text style={styles.ratingText}>
+              {challenge.rating.toFixed(1)} stars
+            </Text>
+          </View>
+        )}
         
         <View style={styles.footer}>
           <View style={styles.stats}>
@@ -251,6 +276,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#F59E0B',
+    fontFamily: 'System',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    gap: 1,
+  },
+  star: {
+    fontSize: 14,
+    color: '#D1D5DB',
+  },
+  starFilled: {
+    color: '#F59E0B',
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
     fontFamily: 'System',
   },
 })

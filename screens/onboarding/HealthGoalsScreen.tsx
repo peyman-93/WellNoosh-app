@@ -72,7 +72,6 @@ export default function HealthGoalsScreen({ navigation }: HealthGoalsScreenProps
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '83.33%' }]} />
           </View>
-          <Text style={styles.stepText}>Step 5</Text>
         </View>
       </View>
 

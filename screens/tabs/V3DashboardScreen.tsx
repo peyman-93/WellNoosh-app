@@ -395,7 +395,6 @@ function EventLogModal({ visible, onClose, onAddEvent }: EventLogModalProps) {
 export default function V3DashboardScreen() {
   const { session, signOut } = useAuth()
   const navigation = useNavigation()
-  const [isSigningOut, setIsSigningOut] = useState(false)
   
   // Water tracking state
   const [waterIntake, setWaterIntake] = useState<boolean[]>(Array(8).fill(false))
@@ -409,6 +408,7 @@ export default function V3DashboardScreen() {
   const [showDailyCheckIn, setShowDailyCheckIn] = useState(false)
   const [showMealHub, setShowMealHub] = useState(false)
   const [showEventLogModal, setShowEventLogModal] = useState(false)
+  const [showBreathingExercise, setShowBreathingExercise] = useState(false)
   
   // Timeline events state with calories
   const [timelineEvents, setTimelineEvents] = useState([
@@ -451,25 +451,14 @@ export default function V3DashboardScreen() {
   
   // Monitor session changes
   useEffect(() => {
-    if (!session && !isSigningOut) {
+    if (!session) {
       navigation.reset({
         index: 0,
         routes: [{ name: 'SignInScreen' as never }],
       })
     }
-  }, [session, navigation, isSigningOut])
+  }, [session, navigation])
   
-  const handleSignOut = async () => {
-    if (isSigningOut) return
-    
-    setIsSigningOut(true)
-    try {
-      await signOut()
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to sign out. Please try again.')
-      setIsSigningOut(false)
-    }
-  }
   
   const handleGlassClick = (index: number) => {
     const newIntake = [...waterIntake]
@@ -682,12 +671,7 @@ export default function V3DashboardScreen() {
                 </View>
                 <TouchableOpacity 
                   style={styles.progressAddButton}
-                  onPress={() => {
-                    const nextExerciseIndex = breathingExercises.findIndex(exercise => !exercise)
-                    if (nextExerciseIndex !== -1) {
-                      handleBreathingCircleClick(nextExerciseIndex)
-                    }
-                  }}
+                  onPress={() => setShowBreathingExercise(true)}
                 >
                   <Text style={styles.progressAddButtonText}>+</Text>
                 </TouchableOpacity>
@@ -837,20 +821,6 @@ export default function V3DashboardScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
-
-          {/* Sign Out Button */}
-          <View style={styles.signOutSection}>
-            <Pressable 
-              style={styles.signOutButton}
-              onPress={handleSignOut}
-              disabled={isSigningOut}
-            >
-              <Text style={styles.signOutText}>
-                {isSigningOut ? 'Signing Out...' : 'Sign Out'}
-              </Text>
-            </Pressable>
-          </View>
         </View>
       </ScrollView>
 
@@ -882,6 +852,45 @@ export default function V3DashboardScreen() {
           }}
         />
       )}
+      
+      {/* Breathing Exercise Modal */}
+      <Modal
+        visible={showBreathingExercise}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        transparent={false}
+        onRequestClose={() => setShowBreathingExercise(false)}
+      >
+        <View style={styles.modalFullBackground}>
+          <View style={styles.modalOverlay}>
+          <View style={styles.breathingModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Breathing Exercises</Text>
+              <Pressable
+                onPress={() => setShowBreathingExercise(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>×</Text>
+              </Pressable>
+            </View>
+            
+            <BreathingExercises
+              breathingExercises={breathingExercises}
+              onCircleClick={handleBreathingCircleClick}
+              onStartGuide={() => {
+                const nextExerciseIndex = breathingExercises.findIndex(exercise => !exercise)
+                if (nextExerciseIndex !== -1) {
+                  handleBreathingCircleClick(nextExerciseIndex)
+                }
+                setShowBreathingExercise(false)
+              }}
+              completedExercises={breathingExercises.filter(Boolean).length}
+              autoStart={true}
+            />
+          </View>
+          </View>
+        </View>
+      </Modal>
       
       {/* Daily Check-In Modal */}
       <DailyCheckInScreen
@@ -1349,24 +1358,6 @@ const styles = StyleSheet.create({
   },
   achievementStatus: {
     fontSize: 16,
-  },
-  signOutSection: {
-    marginTop: 20,
-    paddingBottom: 32,
-  },
-  signOutButton: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  signOutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-    fontFamily: 'System',
   },
   
   // Compact Hydration Styles
@@ -2198,5 +2189,52 @@ const detailHistoryStyles = StyleSheet.create({
     color: '#374151',
     fontFamily: 'System',
     textAlign: 'center',
+  },
+  modalFullBackground: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 20,
+  },
+  breathingModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  closeButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#6B7280',
   },
 })

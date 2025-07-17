@@ -718,7 +718,7 @@ export default function V3PlannerScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>🗓️ Meal Planner</Text>
+              <Text style={styles.headerIcon}>🗓️</Text>
             </View>
           </View>
 
@@ -735,29 +735,6 @@ export default function V3PlannerScreen() {
                   {userData?.dailyCalories || dailyCalories || 2000} cal
                 </Text>
               </View>
-              <TouchableOpacity
-                style={styles.logMealButton}
-                onPress={() => setShowMealLogging(true)}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#10B981', '#059669', '#047857']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.logMealButtonGradient}
-                >
-                  <View style={styles.logMealButtonContent}>
-                    <View style={styles.logMealButtonIconContainer}>
-                      <Text style={styles.logMealButtonIcon}>🍽️</Text>
-                      <View style={styles.logMealButtonSparkle}>
-                        <Text style={styles.logMealButtonSparkleText}>✨</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.logMealButtonText}>Log Meal</Text>
-                    <Text style={styles.logMealButtonSubtext}>What did you eat?</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -1019,13 +996,6 @@ export default function V3PlannerScreen() {
 
 
 
-          {/* Health Tips */}
-          <View style={styles.tipsContainer}>
-            <Text style={styles.tipsTitle}>💡 Today's Tip</Text>
-            <Text style={styles.tipText}>
-              Plan your meals in advance to maintain consistent nutrition and save time during busy days.
-            </Text>
-          </View>
         </View>
       </ScrollView>
 
@@ -1789,7 +1759,10 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+  },
+  headerIcon: {
+    fontSize: 28,
   },
   wellnessLogo: {
     width: 40,

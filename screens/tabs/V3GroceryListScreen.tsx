@@ -40,6 +40,9 @@ export default function V3GroceryListScreen() {
   const [showPriceComparison, setShowPriceComparison] = useState(true)
   const [showSuggestions, setShowSuggestions] = useState(true)
   const [selectedStore, setSelectedStore] = useState('All Stores')
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordedAudio, setRecordedAudio] = useState<string | null>(null)
+  const [recordingDuration, setRecordingDuration] = useState(0)
 
   // Smart shopping suggestions
   const shoppingSuggestions = [
@@ -223,6 +226,67 @@ export default function V3GroceryListScreen() {
   const pendingItems = filteredItems.filter(item => !item.completed)
   const completedItems = filteredItems.filter(item => item.completed)
 
+  // Voice recording functions
+  const startRecording = async () => {
+    setIsRecording(true)
+    setRecordingDuration(0)
+    
+    // Simulate recording duration counter
+    const interval = setInterval(() => {
+      setRecordingDuration(prev => prev + 1)
+    }, 1000)
+    
+    // Store interval reference for cleanup
+    setTimeout(() => {
+      clearInterval(interval)
+    }, 30000) // Max 30 seconds
+  }
+  
+  const stopRecording = () => {
+    setIsRecording(false)
+    // Simulate recorded audio file
+    setRecordedAudio(`grocery-voice-note-${Date.now()}.m4a`)
+    Alert.alert(
+      'Voice Note Recorded! 🎤', 
+      `Recorded ${recordingDuration} seconds of audio. You can transcribe it or save as is.`,
+      [
+        { text: 'Transcribe to Text', onPress: transcribeAudio },
+        { text: 'Keep as Voice Note', onPress: () => {} }
+      ]
+    )
+  }
+  
+  const transcribeAudio = () => {
+    // Simulate transcription for grocery items
+    const mockTranscriptions = [
+      "2 pounds organic chicken breast",
+      "1 dozen free-range eggs",
+      "3 bags of spinach for salads",
+      "1 bottle olive oil extra virgin",
+      "2 avocados and some bananas",
+      "whole wheat bread 2 loaves",
+      "greek yogurt plain 32 ounces"
+    ]
+    const transcribed = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)]
+    
+    // Parse the transcription to fill the form
+    // Extract item name and amount from transcription
+    const parts = transcribed.split(' ')
+    const amount = parts.slice(0, 2).join(' ') // First two words as amount
+    const name = parts.slice(2).join(' ') // Rest as item name
+    
+    setNewItemName(name || transcribed)
+    setNewItemAmount(amount || '1')
+    
+    Alert.alert('Voice Transcribed! ✨', `Added: "${name}" with amount "${amount}"`)
+    setRecordedAudio(null)
+  }
+  
+  const deleteRecording = () => {
+    setRecordedAudio(null)
+    setRecordingDuration(0)
+  }
+
   const handleAddItem = () => {
     if (newItemName.trim() && newItemAmount.trim()) {
       const newItem: GroceryItem = {
@@ -248,6 +312,12 @@ export default function V3GroceryListScreen() {
     const updatedList = groceryList.map(item => 
       item.id === itemId ? { ...item, completed: !item.completed } : item
     )
+    setGroceryList(updatedList)
+    saveGroceryList(updatedList)
+  }
+
+  const clearCompletedItems = () => {
+    const updatedList = groceryList.filter(item => !item.completed)
     setGroceryList(updatedList)
     saveGroceryList(updatedList)
   }
@@ -564,6 +634,63 @@ export default function V3GroceryListScreen() {
                 onChangeText={setNewItemAmount}
                 placeholderTextColor="#9CA3AF"
               />
+              
+              {/* Voice Recording Section */}
+              <View style={styles.voiceRecordingSection}>
+                <Text style={styles.voiceRecordingLabel}>or record a voice note</Text>
+                
+                {!isRecording && !recordedAudio && (
+                  <TouchableOpacity 
+                    style={styles.voiceRecordButton}
+                    onPress={startRecording}
+                  >
+                    <Text style={styles.voiceRecordIcon}>🎤</Text>
+                    <Text style={styles.voiceRecordText}>Tap to record</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {isRecording && (
+                  <View style={styles.recordingActive}>
+                    <View style={styles.recordingIndicator}>
+                      <View style={styles.recordingDot} />
+                      <Text style={styles.recordingText}>Recording... {recordingDuration}s</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.stopRecordButton}
+                      onPress={stopRecording}
+                    >
+                      <Text style={styles.stopRecordText}>Stop</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                
+                {recordedAudio && (
+                  <View style={styles.recordedAudioContainer}>
+                    <View style={styles.audioInfo}>
+                      <Text style={styles.audioIcon}>🎵</Text>
+                      <View style={styles.audioDetails}>
+                        <Text style={styles.audioFileName}>Voice note recorded</Text>
+                        <Text style={styles.audioDuration}>{recordingDuration} seconds</Text>
+                      </View>
+                    </View>
+                    <View style={styles.audioActions}>
+                      <TouchableOpacity 
+                        style={styles.transcribeButton}
+                        onPress={transcribeAudio}
+                      >
+                        <Text style={styles.transcribeButtonText}>Transcribe</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.deleteAudioButton}
+                        onPress={deleteRecording}
+                      >
+                        <Text style={styles.deleteAudioText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+              
               <View style={styles.formButtons}>
                 <TouchableOpacity
                   style={[styles.formButton, styles.addFormButton]}
@@ -640,7 +767,12 @@ export default function V3GroceryListScreen() {
           {/* Completed Items */}
           {completedItems.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>✅ Completed ({completedItems.length})</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>✅ Completed ({completedItems.length})</Text>
+                <TouchableOpacity style={styles.clearButton} onPress={clearCompletedItems}>
+                  <Text style={styles.clearButtonText}>Clear All</Text>
+                </TouchableOpacity>
+              </View>
               {completedItems.map((item) => (
                 <View key={item.id} style={[styles.itemCard, styles.completedItemCard]}>
                   <View style={styles.itemContent}>
@@ -877,11 +1009,29 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 32,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 16,
+    fontFamily: 'System',
+  },
+  clearButton: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  clearButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'System',
   },
   itemCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -1321,5 +1471,132 @@ const styles = StyleSheet.create({
     color: '#0C4A6E',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  
+  // Voice Recording Styles
+  voiceRecordingSection: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  voiceRecordingLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  voiceRecordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    gap: 8,
+  },
+  voiceRecordIcon: {
+    fontSize: 20,
+  },
+  voiceRecordText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  recordingActive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  recordingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  recordingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  stopRecordButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+  },
+  stopRecordText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  recordedAudioContainer: {
+    padding: 16,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  audioInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  audioIcon: {
+    fontSize: 24,
+  },
+  audioDetails: {
+    flex: 1,
+  },
+  audioFileName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#166534',
+  },
+  audioDuration: {
+    fontSize: 14,
+    color: '#16A34A',
+  },
+  audioActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  transcribeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#10B981',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  transcribeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  deleteAudioButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#F87171',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteAudioText: {
+    fontSize: 16,
   },
 })

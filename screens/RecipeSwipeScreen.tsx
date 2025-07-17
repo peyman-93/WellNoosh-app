@@ -28,14 +28,15 @@ interface Recipe {
 }
 
 interface RecipeSwipeScreenProps {
-  onNavigateBack: () => void
-  onRecipeLiked: (recipe: Recipe) => void
-  onRecipeDisliked: (recipe: Recipe) => void
+  navigation?: any
+  onNavigateBack?: () => void
+  onRecipeLiked?: (recipe: Recipe) => void
+  onRecipeDisliked?: (recipe: Recipe) => void
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 
-export default function RecipeSwipeScreen({ onNavigateBack, onRecipeLiked, onRecipeDisliked }: RecipeSwipeScreenProps) {
+export default function RecipeSwipeScreen({ navigation, onNavigateBack, onRecipeLiked, onRecipeDisliked }: RecipeSwipeScreenProps) {
   const [currentRecipeIndex, setCurrentRecipeIndex] = useState(0)
   const [isCardFlipped, setIsCardFlipped] = useState(false)
   const [likedRecipes, setLikedRecipes] = useState<string[]>([])
@@ -44,6 +45,17 @@ export default function RecipeSwipeScreen({ onNavigateBack, onRecipeLiked, onRec
   const translateX = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(0)).current
   const rotate = useRef(new Animated.Value(0)).current
+  
+  const handleNavigateBack = () => {
+    if (onNavigateBack) {
+      onNavigateBack()
+    } else if (navigation) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs', params: { screen: 'Cooking' } }],
+      })
+    }
+  }
   
   const recipes: Recipe[] = [
     {
@@ -146,7 +158,7 @@ export default function RecipeSwipeScreen({ onNavigateBack, onRecipeLiked, onRec
   const handleSwipeLeft = () => {
     if (currentRecipe) {
       setDislikedRecipes([...dislikedRecipes, currentRecipe.id])
-      onRecipeDisliked(currentRecipe)
+      onRecipeDisliked?.(currentRecipe)
       nextRecipe()
     }
   }
@@ -154,7 +166,7 @@ export default function RecipeSwipeScreen({ onNavigateBack, onRecipeLiked, onRec
   const handleSwipeRight = () => {
     if (currentRecipe) {
       setLikedRecipes([...likedRecipes, currentRecipe.id])
-      onRecipeLiked(currentRecipe)
+      onRecipeLiked?.(currentRecipe)
       nextRecipe()
     }
   }
@@ -164,6 +176,11 @@ export default function RecipeSwipeScreen({ onNavigateBack, onRecipeLiked, onRec
       setCurrentRecipeIndex(currentRecipeIndex + 1)
       setIsCardFlipped(false)
       resetCardPosition()
+    } else {
+      // All recipes completed, automatically go back to cooking screen
+      setTimeout(() => {
+        handleNavigateBack()
+      }, 2000) // Wait 2 seconds to show completion message
     }
   }
 
@@ -223,9 +240,9 @@ export default function RecipeSwipeScreen({ onNavigateBack, onRecipeLiked, onRec
               You've swiped through all available recipes. 
               {likedRecipes.length > 0 && ` You liked ${likedRecipes.length} recipes!`}
             </Text>
-            <TouchableOpacity style={styles.backButton} onPress={onNavigateBack}>
-              <Text style={styles.backButtonText}>Back to Cooking</Text>
-            </TouchableOpacity>
+            <Text style={styles.autoNavigateText}>
+              Returning to Cooking tab...
+            </Text>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -238,7 +255,7 @@ export default function RecipeSwipeScreen({ onNavigateBack, onRecipeLiked, onRec
         
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
+          <TouchableOpacity onPress={handleNavigateBack} style={styles.backButton}>
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Recipe Discovery</Text>
@@ -630,5 +647,12 @@ const styles = StyleSheet.create({
     color: Colors.mutedForeground,
     textAlign: 'center',
     marginBottom: Spacing.xl,
+  },
+  autoNavigateText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.primary,
+    textAlign: 'center',
+    fontWeight: '600',
+    marginTop: Spacing.md,
   },
 })

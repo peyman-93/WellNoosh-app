@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, SafeAreaView, ScrollView, StyleSheet, Pressable, Image, TouchableOpacity, Alert } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -125,7 +125,6 @@ interface FilterBarProps {
 function FilterBar({ activeFilters, activeCuisineFilters, onFilterToggle, onCuisineFilterToggle }: FilterBarProps) {
   const mainFilters = [
     { id: 'favourites', label: 'Favourites', emoji: '❤️' },
-    { id: 'leftover-opti', label: 'Leftover Opti', emoji: '♻️' },
     { id: 'healthy', label: 'Healthy', emoji: '🥗' }
   ]
 
@@ -198,7 +197,7 @@ function FilterBar({ activeFilters, activeCuisineFilters, onFilterToggle, onCuis
   )
 }
 
-export default function V3InspirationScreen() {
+export default function V3InspirationScreen({ route, navigation }: { route: any, navigation: any }) {
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [activeCuisineFilters, setActiveCuisineFilters] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -209,6 +208,15 @@ export default function V3InspirationScreen() {
   const [favoriteRecipes, setFavoriteRecipes] = useState<string[]>([])
   const [likedRecipes, setLikedRecipes] = useState<Recipe[]>([])
   const [userRatings, setUserRatings] = useState<{[key: string]: number}>({})
+  
+  // Check for navigation parameter to show swipe screen
+  useEffect(() => {
+    if (route.params?.showSwipeScreen) {
+      setShowSwipeScreen(true)
+      // Clear the parameter to prevent showing again on subsequent navigations
+      navigation.setParams({ showSwipeScreen: false })
+    }
+  }, [route.params?.showSwipeScreen, navigation])
   
   // Mock fridge items - you can replace this with actual fridge data
   const fridgeItems = [

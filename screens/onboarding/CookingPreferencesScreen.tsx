@@ -144,7 +144,6 @@ export default function CookingPreferencesScreen({ navigation }: CookingPreferen
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '100%' }]} />
           </View>
-          <Text style={styles.stepText}>Step 6</Text>
         </View>
       </View>
 

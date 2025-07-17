@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/DesignTokens'
 import StarRating from '@/components/StarRating'
+import CookingStepsScreen from './CookingStepsScreen'
 
 interface Recipe {
   id: string
@@ -71,6 +72,7 @@ export default function RecipeDetailScreen({
   const [servings, setServings] = useState(recipe.baseServings)
   const [showNutritionModal, setShowNutritionModal] = useState(false)
   const [currentUserRating, setCurrentUserRating] = useState(userRating)
+  const [showCookingSteps, setShowCookingSteps] = useState(false)
   
   const servingMultiplier = servings / recipe.baseServings
 
@@ -117,7 +119,6 @@ export default function RecipeDetailScreen({
         recipeId: recipe.id,
         recipeName: recipe.name
       })
-      Alert.alert('Added to Grocery List', `${ingredient.name} has been added to your grocery list.`)
     }
   }
 
@@ -127,6 +128,16 @@ export default function RecipeDetailScreen({
     protein: Math.round((recipe.protein * servingMultiplier) / servings),
     carbs: Math.round((recipe.carbs * servingMultiplier) / servings),
     fat: Math.round((recipe.fat * servingMultiplier) / servings)
+  }
+
+  if (showCookingSteps) {
+    return (
+      <CookingStepsScreen
+        recipe={recipe}
+        onNavigateBack={() => setShowCookingSteps(false)}
+        onCookingComplete={onStartCooking}
+      />
+    )
   }
 
   return (
@@ -228,7 +239,24 @@ export default function RecipeDetailScreen({
 
             {/* Ingredients Section */}
             <View style={styles.ingredientsSection}>
-              <Text style={styles.sectionTitle}>Ingredients</Text>
+              <View style={styles.ingredientsHeader}>
+                <Text style={styles.sectionTitle}>Ingredients</Text>
+                <TouchableOpacity
+                  style={styles.addAllButton}
+                  onPress={() => {
+                    const missingIngredients = recipe.ingredients.filter(ingredient => 
+                      !checkIngredientAvailability(ingredient.name)
+                    )
+                    if (missingIngredients.length > 0 && onAddToGroceryList) {
+                      missingIngredients.forEach(ingredient => {
+                        handleAddToGroceryList(ingredient)
+                      })
+                    }
+                  }}
+                >
+                  <Text style={styles.addAllText}>+ Add All Needed</Text>
+                </TouchableOpacity>
+              </View>
               {recipe.ingredients.map((ingredient, index) => {
                 const isAvailable = checkIngredientAvailability(ingredient.name)
                 const adjustedAmount = getAdjustedAmount(ingredient.amount)
@@ -243,14 +271,6 @@ export default function RecipeDetailScreen({
                         ]}>
                           {ingredient.name}
                         </Text>
-                        <View style={[
-                          styles.availabilityIndicator,
-                          isAvailable ? styles.availableIndicator : styles.unavailableIndicator
-                        ]}>
-                          <Text style={styles.availabilityIcon}>
-                            {isAvailable ? '✓' : '○'}
-                          </Text>
-                        </View>
                       </View>
                       <Text style={styles.ingredientAmount}>
                         {adjustedAmount} {ingredient.unit}
@@ -288,9 +308,7 @@ export default function RecipeDetailScreen({
             <View style={styles.actionSection}>
               <TouchableOpacity 
                 style={styles.startCookingButton}
-                onPress={onStartCooking || (() => {
-                  Alert.alert('Happy Cooking!', 'Enjoy making this delicious recipe!')
-                })}
+                onPress={() => setShowCookingSteps(true)}
               >
                 <LinearGradient
                   colors={['#10B981', '#3B82F6']}
@@ -656,6 +674,23 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  ingredientsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  addAllButton: {
+    backgroundColor: Colors.success,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+  },
+  addAllText: {
+    fontSize: Typography.sizes.small,
+    color: Colors.primaryForeground,
+    fontWeight: Typography.weights.semibold,
+  },
   ingredientItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -681,26 +716,6 @@ const styles = StyleSheet.create({
   },
   availableIngredient: {
     color: Colors.success,
-  },
-  availabilityIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  availableIndicator: {
-    backgroundColor: Colors.success,
-  },
-  unavailableIndicator: {
-    backgroundColor: Colors.muted,
-    borderWidth: 2,
-    borderColor: Colors.border,
-  },
-  availabilityIcon: {
-    fontSize: 12,
-    color: Colors.primaryForeground,
-    fontWeight: Typography.weights.bold,
   },
   ingredientAmount: {
     fontSize: Typography.sizes.caption,

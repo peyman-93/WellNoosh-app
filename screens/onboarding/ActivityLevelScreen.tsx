@@ -99,7 +99,6 @@ export default function ActivityLevelScreen({ navigation }: ActivityLevelScreenP
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '66.67%' }]} />
           </View>
-          <Text style={styles.stepText}>Step 4</Text>
         </View>
       </View>
 

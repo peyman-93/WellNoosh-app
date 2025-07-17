@@ -26,10 +26,10 @@ export default function OnboardingCompleteScreen({ navigation }: OnboardingCompl
       console.error('📚 OnboardingCompleteScreen: Error saving onboarding completion:', error)
     }
 
-    // Navigate to main app (probably the main tab navigator)
+    // Navigate to main app and specifically the Cooking tab with swipe screen parameter
     navigation.reset({
       index: 0,
-      routes: [{ name: 'MainTabs' }],
+      routes: [{ name: 'MainTabs', params: { screen: 'Cooking', params: { showSwipeScreen: true } } }],
     })
   }
 

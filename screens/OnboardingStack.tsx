@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 // Import onboarding screens
 import OnboardingWelcomeScreen from '@/screens/onboarding/OnboardingIntroScreen'
 import DietPreferencesScreen from '@/screens/onboarding/DietPreferencesScreen'
+import BasicHealthProfileScreen from '@/screens/onboarding/BasicHealthProfileScreen'
 import AllergiesScreen from '@/screens/onboarding/AllergiesScreen'
 import MedicalConditionsScreen from '@/screens/onboarding/MedicalConditionsScreen'
 import ActivityLevelScreen from '@/screens/onboarding/ActivityLevelScreen'
@@ -26,6 +27,11 @@ export default function OnboardingStack({ route }: any) {
       <Stack.Screen 
         name="DietPreferences" 
         component={DietPreferencesScreen}
+        initialParams={{ userCredentials }}
+      />
+      <Stack.Screen 
+        name="BasicHealthProfile" 
+        component={BasicHealthProfileScreen}
         initialParams={{ userCredentials }}
       />
       <Stack.Screen 

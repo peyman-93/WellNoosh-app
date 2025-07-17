@@ -7,12 +7,15 @@ import {
   Pressable,
   Alert,
   StyleSheet,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '@/context/supabase-provider'
 import { useUserData } from '@/context/user-data-provider'
 
-type AllergyType = 'gluten' | 'dairy' | 'nuts' | 'shellfish' | 'soy' | 'eggs' | 'fish' | 'sesame'
+type AllergyType = 'gluten' | 'dairy' | 'nuts' | 'shellfish' | 'soy' | 'eggs' | 'fish' | 'sesame' | 'other'
 
 interface AllergyOption {
   id: AllergyType
@@ -30,6 +33,7 @@ const allergyOptions: AllergyOption[] = [
   { id: 'eggs', name: 'Eggs', emoji: '🥚', bgColor: '#FCE7F3' },
   { id: 'fish', name: 'Fish', emoji: '🐟', bgColor: '#E0F2FE' },
   { id: 'sesame', name: 'Sesame', emoji: '🌰', bgColor: '#F3F4F6' },
+  { id: 'other', name: 'Other', emoji: '📝', bgColor: '#F3F4F6' },
 ]
 
 interface AllergiesScreenProps {
@@ -41,6 +45,8 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
   const [selectedAllergies, setSelectedAllergies] = useState<AllergyType[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasCompletedAuth, setHasCompletedAuth] = useState(false)
+  const [showCustomInput, setShowCustomInput] = useState(false)
+  const [customAllergy, setCustomAllergy] = useState('')
   const { signUp, signIn, session } = useAuth()
   const { updateUserData } = useUserData()
 
@@ -60,13 +66,28 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
   }, [session, isLoading])
 
   const handleAllergyToggle = (allergyId: AllergyType) => {
-    setSelectedAllergies(prev => {
-      if (prev.includes(allergyId)) {
-        return prev.filter(id => id !== allergyId)
-      } else {
-        return [...prev, allergyId]
-      }
-    })
+    if (allergyId === 'other') {
+      // If "Other" is selected, toggle custom input
+      setSelectedAllergies(prev => {
+        if (prev.includes(allergyId)) {
+          setShowCustomInput(false)
+          setCustomAllergy('')
+          return prev.filter(id => id !== allergyId)
+        } else {
+          setShowCustomInput(true)
+          return [...prev, allergyId]
+        }
+      })
+    } else {
+      // Handle regular allergy options
+      setSelectedAllergies(prev => {
+        if (prev.includes(allergyId)) {
+          return prev.filter(id => id !== allergyId)
+        } else {
+          return [...prev, allergyId]
+        }
+      })
+    }
   }
 
   const completeOnboarding = async () => {
@@ -184,7 +205,7 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
         }
       }
     } catch (error: any) {
-      Alert.alert('Error', `Failed to complete setup: ${error.message}. Please try again.`)
+      Alert.alert('Error', `Failed to save preferences: ${error.message}. Please try again.`)
       console.error('Onboarding completion error:', error)
     } finally {
       setIsLoading(false)
@@ -192,14 +213,19 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
   }
 
   const handleContinue = async () => {
-    console.log('Selected allergies:', selectedAllergies)
+    const allergiesData = {
+      selectedAllergies,
+      customAllergy: showCustomInput ? customAllergy : null
+    }
+    console.log('Selected allergies:', allergiesData)
     
     try {
       // Save allergies data to UserDataContext
       await updateUserData({
-        allergies: selectedAllergies
+        allergies: selectedAllergies,
+        customAllergy: showCustomInput ? customAllergy : null
       })
-      console.log('📚 AllergiesScreen: Saved allergies data:', selectedAllergies)
+      console.log('📚 AllergiesScreen: Saved allergies data:', allergiesData)
     } catch (error) {
       console.error('📚 AllergiesScreen: Error saving allergies:', error)
     }
@@ -241,7 +267,6 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '50%' }]} />
           </View>
-          <Text style={styles.stepText}>Step 3</Text>
         </View>
       </View>
 
@@ -284,6 +309,27 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
             </Pressable>
           ))}
         </View>
+
+        {/* Custom Allergy Input */}
+        {showCustomInput && (
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.customInputContainer}
+          >
+            <Text style={styles.customInputLabel}>
+              Please describe your allergy:
+            </Text>
+            <TextInput
+              style={styles.customInput}
+              placeholder="e.g., Peanut allergy, Latex allergy, Food dye sensitivity..."
+              multiline
+              numberOfLines={3}
+              value={customAllergy}
+              onChangeText={setCustomAllergy}
+              textAlignVertical="top"
+            />
+          </KeyboardAvoidingView>
+        )}
       </ScrollView>
 
       {/* Bottom Section */}
@@ -303,8 +349,8 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
               {isLoading 
                 ? 'Setting up your account...' 
                 : selectedAllergies.length > 0 
-                  ? 'Complete Setup' 
-                  : 'No Allergies - Complete Setup'
+                  ? 'Continue' 
+                  : 'No Allergies - Continue'
               }
             </Text>
           </LinearGradient>
@@ -317,7 +363,7 @@ export default function AllergiesScreen({ navigation, route }: AllergiesScreenPr
         >
           <View style={styles.skipButton}>
             <Text style={styles.skipButtonText}>
-              {isLoading ? 'Please wait...' : 'Skip This Step'}
+              {isLoading ? 'Please wait...' : 'Skip'}
             </Text>
           </View>
         </Pressable>
@@ -478,5 +524,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#6B7280',
+  },
+  customInputContainer: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  customInputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  customInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 80,
+    backgroundColor: '#F9FAFB',
   },
 })
