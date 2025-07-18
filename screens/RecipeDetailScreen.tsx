@@ -152,15 +152,47 @@ export default function RecipeDetailScreen({
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           
-          {/* Interactive Star Rating */}
-          <View style={styles.headerRatingContainer}>
-            <StarRating 
-              rating={currentUserRating || 0}
-              onRatingChange={handleRating}
-              size="medium"
-              interactive={!!onRateRecipe}
-              showRating={false}
-            />
+          {/* Actions and Star Rating */}
+          <View style={styles.headerActionsContainer}>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerActionButton} onPress={() => {
+                Alert.alert(
+                  'Share Recipe',
+                  `Share "${recipe.name}" with your friends and family!`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Share', onPress: () => console.log('Sharing recipe:', recipe.name) }
+                  ]
+                )
+              }}>
+                <Text style={styles.headerActionText}>↗️</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerActionButton} onPress={() => {
+                if (onStartFamilyChoice) {
+                  onStartFamilyChoice(recipe)
+                } else {
+                  Alert.alert(
+                    'Vote on Recipe',
+                    `Start a family vote for "${recipe.name}"!`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Start Vote', onPress: () => console.log('Starting vote for recipe:', recipe.name) }
+                    ]
+                  )
+                }
+              }}>
+                <Text style={styles.headerActionText}>🗳️</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.headerRatingContainer}>
+              <StarRating 
+                rating={currentUserRating || 0}
+                onRatingChange={handleRating}
+                size="small"
+                interactive={!!onRateRecipe}
+                showRating={false}
+              />
+            </View>
           </View>
         </View>
 
@@ -184,56 +216,60 @@ export default function RecipeDetailScreen({
                 <Text style={styles.recipeName}>{recipe.name}</Text>
                 <Text style={styles.recipeDescription}>{recipe.description}</Text>
                 
-                <View style={styles.recipeStats}>
-                  <View style={styles.recipeStat}>
-                    <Text style={styles.recipeStatEmoji}>⏱️</Text>
-                    <Text style={styles.recipeStatText}>{recipe.cookTime}</Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.recipeStat}
-                    onPress={() => setShowNutritionModal(true)}
-                  >
-                    <Text style={styles.recipeStatEmoji}>🔥</Text>
-                    <Text style={[styles.recipeStatText, styles.clickableText]}>
-                      {nutritionPerServing.calories} cal/serving
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.recipeTags}>
-                  {recipe.tags.map((tag, index) => (
-                    <View key={index} style={styles.recipeTag}>
-                      <Text style={styles.recipeTagText}>{tag}</Text>
+                {/* Recipe Stats and Tags Combined */}
+                <View style={styles.recipeMetaContainer}>
+                  <View style={styles.recipeStats}>
+                    <View style={styles.recipeStat}>
+                      <Text style={styles.recipeStatEmoji}>⏱️</Text>
+                      <Text style={styles.recipeStatText}>{recipe.cookTime}</Text>
                     </View>
-                  ))}
+                    <TouchableOpacity 
+                      style={styles.recipeStat}
+                      onPress={() => setShowNutritionModal(true)}
+                    >
+                      <Text style={styles.recipeStatEmoji}>🔥</Text>
+                      <Text style={[styles.recipeStatText, styles.clickableText]}>
+                        {nutritionPerServing.calories} cal/serving
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.recipeTags}>
+                    {recipe.tags.map((tag, index) => (
+                      <View key={index} style={styles.recipeTag}>
+                        <Text style={styles.recipeTagText}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
               </View>
             </View>
 
-            {/* Serving Size Adjuster */}
-            <View style={styles.servingSection}>
-              <Text style={styles.sectionTitle}>Servings</Text>
-              <View style={styles.servingControls}>
-                <TouchableOpacity
-                  style={[styles.servingButton, servings <= 1 && styles.servingButtonDisabled]}
-                  onPress={() => setServings(Math.max(1, servings - 1))}
-                  disabled={servings <= 1}
-                >
-                  <Text style={styles.servingButtonText}>−</Text>
-                </TouchableOpacity>
-                
-                <View style={styles.servingDisplay}>
-                  <Text style={styles.servingNumber}>{servings}</Text>
-                  <Text style={styles.servingLabel}>servings</Text>
+            {/* Compact Info Bar */}
+            <View style={styles.infoBar}>
+              <View style={styles.infoBarItem}>
+                <Text style={styles.infoBarLabel}>Servings</Text>
+                <View style={styles.servingControls}>
+                  <TouchableOpacity
+                    style={[styles.servingButton, servings <= 1 && styles.servingButtonDisabled]}
+                    onPress={() => setServings(Math.max(1, servings - 1))}
+                    disabled={servings <= 1}
+                  >
+                    <Text style={styles.servingButtonText}>−</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.servingDisplay}>
+                    <Text style={styles.servingNumber}>{servings}</Text>
+                  </View>
+                  
+                  <TouchableOpacity
+                    style={[styles.servingButton, servings >= 12 && styles.servingButtonDisabled]}
+                    onPress={() => setServings(Math.min(12, servings + 1))}
+                    disabled={servings >= 12}
+                  >
+                    <Text style={styles.servingButtonText}>+</Text>
+                  </TouchableOpacity>
                 </View>
-                
-                <TouchableOpacity
-                  style={[styles.servingButton, servings >= 12 && styles.servingButtonDisabled]}
-                  onPress={() => setServings(Math.min(12, servings + 1))}
-                  disabled={servings >= 12}
-                >
-                  <Text style={styles.servingButtonText}>+</Text>
-                </TouchableOpacity>
               </View>
             </View>
 
@@ -323,7 +359,7 @@ export default function RecipeDetailScreen({
                   style={styles.familyChoiceButton}
                   onPress={() => onStartFamilyChoice(recipe)}
                 >
-                  <Text style={styles.familyChoiceText}>🗳️ Add to Family Choice</Text>
+                  <Text style={styles.familyChoiceText}>🗳️ Add to Community Choice</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -488,6 +524,31 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontWeight: Typography.weights.medium,
   },
+  headerActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  headerActionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerActionText: {
+    fontSize: 16,
+  },
   headerRatingContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: BorderRadius.lg,
@@ -515,6 +576,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
+  },
+  recipeMetaContainer: {
+    gap: Spacing.md,
+  },
+  infoBar: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  infoBarItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  infoBarLabel: {
+    fontSize: Typography.sizes.small,
+    color: Colors.mutedForeground,
+    fontWeight: Typography.weights.medium,
+    marginBottom: Spacing.xs,
   },
   recipeImageContainer: {
     height: 200,
@@ -627,12 +712,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.lg,
+    gap: Spacing.sm,
   },
   servingButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
@@ -647,16 +732,16 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   servingButtonText: {
-    fontSize: 20,
+    fontSize: 16,
     color: Colors.primaryForeground,
     fontWeight: Typography.weights.bold,
   },
   servingDisplay: {
     alignItems: 'center',
-    minWidth: 80,
+    minWidth: 60,
   },
   servingNumber: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: Typography.weights.bold,
     color: Colors.foreground,
   },

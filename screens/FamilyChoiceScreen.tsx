@@ -8,7 +8,8 @@ import {
   SafeAreaView,
   Alert,
   Pressable,
-  Modal
+  Modal,
+  TextInput
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/DesignTokens'
@@ -40,8 +41,10 @@ interface Recipe {
 
 interface FamilyChoiceScreenProps {
   onNavigateBack: () => void
-  onCreateVote?: (selectedRecipes: Recipe[]) => void
+  onCreateVote?: (selectedRecipes: Recipe[], voteTitle: string, voteDescription: string) => void
   initialRecipe?: Recipe
+  voteTitle?: string
+  voteDescription?: string
 }
 
 interface ShareModalProps {
@@ -112,7 +115,7 @@ function ShareModal({ visible, onClose, onShareWhatsApp, onShareInApp, selectedR
           {activeTab === 'inapp' ? (
             <View>
               <Text style={shareModalStyles.description}>
-                Share with family members who are already using WellNoosh
+                Share with community members who are already using WellNoosh
               </Text>
               
               <View style={shareModalStyles.featureList}>
@@ -140,7 +143,7 @@ function ShareModal({ visible, onClose, onShareWhatsApp, onShareInApp, selectedR
           ) : (
             <View>
               <Text style={shareModalStyles.description}>
-                Send voting link via WhatsApp to family members
+                Send voting link via WhatsApp to community members
               </Text>
               
               <View style={shareModalStyles.featureList}>
@@ -154,7 +157,7 @@ function ShareModal({ visible, onClose, onShareWhatsApp, onShareInApp, selectedR
                 </View>
                 <View style={shareModalStyles.featureItem}>
                   <Text style={shareModalStyles.featureIcon}>👨‍👩‍👧‍👦</Text>
-                  <Text style={shareModalStyles.featureText}>Easy for all family members</Text>
+                  <Text style={shareModalStyles.featureText}>Easy for all community members</Text>
                 </View>
               </View>
 
@@ -336,7 +339,9 @@ function RecipeSelectionCard({ recipe, isSelected, onToggle }: {
 export default function FamilyChoiceScreen({ 
   onNavigateBack, 
   onCreateVote,
-  initialRecipe 
+  initialRecipe,
+  voteTitle: initialVoteTitle = '',
+  voteDescription: initialVoteDescription = ''
 }: FamilyChoiceScreenProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [activeCuisineFilters, setActiveCuisineFilters] = useState<string[]>([])
@@ -344,6 +349,8 @@ export default function FamilyChoiceScreen({
   const [favoriteRecipes] = useState<string[]>(['1', '3', '5']) // Mock favorites
   const [showShareModal, setShowShareModal] = useState(false)
   const [showFamilySelection, setShowFamilySelection] = useState(false)
+  const [voteTitle, setVoteTitle] = useState(initialVoteTitle)
+  const [voteDescription, setVoteDescription] = useState(initialVoteDescription)
 
   // Mock recipe data - in real app, this would come from your recipe service
   const recipes: Recipe[] = [
@@ -552,6 +559,11 @@ export default function FamilyChoiceScreen({
   }
 
   const handleCreateVote = () => {
+    if (!voteTitle.trim()) {
+      Alert.alert('Missing Title', 'Please enter a title for your vote.')
+      return
+    }
+    
     if (selectedRecipes.length < 2) {
       Alert.alert('Select More Recipes', 'Please select at least 2 recipes for family voting.')
       return
@@ -576,7 +588,7 @@ export default function FamilyChoiceScreen({
       'Voting link will be shared via WhatsApp',
       [{ text: 'OK', onPress: () => {
         setShowShareModal(false)
-        onCreateVote?.(selectedRecipeObjects)
+        onCreateVote?.(selectedRecipeObjects, voteTitle, voteDescription)
       }}]
     )
   }
@@ -594,7 +606,7 @@ export default function FamilyChoiceScreen({
       `Voting session shared with ${memberIds.length} family member${memberIds.length !== 1 ? 's' : ''}${groupId ? ' in selected group' : ''}`,
       [{ text: 'OK', onPress: () => {
         setShowFamilySelection(false)
-        onCreateVote?.(selectedRecipeObjects)
+        onCreateVote?.(selectedRecipeObjects, voteTitle, voteDescription)
       }}]
     )
   }
@@ -666,7 +678,7 @@ export default function FamilyChoiceScreen({
           </TouchableOpacity>
           
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Family Choice</Text>
+            <Text style={styles.headerTitle}>Community Choice</Text>
             <Text style={styles.headerSubtitle}>
               {selectedRecipes.length}/4 recipes selected
             </Text>
@@ -675,14 +687,14 @@ export default function FamilyChoiceScreen({
           <TouchableOpacity
             style={[
               styles.createVoteButton,
-              selectedRecipes.length < 2 && styles.createVoteButtonDisabled
+              (selectedRecipes.length < 2 || !voteTitle.trim()) && styles.createVoteButtonDisabled
             ]}
             onPress={handleCreateVote}
-            disabled={selectedRecipes.length < 2}
+            disabled={selectedRecipes.length < 2 || !voteTitle.trim()}
           >
             <Text style={[
               styles.createVoteText,
-              selectedRecipes.length < 2 && styles.createVoteTextDisabled
+              (selectedRecipes.length < 2 || !voteTitle.trim()) && styles.createVoteTextDisabled
             ]}>
               Create Vote
             </Text>
@@ -691,11 +703,37 @@ export default function FamilyChoiceScreen({
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
+            {/* Vote Title Input */}
+            <View style={styles.titleInputContainer}>
+              <Text style={styles.titleInputLabel}>Vote Title</Text>
+              <TextInput
+                style={styles.titleInput}
+                placeholder="What are you voting on?"
+                value={voteTitle}
+                onChangeText={setVoteTitle}
+                placeholderTextColor={Colors.mutedForeground}
+              />
+            </View>
+
+            {/* Vote Description Input */}
+            <View style={styles.titleInputContainer}>
+              <Text style={styles.titleInputLabel}>Description (Optional)</Text>
+              <TextInput
+                style={[styles.titleInput, styles.descriptionInput]}
+                placeholder="Add more details about this vote..."
+                value={voteDescription}
+                onChangeText={setVoteDescription}
+                multiline
+                numberOfLines={3}
+                placeholderTextColor={Colors.mutedForeground}
+              />
+            </View>
+
             {/* Info Card */}
             <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>🗳️ How Family Choice Works</Text>
+              <Text style={styles.infoTitle}>🗳️ How Community Choice Works</Text>
               <Text style={styles.infoDescription}>
-                Select 2-4 recipes you'd like your family to vote on for tonight's dinner. 
+                Select 2-4 recipes you'd like your community to vote on for tonight's dinner. 
                 Everyone gets to vote, and the recipe with the most votes wins!
               </Text>
             </View>
@@ -805,6 +843,28 @@ const styles = StyleSheet.create({
   createVoteButtonDisabled: {
     backgroundColor: Colors.muted,
     opacity: 0.6,
+  },
+  titleInputContainer: {
+    marginBottom: Spacing.md,
+  },
+  titleInputLabel: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.foreground,
+    marginBottom: Spacing.xs,
+  },
+  titleInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    fontSize: Typography.sizes.base,
+    color: Colors.foreground,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  descriptionInput: {
+    height: 80,
+    textAlignVertical: 'top',
   },
   createVoteText: {
     fontSize: Typography.sizes.small,

@@ -23,11 +23,11 @@ export default function StarRating({
   const getSizeStyle = () => {
     switch (size) {
       case 'small':
-        return { fontSize: 16, spacing: 4 }
+        return { fontSize: 16, spacing: 1 }
       case 'large':
-        return { fontSize: 28, spacing: 8 }
+        return { fontSize: 28, spacing: 2 }
       default:
-        return { fontSize: 24, spacing: 6 }
+        return { fontSize: 24, spacing: 1 }
     }
   }
 
@@ -58,7 +58,7 @@ export default function StarRating({
     const currentFontSize = isPressed ? fontSize * 1.2 : fontSize
 
     if (interactive) {
-      const touchTargetSize = Math.max(44, fontSize + 20)
+      const touchTargetSize = Math.max(44, fontSize + 16)
       
       return (
         <View key={starIndex} style={[
@@ -88,29 +88,17 @@ export default function StarRating({
             </View>
           )}
           
-          {/* Touch areas */}
+          {/* Full star touch area for easier interaction */}
           <TouchableOpacity
             style={[styles.touchArea, { 
               left: 0,
-              width: touchTargetSize / 2,
-              height: touchTargetSize
-            }]}
-            onPress={() => handleStarPress(starIndex, true)}
-            onPressIn={() => handleStarPressIn(starIndex)}
-            onPressOut={handleStarPressOut}
-            activeOpacity={1}
-          />
-          
-          <TouchableOpacity
-            style={[styles.touchArea, { 
-              right: 0,
-              width: touchTargetSize / 2,
+              width: touchTargetSize,
               height: touchTargetSize
             }]}
             onPress={() => handleStarPress(starIndex, false)}
             onPressIn={() => handleStarPressIn(starIndex)}
             onPressOut={handleStarPressOut}
-            activeOpacity={1}
+            activeOpacity={0.7}
           />
         </View>
       )
@@ -121,10 +109,10 @@ export default function StarRating({
       
       if (isFullStar) {
         starText = '★'
-        starColor = '#FFD700'
+        starColor = '#FBBF24'
       } else if (isHalfStar) {
-        starText = '⭐'
-        starColor = '#FFD700'
+        starText = '★'
+        starColor = '#FBBF24'
       }
       
       return (
@@ -155,7 +143,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   starsContainer: {
     flexDirection: 'row',
@@ -167,7 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   starOutline: {
-    color: '#D1D5DB',
+    color: '#E5E7EB',
     fontWeight: 'bold',
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 0, height: 1 },
@@ -183,9 +171,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   starFilled: {
-    color: '#FFD700',
+    color: '#FBBF24',
     fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
