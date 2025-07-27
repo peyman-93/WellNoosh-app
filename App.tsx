@@ -9,9 +9,9 @@ import { AuthProvider, setGlobalNavigationRef } from '@/context/supabase-provide
 import { UserDataProvider } from '@/context/user-data-provider'
 
 // Screens
-import WelcomeScreen from '@/screens/WelcomeScreen'
-import SignUpScreen from '@/screens/SignUpScreen'
-import SignInScreen from '@/screens/SignInScreen'
+import WelcomeScreen from '@/screens/auth/WelcomeScreen'
+import SignUpScreen from '@/screens/auth/SignUpScreen'
+import SignInScreen from '@/screens/auth/SignInScreen'
 import OnboardingStack from '@/screens/OnboardingStack'
 import MainTabs from '@/screens/MainTabs'
 import { useAuth } from '@/context/supabase-provider'

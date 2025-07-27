@@ -4,9 +4,14 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"],
+      "@/components/*": ["src/components/*"],
+      "@/screens/*": ["src/screens/*"],
+      "@/hooks/*": ["src/hooks/*"],
+      "@/services/*": ["src/services/*"],
+      "@/context/*": ["src/context/*"],
+      "@/types/*": ["src/types/*"],
+      "@/utils/*": ["src/utils/*"]
     }
   },
   "include": [
@@ -15,11 +20,6 @@
     "nativewind-env.d.ts"
   ],
   "exclude": [
-    "node_modules",
-    "V3/**/*",
-    "legacy/**/*",
-    "screens/**/*",
-    "services/**/*",
-    "hooks/useGoogleAuth.ts"
+    "node_modules"
   ]
 }
