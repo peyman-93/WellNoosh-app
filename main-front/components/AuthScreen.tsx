@@ -1,250 +1,125 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import { supabase } from '../src/services/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from 'react'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native'
+import { useAuth } from '../src/context/supabase-provider'
 
 interface AuthScreenProps {
-  onAuthenticated: (mode: 'login' | 'signup' | 'google', userInfo: any) => void;
-  initialMode: 'login' | 'signup' | 'google';
+  onAuthenticated: () => void
+  initialMode: 'login' | 'signup' | 'google'
 }
 
 export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
-  const [mode, setMode] = useState(initialMode);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [country, setCountry] = useState('');
-  const [city, setCity] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const { signUp, signIn, signInWithGoogle } = useAuth()
+  const [mode, setMode] = useState(initialMode)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [country, setCountry] = useState('')
+  const [city, setCity] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
     if (mode === 'signup') {
       if (!email || !password || !fullName || !country || !city || !postalCode) {
-        Alert.alert('Error', 'Please fill in all fields');
-        return;
+        Alert.alert('Error', 'Please fill in all fields')
+        return
       }
       
+      setLoading(true)
       try {
-        console.log('🔄 Attempting to sign up with Supabase...');
-        console.log('Email:', email);
-        console.log('Email length:', email.length);
-        console.log('Email trimmed:', email.trim());
-        console.log('Supabase URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
-        
-        // Clean and validate email
-        const cleanEmail = email.trim().toLowerCase();
-        
-        // Basic email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(cleanEmail)) {
-          Alert.alert('Invalid Email', 'Please enter a valid email address.');
-          return;
-        }
-        
-        // Sign up with Supabase
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            emailRedirectTo: 'http://localhost:3000',
-            data: {
-              full_name: fullName,
-              country,
-              city,
-              postal_code: postalCode
-            }
-          }
-        });
-
-        console.log('Supabase response:', { data, error });
+        const { data, error } = await signUp(email, password, {
+          fullName,
+          country,
+          city,
+          postalCode
+        })
 
         if (error) {
-          console.error('Supabase signup error:', error);
-          Alert.alert('Signup Error', error.message);
-          return;
+          Alert.alert('Signup Error', error.message)
+          return
         }
 
         if (data.user && data.session) {
-          // Store session for API client
-          const session = {
-            access_token: data.session.access_token,
-            user: {
-              id: data.user.id,
-              email: data.user.email,
-              fullName
-            },
-            expires_at: Date.now() + (24 * 60 * 60 * 1000)
-          };
-
-          await AsyncStorage.setItem('wellnoosh_session', JSON.stringify(session));
-          
-          // Create user profile in backend database
-          try {
-            console.log('🔄 Creating user profile in database...');
-            const profileResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/signup`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${data.session.access_token}`
-              },
-              body: JSON.stringify({
-                userId: data.user.id,
-                fullName,
-                email: cleanEmail,
-                country,
-                city,
-                postalCode
-              })
-            });
-
-            if (profileResponse.ok) {
-              console.log('✅ User profile created in database');
-            } else {
-              console.log('⚠️ Profile creation failed but continuing with auth');
-            }
-          } catch (error) {
-            console.log('⚠️ Profile creation error but continuing with auth:', error);
-          }
-          
-          const userInfo = {
-            fullName,
-            email,
-            country,
-            city,
-            postalCode,
-            userId: data.user.id
-          };
-
-          onAuthenticated(mode, userInfo);
+          Alert.alert('Success', 'Account created successfully!')
+          onAuthenticated()
         } else if (data.user && !data.session) {
-          // User created but needs email confirmation
-          Alert.alert(
-            'Check Your Email!', 
-            'We sent you a confirmation link. Please check your email and click the link to activate your account. Once confirmed, you can sign in with your credentials.',
-            [{ text: 'OK', onPress: () => setMode('login') }]
-          );
+          Alert.alert('Check your email', 'Please check your email for a confirmation link to complete your registration.')
         }
-      } catch (error: any) {
-        console.error('Full signup error:', error);
-        console.error('Error stack:', error.stack);
-        Alert.alert('Error', `Failed to create account: ${error.message}`);
+      } catch (error) {
+        Alert.alert('Error', 'An unexpected error occurred. Please try again.')
+      } finally {
+        setLoading(false)
       }
     } else {
-      // Login mode
+      // Login
       if (!email || !password) {
-        Alert.alert('Error', 'Please fill in all fields');
-        return;
+        Alert.alert('Error', 'Please enter email and password')
+        return
       }
-      
+
+      setLoading(true)
       try {
-        // Clean and validate email
-        const cleanEmail = email.trim().toLowerCase();
-        
-        // Basic email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(cleanEmail)) {
-          Alert.alert('Invalid Email', 'Please enter a valid email address.');
-          return;
-        }
-        
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password
-        });
+        const { data, error } = await signIn(email, password)
 
         if (error) {
-          Alert.alert('Login Error', error.message);
-          return;
+          Alert.alert('Login Error', error.message)
+          return
         }
 
-        if (data.user) {
-          // Store session for API client
-          const session = {
-            access_token: data.session?.access_token || '',
-            user: {
-              id: data.user.id,
-              email: data.user.email,
-              fullName: data.user.user_metadata?.full_name || 'User'
-            },
-            expires_at: Date.now() + (24 * 60 * 60 * 1000)
-          };
-
-          await AsyncStorage.setItem('wellnoosh_session', JSON.stringify(session));
-          
-          const userInfo = {
-            fullName: data.user.user_metadata?.full_name || 'User',
-            email: data.user.email,
-            country: data.user.user_metadata?.country || '',
-            city: data.user.user_metadata?.city || '',
-            postalCode: data.user.user_metadata?.postal_code || '',
-            userId: data.user.id
-          };
-
-          onAuthenticated(mode, userInfo);
+        if (data.session) {
+          onAuthenticated()
         }
-      } catch (error: any) {
-        Alert.alert('Error', 'Failed to login');
-        console.error('Login error:', error);
+      } catch (error) {
+        Alert.alert('Error', 'An unexpected error occurred. Please try again.')
+      } finally {
+        setLoading(false)
       }
     }
-  };
+  }
 
-  const handleGoogleSignIn = () => {
-    // Mock Google authentication
-    const userInfo = {
-      fullName: 'Google User',
-      email: 'user@gmail.com',
-      country: 'United States',
-      city: 'San Francisco',
-      postalCode: '94102',
-    };
-    
-    // Pass the appropriate mode based on current form state
-    if (mode === 'login') {
-      // User is in Sign In mode - treat as login
-      onAuthenticated('login', userInfo);
-    } else {
-      // User is in Sign Up mode - treat as Google signup (needs profile completion)
-      onAuthenticated('google', userInfo);
+  const handleGoogleSignIn = async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await signInWithGoogle()
+
+      if (error) {
+        Alert.alert('Google Sign In Error', error.message)
+        return
+      }
+
+      // Google OAuth will handle the redirect
+      onAuthenticated()
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
     if (!email) {
-      Alert.alert('Email Required', 'Please enter your email address to reset your password.');
-      return;
+      Alert.alert('Enter Email', 'Please enter your email address first')
+      return
     }
-    
-    // Mock password reset functionality
-    Alert.alert(
-      'Password Reset Sent',
-      `A password reset link has been sent to ${email}. Please check your email and follow the instructions to reset your password.`,
-      [
-        {
-          text: 'OK',
-          onPress: () => setShowForgotPassword(false)
-        }
-      ]
-    );
-  };
 
+    // TODO: Implement forgot password with Supabase
+    Alert.alert('Reset Password', 'Password reset functionality will be implemented soon.')
+  }
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>
-            {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
-          </Text>
-          <Text style={styles.subtitle}>
-            {mode === 'signup' 
-              ? 'Join WellNoosh and start your healthy cooking journey'
-              : 'Sign in to continue your wellness journey'
-            }
-          </Text>
-        </View>
-        
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>
+          {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {mode === 'signup' 
+            ? 'Join WellNoosh to start your wellness journey' 
+            : 'Sign in to your WellNoosh account'
+          }
+        </Text>
+
         {mode === 'signup' && (
           <TextInput
             style={styles.input}
@@ -254,7 +129,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
             autoCapitalize="words"
           />
         )}
-        
+
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -263,10 +138,8 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
-          autoComplete="email"
-          textContentType="emailAddress"
         />
-        
+
         <TextInput
           style={styles.input}
           placeholder="Password"
@@ -274,15 +147,6 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
           onChangeText={setPassword}
           secureTextEntry
         />
-
-        {mode === 'login' && (
-          <TouchableOpacity
-            style={styles.forgotPasswordButton}
-            onPress={handleForgotPassword}
-          >
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
-        )}
 
         {mode === 'signup' && (
           <>
@@ -293,51 +157,52 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
               onChangeText={setCountry}
               autoCapitalize="words"
             />
-            
-            <View style={styles.row}>
-              <TextInput
-                style={[styles.input, styles.halfInput]}
-                placeholder="City"
-                value={city}
-                onChangeText={setCity}
-                autoCapitalize="words"
-              />
-              <TextInput
-                style={[styles.input, styles.halfInput]}
-                placeholder="Postal Code"
-                value={postalCode}
-                onChangeText={setPostalCode}
-                autoCapitalize="characters"
-              />
-            </View>
-          </>
-        )}
-        
-        {mode === 'login' && (
-          <>
-            <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
-              <Text style={styles.googleButtonText}>
-                🔗 Continue with Google
-              </Text>
-            </TouchableOpacity>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="City"
+              value={city}
+              onChangeText={setCity}
+              autoCapitalize="words"
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Postal Code"
+              value={postalCode}
+              onChangeText={setPostalCode}
+              autoCapitalize="characters"
+            />
           </>
         )}
 
-        <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
+        <TouchableOpacity 
+          style={[styles.primaryButton, loading && styles.buttonDisabled]} 
+          onPress={handleSubmit}
+          disabled={loading}
+        >
           <Text style={styles.primaryButtonText}>
-            {mode === 'signup' ? 'Create Account' : 'Sign In'}
+            {loading ? 'Loading...' : (mode === 'signup' ? 'Create Account' : 'Sign In')}
           </Text>
         </TouchableOpacity>
-        
+
+        <TouchableOpacity 
+          style={[styles.googleButton, loading && styles.buttonDisabled]} 
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+        >
+          <Text style={styles.googleButtonText}>Continue with Google</Text>
+        </TouchableOpacity>
+
+        {mode === 'login' && (
+          <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotButton}>
+            <Text style={styles.forgotButtonText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
-          style={styles.switchButton}
           onPress={() => setMode(mode === 'signup' ? 'login' : 'signup')}
+          style={styles.switchButton}
         >
           <Text style={styles.switchButtonText}>
             {mode === 'signup' 
@@ -346,116 +211,93 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
             }
           </Text>
         </TouchableOpacity>
-
-      </ScrollView>
-    </View>
-  );
+      </View>
+    </ScrollView>
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-    minHeight: '100%',
+    flexGrow: 1,
     justifyContent: 'center',
+    backgroundColor: '#FAF7F0',
+    padding: 20,
   },
-  header: {
-    marginBottom: 32,
+  formContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#1A1A1A',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#111827',
   },
   subtitle: {
     fontSize: 16,
+    color: '#4A4A4A',
     textAlign: 'center',
-    color: '#6b7280',
-    lineHeight: 24,
+    marginBottom: 32,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#E0E0E0',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    padding: 16,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: '#f9fafb',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfInput: {
-    width: '48%',
+    backgroundColor: '#FFFFFF',
   },
   primaryButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#6B8E23',
     borderRadius: 12,
-    paddingVertical: 16,
+    padding: 16,
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 16,
   },
   primaryButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e5e7eb',
-  },
-  dividerText: {
-    paddingHorizontal: 16,
-    color: '#6b7280',
-    fontSize: 14,
-  },
   googleButton: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#E0E0E0',
     borderRadius: 12,
-    paddingVertical: 16,
+    padding: 16,
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    marginBottom: 16,
   },
   googleButtonText: {
-    color: '#374151',
+    color: '#1A1A1A',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  forgotButton: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  forgotButtonText: {
+    color: '#6B8E23',
+    fontSize: 14,
     fontWeight: '500',
   },
   switchButton: {
     alignItems: 'center',
-    paddingVertical: 16,
-    marginTop: 16,
   },
   switchButtonText: {
-    color: '#6b7280',
+    color: '#4A4A4A',
     fontSize: 14,
   },
-  forgotPasswordButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-    marginTop: -8,
-  },
-  forgotPasswordText: {
-    color: '#2563eb',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});
+})
