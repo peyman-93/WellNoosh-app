@@ -8,75 +8,61 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { OnboardingTest } from '../components/OnboardingTest';
 
-type RootStackParamList = {
-  DeveloperDashboard: undefined;
-  WelcomeScreen: undefined;
-  SignInScreen: undefined;
-  SignUpScreen: undefined;
-  OnboardingStack: undefined;
-  MainTabs: undefined;
-};
+type DeveloperView = 'dashboard' | 'onboarding-test';
 
 const screens = [
   {
-    id: 'WelcomeScreen',
-    name: 'WelcomeScreen',
+    id: 'onboarding-test',
+    name: 'onboarding-test',
+    title: 'Onboarding Flow Test',
+    description: 'Test the updated onboarding experience',
+    category: 'Testing',
+    color: ['#6B8E23', '#8BA654'],
+  },
+  {
+    id: 'welcome',
+    name: 'welcome',
     title: 'Welcome Screen',
-    description: 'Landing page with app branding',
-    category: 'Authentication',
-    color: ['#3B82F6', '#8B5CF6'],
+    description: 'App landing page (requires restart)',
+    category: 'Navigation',
+    color: ['#4A90E2', '#6B8E23'],
   },
   {
-    id: 'SignInScreen',
-    name: 'SignInScreen',
-    title: 'Sign In',
-    description: 'User login with email/password',
-    category: 'Authentication',
-    color: ['#10B981', '#3B82F6'],
-  },
-  {
-    id: 'SignUpScreen',
-    name: 'SignUpScreen',
-    title: 'Sign Up',
-    description: 'New user registration',
-    category: 'Authentication',
-    color: ['#8B5CF6', '#EC4899'],
-  },
-  {
-    id: 'OnboardingStack',
-    name: 'OnboardingStack',
-    title: 'Onboarding Flow',
-    description: 'User setup and preferences',
-    category: 'Onboarding',
-    color: ['#F59E0B', '#EF4444'],
-  },
-  {
-    id: 'MainTabs',
-    name: 'MainTabs',
+    id: 'main-app',
+    name: 'main-app',
     title: 'Main App',
-    description: 'Main application with tabs',
-    category: 'Main App',
-    color: ['#10B981', '#14B8A6'],
+    description: 'Dashboard and main features (requires restart)',
+    category: 'Navigation',
+    color: ['#6B8E23', '#8BA654'],
   },
 ];
 
 export default function DeveloperDashboard() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [currentView, setCurrentView] = useState<DeveloperView>('dashboard');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
-  const categories = ['All', 'Authentication', 'Onboarding', 'Main App'];
+  const categories = ['All', 'Testing', 'Navigation'];
 
   const filteredScreens = selectedCategory === 'All' 
     ? screens 
     : screens.filter(screen => screen.category === selectedCategory);
 
-  const navigateToScreen = (screenName: keyof RootStackParamList) => {
-    navigation.navigate(screenName);
+  const handleScreenPress = (screenId: string) => {
+    if (screenId === 'onboarding-test') {
+      setCurrentView('onboarding-test');
+    } else {
+      console.log(`Navigation to ${screenId} requires app restart`);
+    }
   };
+
+  if (currentView === 'onboarding-test') {
+    return (
+      <OnboardingTest onBack={() => setCurrentView('dashboard')} />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,7 +70,7 @@ export default function DeveloperDashboard() {
       
       {/* Header */}
       <LinearGradient
-        colors={['#3B82F6', '#8B5CF6']}
+        colors={['#6B8E23', '#8BA654']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -128,7 +114,7 @@ export default function DeveloperDashboard() {
               <TouchableOpacity
                 key={screen.id}
                 style={styles.screenCard}
-                onPress={() => navigateToScreen(screen.name as keyof RootStackParamList)}
+                onPress={() => handleScreenPress(screen.id)}
                 activeOpacity={0.8}
               >
                 <LinearGradient
@@ -173,7 +159,7 @@ export default function DeveloperDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7F0',
   },
   header: {
     paddingHorizontal: 20,
@@ -199,7 +185,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#1A1A1A',
     marginBottom: 16,
   },
   categoryContainer: {
@@ -210,15 +196,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#E0E0E0',
   },
   categoryButtonActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6B8E23',
   },
   categoryButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6b7280',
+    color: '#4A4A4A',
   },
   categoryButtonTextActive: {
     color: 'white',
@@ -277,12 +263,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#1A1A1A',
     marginBottom: 8,
   },
   infoDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#4A4A4A',
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -291,6 +277,6 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: '#4A4A4A',
   },
 });

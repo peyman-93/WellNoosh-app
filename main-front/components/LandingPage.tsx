@@ -1,8 +1,10 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DeveloperDashboard from '../screens/DeveloperDashboard';
+import { OnboardingTest } from './OnboardingTest';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -10,6 +12,8 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
+  const [showDeveloperModal, setShowDeveloperModal] = useState(false);
+  const [showOnboardingTest, setShowOnboardingTest] = useState(false);
   const clearAllData = async () => {
     try {
       await AsyncStorage.removeItem('wellnoosh_session');
@@ -97,12 +101,33 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
             <Text style={styles.secondaryButtonText}>Already have an account? Sign In</Text>
           </TouchableOpacity>
           
-          {/* Development helper button */}
-          <TouchableOpacity style={styles.clearButton} onPress={clearAllData}>
-            <Text style={styles.clearButtonText}>🧹 Clear Cached Data (Dev)</Text>
-          </TouchableOpacity>
+          {/* Development buttons */}
+          {__DEV__ && (
+            <>
+              <TouchableOpacity 
+                style={styles.developerButton} 
+                onPress={() => setShowOnboardingTest(true)}
+              >
+                <Text style={styles.developerButtonText}>🎯 Test Onboarding Flow</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.clearButton} onPress={clearAllData}>
+                <Text style={styles.clearButtonText}>🧹 Clear Cached Data</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
+
+      {/* Developer Onboarding Test Modal */}
+      <Modal
+        visible={showOnboardingTest}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowOnboardingTest(false)}
+      >
+        <OnboardingTest onBack={() => setShowOnboardingTest(false)} />
+      </Modal>
     </LinearGradient>
   );
 }
@@ -217,6 +242,20 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#6b7280',
     fontSize: 14,
+  },
+  developerButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 16,
+    backgroundColor: '#dcfce7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#6B8E23',
+  },
+  developerButtonText: {
+    color: '#6B8E23',
+    fontSize: 14,
+    fontWeight: '600',
   },
   clearButton: {
     alignItems: 'center',

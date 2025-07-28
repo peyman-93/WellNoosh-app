@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, SafeAreaView } from 'react-native';
 
 interface UserData {
   fullName: string;
@@ -190,6 +190,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
   };
 
   const handleSkip = () => {
+    console.log('🏃‍♂️ Skip button pressed');
     // Complete with current data
     const completeUserData: UserData = {
       ...userData!,
@@ -204,7 +205,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
       title: `WellNoosh ${getUserFirstName()}`,
       subtitle: "What's your diet style?",
       icon: '🍽️',
-      iconBg: '#10b981',
+      iconBg: '#6B8E23',
       content: (
         <View style={styles.stepContent}>
           <Text style={styles.stepDescription}>
@@ -285,7 +286,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
       title: "Food Allergies & Restrictions",
       subtitle: "Help us keep you safe and healthy",
       icon: '⚠️',
-      iconBg: '#f87171',
+      iconBg: '#DC6B3F',
       content: (
         <View style={styles.stepContent}>
           <Text style={styles.stepDescription}>
@@ -319,7 +320,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
       title: "Medical Conditions",
       subtitle: "Any conditions we should consider for your nutrition plan?",
       icon: '❤️',
-      iconBg: '#a855f7',
+      iconBg: '#9B6BA6',
       content: (
         <View style={styles.stepContent}>
           <Text style={styles.stepDescription}>
@@ -353,7 +354,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
       title: "Activity Level",
       subtitle: "How active are you?",
       icon: '🎯',
-      iconBg: '#60a5fa',
+      iconBg: '#4A90E2',
       content: (
         <View style={styles.stepContent}>
           <Text style={styles.stepDescription}>
@@ -387,7 +388,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
       title: "Health Goals",
       subtitle: "What are your main health objectives?",
       icon: '🎯',
-      iconBg: '#10b981',
+      iconBg: '#6B8E23',
       content: (
         <View style={styles.stepContent}>
           <Text style={styles.stepDescription}>
@@ -421,7 +422,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
       title: "Cooking Preferences",
       subtitle: "What's your cooking skill level and meal preference?",
       icon: '🍽️',
-      iconBg: '#fb923c',
+      iconBg: '#E6A245',
       content: (
         <View style={styles.stepContent}>
           <Text style={styles.stepDescription}>
@@ -483,7 +484,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
       title: "You're All Set!",
       subtitle: `${getUserFirstName()}, your personalized WellNoosh experience is ready`,
       icon: '✅',
-      iconBg: '#3b82f6',
+      iconBg: '#6B8E23',
       content: (
         <View style={styles.completionContent}>
           <Text style={styles.completionTitle}>
@@ -524,13 +525,15 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
   const totalSteps = onboardingSteps.length;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={handlePrevious}
           disabled={currentStep === 0}
           style={[styles.navButton, currentStep === 0 && styles.navButtonDisabled]}
+          activeOpacity={currentStep === 0 ? 1 : 0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={[styles.navButtonText, currentStep === 0 && styles.navButtonTextDisabled]}>‹</Text>
         </TouchableOpacity>
@@ -553,13 +556,14 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
           </View>
         </View>
         
-        {currentStep < totalSteps - 1 && (
-          <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-            <Text style={styles.skipButtonText}>Skip</Text>
-          </TouchableOpacity>
-        )}
-        
-        {currentStep === totalSteps - 1 && <View style={styles.spacer} />}
+        <TouchableOpacity 
+          onPress={handleSkip} 
+          style={styles.skipButton}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.skipButtonText}>Skip</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Step Content */}
@@ -589,40 +593,49 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7F0',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#E0E0E0',
+    minHeight: 64,
   },
   navButton: {
-    padding: 8,
-    width: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    minWidth: 44,
+    minHeight: 44,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   navButtonDisabled: {
     opacity: 0.3,
+    backgroundColor: 'transparent',
   },
   navButtonText: {
-    fontSize: 24,
-    color: '#374151',
+    fontSize: 20,
+    color: '#1A1A1A',
     fontWeight: 'bold',
+    lineHeight: 24,
   },
   navButtonTextDisabled: {
-    color: '#d1d5db',
+    color: '#E0E0E0',
   },
   centerHeader: {
     alignItems: 'center',
@@ -631,7 +644,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6B8E23',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -649,24 +662,30 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#d1d5db',
+    backgroundColor: '#E0E0E0',
   },
   progressDotActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6B8E23',
     width: 24,
   },
   progressDotCompleted: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#6B8E23',
   },
   skipButton: {
-    padding: 8,
-    width: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    minWidth: 44,
+    minHeight: 44,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   skipButtonText: {
-    color: '#6b7280',
+    color: '#4A4A4A',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+    lineHeight: 20,
   },
   spacer: {
     width: 40,
@@ -706,13 +725,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#1A1A1A',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#4A4A4A',
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -721,28 +740,28 @@ const styles = StyleSheet.create({
   },
   stepDescription: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#4A4A4A',
     textAlign: 'center',
     marginBottom: 24,
   },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 14,
     justifyContent: 'center',
   },
   optionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#E0E0E0',
     minWidth: 120,
   },
   optionButtonSelected: {
-    backgroundColor: '#3b82f6',
-    shadowColor: '#3b82f6',
+    backgroundColor: '#6B8E23',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -757,33 +776,33 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   optionButtonSelectedGreen: {
-    backgroundColor: '#10b981',
-    shadowColor: '#10b981',
+    backgroundColor: '#6B8E23',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   optionButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
-    color: '#374151',
+    color: '#1A1A1A',
     textAlign: 'center',
   },
   optionButtonTextSelected: {
     color: 'white',
   },
   listContainer: {
-    gap: 8,
+    gap: 10,
     width: '100%',
   },
   listOptionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#E0E0E0',
   },
   listOptionButtonSelectedPurple: {
     backgroundColor: '#a855f7',
@@ -794,8 +813,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   listOptionButtonSelectedBlue: {
-    backgroundColor: '#3b82f6',
-    shadowColor: '#3b82f6',
+    backgroundColor: '#6B8E23',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -811,33 +830,35 @@ const styles = StyleSheet.create({
   },
   customSection: {
     width: '100%',
-    paddingTop: 16,
-    marginTop: 16,
+    paddingTop: 24,
+    marginTop: 24,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: '#E0E0E0',
   },
   customSectionTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: '#1A1A1A',
     marginBottom: 12,
   },
   addCustomButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#dbeafe',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#F8FAF5',
     borderWidth: 1,
-    borderColor: '#93c5fd',
+    borderColor: '#6B8E23',
     alignItems: 'center',
+    marginTop: 8,
   },
   addCustomButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#2563eb',
+    color: '#6B8E23',
   },
   customInputContainer: {
-    gap: 12,
+    gap: 16,
+    marginTop: 8,
   },
   customInputRow: {
     flexDirection: 'row',
@@ -845,24 +866,24 @@ const styles = StyleSheet.create({
   },
   customInput: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#f9fafb',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    fontSize: 14,
+    borderColor: '#E0E0E0',
+    fontSize: 16,
   },
   customButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 44,
+    minWidth: 56,
   },
   addButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#6B8E23',
   },
   cancelButton: {
     backgroundColor: '#6b7280',
@@ -874,7 +895,7 @@ const styles = StyleSheet.create({
   },
   customInputHelp: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#4A4A4A',
   },
   sectionContainer: {
     gap: 24,
@@ -886,7 +907,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#1A1A1A',
     marginBottom: 12,
   },
   completionContent: {
@@ -896,12 +917,12 @@ const styles = StyleSheet.create({
   completionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#111827',
+    color: '#1A1A1A',
     textAlign: 'center',
   },
   completionDescription: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#4A4A4A',
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -914,37 +935,37 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   completionCardGreen: {
-    backgroundColor: '#dcfce7',
+    backgroundColor: '#F8FAF5',
   },
   completionCardBlue: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#E8F4FD',
   },
   completionCardPurple: {
-    backgroundColor: '#f3e8ff',
+    backgroundColor: '#F3E8FF',
   },
   completionCardTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#059669',
+    color: '#6B8E23',
     marginBottom: 4,
   },
   completionCardText: {
     fontSize: 14,
-    color: '#065f46',
+    color: '#4A4A4A',
   },
   footer: {
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: '#E0E0E0',
   },
   continueButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 16,
+    backgroundColor: '#6B8E23',
+    paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#3b82f6',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -954,5 +975,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });

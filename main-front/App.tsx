@@ -129,6 +129,7 @@ function AppContent() {
     setAppState('authenticated')
   }
 
+
   if (loading || userDataLoading) {
     return (
       <SafeAreaProvider>
