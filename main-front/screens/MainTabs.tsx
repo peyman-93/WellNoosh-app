@@ -5,12 +5,12 @@ import Svg, { Path, Circle, Rect, G } from 'react-native-svg'
 import { MealPlannerIcon } from '../src/components/Icons/MealPlannerIcon'
 
 // Import tab screens
-import DashboardScreen from './tabs/DashboardScreen'
-import InspirationScreen from './tabs/InspirationScreen'
-import PlannerScreen from './tabs/PlannerScreen'
-import CommunityScreen from './tabs/CommunityScreen'
-import GroceryListScreen from './tabs/GroceryScreen'
-import FridgeScreen from './tabs/FridgeScreen'
+import HomeTabScreen from './tabs/HomeTabScreen'
+import RecipesTabScreen from './tabs/RecipesTabScreen'
+import MealPlannerTabScreen from './tabs/MealPlannerTabScreen'
+import CommunityTabScreen from './tabs/CommunityTabScreen'
+import GroceryListTabScreen from './tabs/GroceryListTabScreen'
+import PantryTabScreen from './tabs/PantryTabScreen'
 import ProfileScreen from './ProfileScreen'
 
 // Tab icon components with organic wellness style
@@ -117,43 +117,44 @@ export default function MainTabs() {
     >
       <Tab.Screen
         name="Home"
-        component={DashboardScreen}
+        component={HomeTabScreen}
         options={{
           tabBarIcon: HomeIcon,
         }}
       />
       <Tab.Screen
-        name="Cooking"
-        component={InspirationScreen}
+        name="Recipes"
+        component={RecipesTabScreen}
         options={{
           tabBarIcon: CuisinesIcon,
         }}
       />
       <Tab.Screen
-        name="Planner"
-        component={PlannerScreen}
+        name="MealPlanner"
+        component={MealPlannerTabScreen}
         options={{
           tabBarIcon: PlannerIcon,
+          tabBarLabel: 'Meal Planner',
         }}
       />
       <Tab.Screen
         name="Community"
-        component={CommunityScreen}
+        component={CommunityTabScreen}
         options={{
           tabBarIcon: CommunityIcon,
         }}
       />
       <Tab.Screen
         name="GroceryList"
-        component={GroceryListScreen}
+        component={GroceryListTabScreen}
         options={{
           tabBarIcon: GroceryIcon,
           tabBarLabel: 'Grocery List',
         }}
       />
       <Tab.Screen
-        name="Fridge"
-        component={FridgeScreen}
+        name="Pantry"
+        component={PantryTabScreen}
         options={{
           tabBarIcon: FridgeIcon,
         }}

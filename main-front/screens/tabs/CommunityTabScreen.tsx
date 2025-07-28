@@ -5,6 +5,7 @@ import { ChallengeCard, Challenge } from '../../src/components/features/communit
 import { CommunityPost, Post } from '../../src/components/features/community/CommunityPost'
 import { LeaderboardCard, LeaderboardUser } from '../../src/components/features/community/LeaderboardCard'
 import FamilyChoiceScreen from '../modals/FamilyChoiceScreen'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 type TabType = 'challenges' | 'feed' | 'leaderboard' | 'voting' | 'connections'
 
@@ -818,12 +819,13 @@ export default function CommunityScreen() {
   }
   
   return (
-    <LinearGradient
-      colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <ScreenWrapper>
+      <LinearGradient
+        colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1 }}
+      >
       <View style={styles.header}>
         <Text style={styles.title}>👥</Text>
         <Text style={styles.subtitle}>Join challenges and connect with others</Text>
@@ -1213,17 +1215,15 @@ export default function CommunityScreen() {
           </View>
         </View>
       </Modal>
-    </LinearGradient>
+      </LinearGradient>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     padding: 24,
-    paddingTop: 48,
+    paddingTop: 16,
     paddingBottom: 0,
   },
   title: {

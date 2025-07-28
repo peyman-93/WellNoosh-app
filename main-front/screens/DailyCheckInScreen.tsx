@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Switch
 } from 'react-native'
+import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
 
 interface DailyCheckInScreenProps {
   onClose: () => void
@@ -393,7 +394,7 @@ export default function DailyCheckInScreen({ onClose }: DailyCheckInScreenProps)
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container}>
+      <ScreenWrapper>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -441,22 +442,19 @@ export default function DailyCheckInScreen({ onClose }: DailyCheckInScreenProps)
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </ScreenWrapper>
     </Modal>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAF7F0', // Organic warm background
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },

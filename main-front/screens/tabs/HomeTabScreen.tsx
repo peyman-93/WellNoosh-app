@@ -12,6 +12,7 @@ import { BreathingExercises } from '../../src/components/features/BreathingExerc
 import { AddMealModal } from '../../src/components/modals/AddMealModal'
 import DailyCheckInScreen from '../DailyCheckInScreen'
 import { HealthyPlateIcon } from '../../src/components/Icons/HealthyPlateIcon'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 const { width: screenWidth } = Dimensions.get('window')
 
@@ -544,7 +545,7 @@ export default function DashboardScreen() {
 
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -750,7 +751,7 @@ export default function DashboardScreen() {
           </TouchableOpacity>
           
           {/* Meal Plan Progress */}
-          <TouchableOpacity style={styles.mealPlanProgress} onPress={() => navigation.navigate('Planner' as never)}>
+          <TouchableOpacity style={styles.mealPlanProgress} onPress={() => navigation.navigate('MealPlanner' as never)}>
             <View style={styles.mealPlanHeader}>
               <View style={styles.mealPlanInfo}>
                 <Text style={styles.mealPlanTitle}>Meal Planning</Text>
@@ -937,7 +938,7 @@ export default function DashboardScreen() {
           </View>
         </Modal>
       )}
-    </View>
+    </ScreenWrapper>
   )
 }
 
@@ -954,7 +955,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 16,
     paddingBottom: 20,
   },
   greeting: {

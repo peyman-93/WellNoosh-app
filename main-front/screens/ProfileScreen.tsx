@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../src/context/supabase-provider'
 import { useUserData } from '../src/context/user-data-provider'
 import { useNavigation } from '@react-navigation/native'
+import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
 
 interface Achievement {
   id: string
@@ -152,7 +153,7 @@ export default function ProfileScreen() {
   const userEmail = session?.user?.email || 'guest@wellnoosh.com'
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       {/* Header */}
       <LinearGradient
         colors={['#10B981', '#3B82F6']}
@@ -459,17 +460,13 @@ export default function ProfileScreen() {
           </View>
         </Modal>
       )}
-    </SafeAreaView>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
   header: {
-    paddingTop: 20,
+    paddingTop: 16,
     paddingBottom: 40,
     paddingHorizontal: 20,
   },

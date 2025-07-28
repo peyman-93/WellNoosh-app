@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Colors, Typography, Spacing, BorderRadius } from '../src/constants/DesignTokens'
+import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
 
 interface Recipe {
   id: string
@@ -87,7 +88,7 @@ export default function CookingStepsScreen({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <LinearGradient
         colors={Colors.gradientBackground}
         style={styles.backgroundGradient}
@@ -241,14 +242,11 @@ export default function CookingStepsScreen({
           </View>
         </Modal>
       </LinearGradient>
-    </SafeAreaView>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   backgroundGradient: {
     flex: 1,
   },
@@ -256,7 +254,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.screenPadding,
-    paddingTop: Spacing.lg,
+    paddingTop: 16,
     gap: Spacing.md,
   },
   backButton: {

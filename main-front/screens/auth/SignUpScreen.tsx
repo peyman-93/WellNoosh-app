@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { View, Text, SafeAreaView, Alert, StyleSheet, ScrollView, TextInput, TouchableOpacity } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../../src/context/supabase-provider'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 interface SignUpScreenProps {
   navigation: any
@@ -115,12 +116,13 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   }
 
   return (
-    <LinearGradient
-      colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <ScreenWrapper>
+      <LinearGradient
+        colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1 }}
+      >
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
@@ -337,14 +339,12 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
+      </LinearGradient>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   safeArea: {
     flex: 1,
   },

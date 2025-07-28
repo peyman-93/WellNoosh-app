@@ -12,6 +12,7 @@ import {
   Pressable
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 interface FamilyMember {
   id: string
@@ -192,7 +193,7 @@ export default function FamilyMemberSelectionScreen({
   const groupEmojis = ['👨‍👩‍👧‍👦', '👨‍👩‍👧', '👶', '🏠', '❤️', '🍽️', '🎉', '⭐']
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <LinearGradient
         colors={['#E6F7FF', '#FFFFFF']}
         style={styles.backgroundGradient}
@@ -480,14 +481,11 @@ export default function FamilyMemberSelectionScreen({
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   backgroundGradient: {
     flex: 1,
   },
@@ -496,7 +494,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    paddingTop: 20,
+    paddingTop: 16,
   },
   backButton: {
     padding: 8,

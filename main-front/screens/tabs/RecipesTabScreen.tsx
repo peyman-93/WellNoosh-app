@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
 import { Colors } from '../../src/constants/DesignTokens'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 interface Recipe {
   id: string
@@ -86,7 +87,7 @@ export default function InspirationScreen({ route, navigation }: { route: any, n
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>Cooking Inspiration</Text>
 
@@ -161,15 +162,11 @@ export default function InspirationScreen({ route, navigation }: { route: any, n
           </View>
         )}
       </ScrollView>
-    </View>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   content: {
     flex: 1,
     padding: 16,

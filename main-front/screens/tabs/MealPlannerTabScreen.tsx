@@ -14,6 +14,7 @@ import {
 import { PanGestureHandler, GestureHandlerRootView, State } from 'react-native-gesture-handler'
 import { LinearGradient } from 'expo-linear-gradient'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 interface MealPlan {
   id: string
@@ -386,8 +387,8 @@ export default function PlannerScreen() {
   }
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -639,22 +640,19 @@ export default function PlannerScreen() {
           </View>
         </View>
       </Modal>
-      </SafeAreaView>
-    </GestureHandlerRootView>
+      </GestureHandlerRootView>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAF7F0', // Organic warm background
-  },
   scrollView: {
     flex: 1,
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 28,

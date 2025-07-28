@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { View, Text, ScrollView, StyleSheet, Pressable, Image } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Challenge } from '@/components/features/community/ChallengeCard'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 interface ChallengeDetailsScreenProps {
   route: {
@@ -68,12 +69,13 @@ export default function ChallengeDetailsScreen({ route, navigation }: ChallengeD
   const difficultyBadge = getDifficultyBadge(challenge.difficulty)
   
   return (
-    <LinearGradient
-      colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <ScreenWrapper>
+      <LinearGradient
+        colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1 }}
+      >
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -144,20 +146,18 @@ export default function ChallengeDetailsScreen({ route, navigation }: ChallengeD
           </View>
         </View>
       </ScrollView>
-    </LinearGradient>
+      </LinearGradient>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingTop: 48,
+    paddingTop: 16,
     paddingBottom: 16,
   },
   backButton: {

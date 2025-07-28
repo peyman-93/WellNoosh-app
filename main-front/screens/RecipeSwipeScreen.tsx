@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { View, Text, SafeAreaView, Dimensions, StyleSheet, TouchableOpacity, Animated, PanResponder } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Colors, Typography, Spacing, BorderRadius } from '../src/constants/DesignTokens'
+import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
 
 interface Recipe {
   id: string
@@ -231,7 +232,7 @@ export default function RecipeSwipeScreen({ navigation, onNavigateBack, onRecipe
 
   if (!currentRecipe) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ScreenWrapper>
         <LinearGradient colors={Colors.gradientBackground} style={styles.backgroundGradient}>
           <View style={styles.completedContainer}>
             <Text style={styles.completedEmoji}>🎉</Text>
@@ -245,12 +246,12 @@ export default function RecipeSwipeScreen({ navigation, onNavigateBack, onRecipe
             </Text>
           </View>
         </LinearGradient>
-      </SafeAreaView>
+      </ScreenWrapper>
     )
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <LinearGradient colors={Colors.gradientBackground} style={styles.backgroundGradient}>
         
         {/* Header */}
@@ -386,14 +387,11 @@ export default function RecipeSwipeScreen({ navigation, onNavigateBack, onRecipe
           </TouchableOpacity>
         </View>
       </LinearGradient>
-    </SafeAreaView>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   backgroundGradient: {
     flex: 1,
   },
@@ -402,6 +400,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: Spacing.screenPadding,
+    paddingTop: 16,
     paddingTop: Spacing.lg,
   },
   backButton: {

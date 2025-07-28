@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Colors, Typography, Spacing, BorderRadius } from '../src/constants/DesignTokens'
 import StarRating from '../src/components/shared/StarRating'
 import CookingStepsScreen from './CookingStepsScreen'
+import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
 
 interface Recipe {
   id: string
@@ -141,7 +142,7 @@ export default function RecipeDetailScreen({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <LinearGradient
         colors={Colors.gradientBackground}
         style={styles.backgroundGradient}
@@ -498,14 +499,11 @@ export default function RecipeDetailScreen({
           </View>
         </Modal>
       </LinearGradient>
-    </SafeAreaView>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   backgroundGradient: {
     flex: 1,
   },
@@ -514,6 +512,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: Spacing.screenPadding,
+    paddingTop: 16,
     paddingTop: Spacing.lg,
   },
   backButton: {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 interface GroceryItem {
   id: string
@@ -413,12 +414,13 @@ export default function GroceryListScreen() {
   const { total, savings, bestStore, itemCount, storeAnalysis } = calculateSavings()
 
   return (
-    <LinearGradient
-      colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <ScreenWrapper>
+      <LinearGradient
+        colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1 }}
+      >
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Text style={styles.title}>🛒</Text>
@@ -824,20 +826,18 @@ export default function GroceryListScreen() {
           )}
         </View>
       </ScrollView>
-    </LinearGradient>
+      </LinearGradient>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
   content: {
     padding: 24,
-    paddingTop: 48,
+    paddingTop: 16,
   },
   title: {
     fontSize: 28,

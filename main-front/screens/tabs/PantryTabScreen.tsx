@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Modal, Tex
 import { LinearGradient } from 'expo-linear-gradient'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import RecipeDetailScreen from '../RecipeDetailScreen'
+import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 interface LeftoverItem {
   id: string
@@ -686,12 +687,13 @@ export default function FridgeScreen() {
   }
 
   return (
-    <LinearGradient
-      colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <ScreenWrapper>
+      <LinearGradient
+        colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1 }}
+      >
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Header */}
@@ -1430,20 +1432,18 @@ export default function FridgeScreen() {
           </LinearGradient>
         ) : null}
       </Modal>
-    </LinearGradient>
+      </LinearGradient>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
   content: {
     padding: 24,
-    paddingTop: 48,
+    paddingTop: 16,
   },
   header: {
     marginBottom: 24,
