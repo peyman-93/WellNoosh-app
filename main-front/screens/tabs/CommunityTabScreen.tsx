@@ -203,7 +203,7 @@ export default function CommunityScreen() {
       name: 'Close Friends',
       emoji: '🤝',
       members: ['1', '2', '3'],
-      color: '#10B981'
+      color: '#6B8E23'
     },
     {
       id: 'g2',
@@ -820,12 +820,7 @@ export default function CommunityScreen() {
   
   return (
     <ScreenWrapper>
-      <LinearGradient
-        colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ flex: 1 }}
-      >
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>👥</Text>
         <Text style={styles.subtitle}>Join challenges and connect with others</Text>
@@ -1215,7 +1210,7 @@ export default function CommunityScreen() {
           </View>
         </View>
       </Modal>
-      </LinearGradient>
+      </View>
     </ScreenWrapper>
   )
 }
@@ -1226,18 +1221,22 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 0,
   },
+  container: {
+    flex: 1,
+    backgroundColor: '#FAF7F0',
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 8,
-    fontFamily: 'System',
+    fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#4A4A4A',
     marginBottom: 24,
-    fontFamily: 'System',
+    fontFamily: 'Inter',
   },
   tabBar: {
     flexDirection: 'row',
@@ -1258,7 +1257,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   activeTab: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
   },
   tabIcon: {
     fontSize: 16,
@@ -1267,8 +1266,8 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6B7280',
-    fontFamily: 'System',
+    color: '#4A4A4A',
+    fontFamily: 'Inter',
   },
   activeTabLabel: {
     color: 'white',
@@ -1282,23 +1281,25 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 4,
-    fontFamily: 'System',
+    fontFamily: 'Inter',
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
     marginBottom: 20,
-    fontFamily: 'System',
+    fontFamily: 'Inter',
   },
   challengeFilters: {
     marginBottom: 8,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 24,
-    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1308,33 +1309,35 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 8,
-    fontFamily: 'System',
+    fontFamily: 'Inter',
   },
   cardText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#4A4A4A',
     lineHeight: 24,
-    fontFamily: 'System',
+    fontFamily: 'Inter',
     marginBottom: 16,
   },
   comingSoon: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: '#6B8E23',
     textAlign: 'center',
-    fontFamily: 'System',
+    fontFamily: 'Inter',
   },
   
   // Family Management Styles
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   searchIcon: {
     fontSize: 18,
@@ -1343,14 +1346,17 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   subTabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   subTab: {
     flex: 1,
@@ -1359,39 +1365,40 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeSubTab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#6B8E23',
   },
   subTabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#4A4A4A',
+    fontFamily: 'Inter',
   },
   activeSubTabText: {
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#10B981',
+    borderColor: '#6B8E23',
     borderStyle: 'dashed',
   },
   addButtonIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E0F2FE',
+    backgroundColor: '#F8FAF5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   addButtonIconText: {
     fontSize: 24,
-    color: '#10B981',
+    color: '#6B8E23',
   },
   addButtonContent: {
     flex: 1,
@@ -1399,12 +1406,14 @@ const styles = StyleSheet.create({
   addButtonTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   addButtonSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
     marginTop: 2,
+    fontFamily: 'Inter',
   },
   section: {
     marginBottom: 24,
@@ -1412,16 +1421,18 @@ const styles = StyleSheet.create({
   memberCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   memberAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F8FAF5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -1437,7 +1448,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     borderWidth: 2,
     borderColor: 'white',
   },
@@ -1447,20 +1458,23 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   memberEmail: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
     marginTop: 2,
+    fontFamily: 'Inter',
   },
   memberLastActive: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#4A4A4A',
     marginTop: 2,
+    fontFamily: 'Inter',
   },
   memberAction: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -1492,11 +1506,11 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
   },
   groupMemberCount: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
     marginTop: 2,
   },
   groupAction: {
@@ -1564,16 +1578,16 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1A1A1A',
   },
   modalClose: {
     fontSize: 24,
-    color: '#6B7280',
+    color: '#4A4A4A',
     padding: 4,
   },
   modalDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
     marginBottom: 20,
     lineHeight: 20,
   },
@@ -1583,13 +1597,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 20,
   },
   emojiPickerLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 12,
   },
   emojiPicker: {
@@ -1609,7 +1623,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   emojiOptionSelected: {
-    borderColor: '#10B981',
+    borderColor: '#6B8E23',
     backgroundColor: '#F0FDF4',
   },
   emojiOptionText: {
@@ -1630,13 +1644,13 @@ const styles = StyleSheet.create({
   modalCancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#4A4A4A',
   },
   modalPrimaryButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     alignItems: 'center',
   },
   modalPrimaryButtonText: {
@@ -1652,7 +1666,7 @@ const styles = StyleSheet.create({
   membersSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 12,
   },
   membersGrid: {
@@ -1672,7 +1686,7 @@ const styles = StyleSheet.create({
   },
   memberToggleSelected: {
     backgroundColor: '#F0FDF4',
-    borderColor: '#10B981',
+    borderColor: '#6B8E23',
   },
   memberToggleAvatar: {
     fontSize: 24,
@@ -1680,7 +1694,7 @@ const styles = StyleSheet.create({
   },
   memberToggleName: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#4A4A4A',
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -1694,7 +1708,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1712,7 +1726,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   createVoteButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1728,7 +1742,7 @@ const styles = StyleSheet.create({
   votingSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 12,
   },
   voteCard: {
@@ -1756,12 +1770,12 @@ const styles = StyleSheet.create({
   voteTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 4,
   },
   voteDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
     marginBottom: 8,
   },
   voteMetadata: {
@@ -1770,12 +1784,12 @@ const styles = StyleSheet.create({
   },
   voteType: {
     fontSize: 12,
-    color: '#10B981',
+    color: '#6B8E23',
     fontWeight: '500',
   },
   voteParticipants: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#4A4A4A',
   },
   voteTimeLeft: {
     fontSize: 12,
@@ -1784,7 +1798,7 @@ const styles = StyleSheet.create({
   },
   voteStatus: {
     fontSize: 12,
-    color: '#10B981',
+    color: '#6B8E23',
     fontWeight: '500',
   },
   voteOptions: {
@@ -1812,12 +1826,12 @@ const styles = StyleSheet.create({
   voteOptionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 2,
   },
   voteOptionDescription: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#4A4A4A',
   },
   voteOptionStats: {
     alignItems: 'flex-end',
@@ -1826,12 +1840,12 @@ const styles = StyleSheet.create({
   voteOptionCount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#6B8E23',
     marginBottom: 4,
   },
   voteOptionProgress: {
     height: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     borderRadius: 2,
     minWidth: 2,
   },
@@ -1863,7 +1877,7 @@ const styles = StyleSheet.create({
   },
   voteTypeButtonSelected: {
     backgroundColor: '#F0FDF4',
-    borderColor: '#10B981',
+    borderColor: '#6B8E23',
   },
   voteTypeIcon: {
     fontSize: 24,
@@ -1872,10 +1886,10 @@ const styles = StyleSheet.create({
   voteTypeLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#4A4A4A',
   },
   voteTypeLabelSelected: {
-    color: '#10B981',
+    color: '#6B8E23',
   },
   inputGroup: {
     marginBottom: 20,
@@ -1883,7 +1897,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 8,
   },
   textArea: {
@@ -1902,10 +1916,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: '#6B8E23',
   },
   addOptionButtonText: {
-    color: '#10B981',
+    color: '#6B8E23',
     fontSize: 14,
     fontWeight: '600',
   },

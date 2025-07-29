@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Modal, TextInput } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import RecipeDetailScreen from '../RecipeDetailScreen'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
@@ -688,12 +687,7 @@ export default function FridgeScreen() {
 
   return (
     <ScreenWrapper>
-      <LinearGradient
-        colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ flex: 1 }}
-      >
+      <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Header */}
@@ -851,17 +845,12 @@ export default function FridgeScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <LinearGradient
-          colors={['#059669', '#10B981']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.modalHeader}
-        >
+        <View style={styles.modalHeader}>
           <View style={styles.modalHeaderContent}>
             <Text style={styles.modalTitle}>Add Leftover Item</Text>
             <Text style={styles.modalSubtitle}>Track your food to reduce waste</Text>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView style={styles.modalContent}>
           <View style={styles.modalCard}>
@@ -1015,17 +1004,12 @@ export default function FridgeScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <LinearGradient
-          colors={['#7C3AED', '#A855F7']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.modalHeader}
-        >
+        <View style={styles.modalHeader}>
           <View style={styles.modalHeaderContent}>
             <Text style={styles.modalTitle}>Meal Completed! 🎉</Text>
             <Text style={styles.modalSubtitle}>Help us track your leftovers</Text>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView style={styles.modalContent}>
           {currentMeal && (
@@ -1097,19 +1081,14 @@ export default function FridgeScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <LinearGradient
-          colors={['#7C3AED', '#A855F7', '#C084FC']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.preferencesHeader}
-        >
+        <View style={styles.preferencesHeader}>
           <View style={styles.preferencesHeaderContent}>
             <Text style={styles.preferencesTitle}>Cooking Preferences</Text>
             <Text style={styles.preferencesSubtitle}>
               Tell us how you'd like to cook with your {selectedLeftovers.length} selected leftovers
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView style={styles.preferencesContent}>
           <View style={styles.preferencesCard}>
@@ -1240,12 +1219,7 @@ export default function FridgeScreen() {
         presentationStyle="fullScreen"
       >
         {isGeneratingRecipe ? (
-          <LinearGradient
-            colors={['#F0FDF4', '#DCFCE7', '#BBF7D0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.recipeLoadingContainer}
-          >
+          <View style={styles.recipeLoadingContainer}>
             <View style={styles.recipeLoadingContent}>
               <View style={styles.recipeLoadingIconContainer}>
                 <Text style={styles.recipeLoadingIcon}>👨‍🍳</Text>
@@ -1287,14 +1261,9 @@ export default function FridgeScreen() {
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         ) : generatedRecipe ? (
-          <LinearGradient
-            colors={['#F0FDF4', '#DBEAFE', '#FAF5FF']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.recipeContainer}
-          >
+          <View style={styles.recipeContainer}>
             <ScrollView style={styles.recipeScrollView}>
               <View style={styles.recipeContent}>
                 {/* Recipe Header */}
@@ -1429,15 +1398,19 @@ export default function FridgeScreen() {
                 </View>
               </View>
             </ScrollView>
-          </LinearGradient>
+          </View>
         ) : null}
       </Modal>
-      </LinearGradient>
+      </View>
     </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FAF7F0',
+  },
   scrollView: {
     flex: 1,
   },
@@ -1473,14 +1446,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1F2937',
-    fontFamily: 'System',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#4A4A4A',
     textAlign: 'center',
-    fontFamily: 'System',
+    fontFamily: 'Inter',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -1489,12 +1462,12 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#E0E0E0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1508,12 +1481,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#4A4A4A',
     textAlign: 'center',
   },
   filterContainer: {
@@ -1525,18 +1498,18 @@ const styles = StyleSheet.create({
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginHorizontal: 4,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#E0E0E0',
     gap: 6,
   },
   filterButtonActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: '#6B8E23',
+    borderColor: '#6B8E23',
   },
   filterIcon: {
     fontSize: 16,
@@ -1544,7 +1517,7 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: '#4A4A4A',
   },
   filterTextActive: {
     color: '#FFFFFF',
@@ -1559,10 +1532,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#10B981',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1651,21 +1624,21 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#4A4A4A',
     textAlign: 'center',
     lineHeight: 22,
   },
   leftoverCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#E0E0E0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1695,7 +1668,7 @@ const styles = StyleSheet.create({
   leftoverName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     flex: 1,
   },
   statusBadge: {
@@ -1719,13 +1692,14 @@ const styles = StyleSheet.create({
   },
   leftoverDetail: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
   },
   // Modal Styles
   modalHeader: {
     paddingTop: 60,
     paddingBottom: 32,
     paddingHorizontal: 24,
+    backgroundColor: '#6B8E23',
   },
   modalHeaderContent: {
     alignItems: 'center',
@@ -1766,16 +1740,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
     marginBottom: 8,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#1A1A1A',
     backgroundColor: '#FFFFFF',
   },
   categoryGrid: {
@@ -1789,14 +1763,14 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#F9FAFB',
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
     minWidth: '47%',
     gap: 6,
   },
   categoryOptionSelected: {
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    borderColor: '#6B8E23',
+    backgroundColor: 'rgba(107, 142, 35, 0.05)',
   },
   categoryOptionIcon: {
     fontSize: 16,
@@ -1804,10 +1778,10 @@ const styles = StyleSheet.create({
   categoryOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: '#4A4A4A',
   },
   categoryOptionTextSelected: {
-    color: '#059669',
+    color: '#6B8E23',
     fontWeight: '600',
   },
   expirySelector: {
@@ -1819,21 +1793,21 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#F9FAFB',
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
   expiryOptionSelected: {
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    borderColor: '#6B8E23',
+    backgroundColor: 'rgba(107, 142, 35, 0.05)',
   },
   expiryOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: '#4A4A4A',
   },
   expiryOptionTextSelected: {
-    color: '#059669',
+    color: '#6B8E23',
     fontWeight: '600',
   },
   modalButtons: {
@@ -1846,22 +1820,22 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#F9FAFB',
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
   modalCancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#4A4A4A',
   },
   modalSaveButton: {
     flex: 2,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     alignItems: 'center',
-    shadowColor: '#10B981',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1961,6 +1935,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 32,
     paddingHorizontal: 24,
+    backgroundColor: '#6B8E23',
   },
   preferencesHeaderContent: {
     alignItems: 'center',
@@ -2092,6 +2067,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FAF7F0',
   },
   recipeLoadingContent: {
     alignItems: 'center',
@@ -2177,6 +2153,7 @@ const styles = StyleSheet.create({
   // Recipe Display Styles
   recipeContainer: {
     flex: 1,
+    backgroundColor: '#FAF7F0',
   },
   recipeScrollView: {
     flex: 1,
@@ -2428,7 +2405,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#6B8E23',
     borderRadius: 12,
     gap: 8,
   },
@@ -2513,7 +2490,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     borderRadius: 8,
     alignItems: 'center',
   },
