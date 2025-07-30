@@ -8,7 +8,7 @@ interface AuthScreenProps {
 }
 
 export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
-  const { signUp, signIn, signInWithGoogle } = useAuth()
+  const { signUp, signIn, signInWithGoogle, resetPassword } = useAuth()
   const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -103,8 +103,25 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       return
     }
 
-    // TODO: Implement forgot password with Supabase
-    Alert.alert('Reset Password', 'Password reset functionality will be implemented soon.')
+    setLoading(true)
+    try {
+      const { data, error } = await resetPassword(email)
+
+      if (error) {
+        Alert.alert('Reset Password Error', error.message)
+        return
+      }
+
+      Alert.alert(
+        'Reset Email Sent', 
+        'Please check your email for password reset instructions.',
+        [{ text: 'OK', onPress: () => setShowForgotPassword(false) }]
+      )
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

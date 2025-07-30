@@ -11,6 +11,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<{ data: any; error: any }>
   signOut: () => Promise<void>
   updateProfile: (updates: any) => Promise<{ data: any; error: any }>
+  resetPassword: (email: string) => Promise<{ data: any; error: any }>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => ({ data: null, error: null }),
   signOut: async () => {},
   updateProfile: async () => ({ data: null, error: null }),
+  resetPassword: async () => ({ data: null, error: null }),
 })
 
 export const useAuth = () => {
@@ -76,28 +78,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.user && data.session && !error) {
         // Create user profile in backend database
-        try {
-          const profileResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/signup`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${data.session.access_token}`
-            },
-            body: JSON.stringify({
-              userId: data.user.id,
-              fullName: userData.fullName,
-              email: cleanEmail,
-              country: userData.country,
-              city: userData.city,
-              postalCode: userData.postalCode
+        // Skip if API URL is not configured
+        if (process.env.EXPO_PUBLIC_API_URL) {
+          try {
+            const profileResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/signup`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.session.access_token}`
+              },
+              body: JSON.stringify({
+                userId: data.user.id,
+                fullName: userData.fullName,
+                email: cleanEmail,
+                country: userData.country,
+                city: userData.city,
+                postalCode: userData.postalCode
+              })
             })
-          })
 
-          if (!profileResponse.ok) {
-            console.warn('Failed to create user profile in backend:', await profileResponse.text())
+            if (!profileResponse.ok) {
+              console.warn('Failed to create user profile in backend:', await profileResponse.text())
+            }
+          } catch (profileError) {
+            console.error('Error creating user profile:', profileError)
           }
-        } catch (profileError) {
-          console.error('Error creating user profile:', profileError)
+        } else {
+          console.log('Backend API URL not configured, skipping profile creation in external API')
         }
       }
 
@@ -157,6 +164,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const resetPassword = async (email: string) => {
+    try {
+      const cleanEmail = email.trim().toLowerCase()
+      
+      const { data, error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: 'exp://localhost:8081/reset-password',
+      })
+
+      return { data, error }
+    } catch (error) {
+      return { data: null, error }
+    }
+  }
+
   const value = {
     session,
     user,
@@ -166,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     signOut,
     updateProfile,
+    resetPassword,
   }
 
   return (

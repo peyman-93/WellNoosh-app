@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeveloperDashboard from '../screens/DeveloperDashboard';
 import { OnboardingTest } from './OnboardingTest';
+import { debugSupabase, isSupabaseConfigured } from '../src/utils/supabase-debug';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -34,6 +35,27 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
       console.error('Error clearing data:', error);
       Alert.alert('Error', 'Failed to clear data');
     }
+  };
+
+  const handleSupabaseDebug = async () => {
+    const isConfigured = isSupabaseConfigured();
+    
+    if (!isConfigured) {
+      Alert.alert(
+        'Supabase Not Configured',
+        'Please add your Supabase credentials to the .env file. Check SUPABASE_SETUP.md for instructions.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Testing Supabase Connection',
+      'Check the development console for detailed results.',
+      [{ text: 'OK' }]
+    );
+
+    await debugSupabase();
   };
 
   return (
@@ -109,6 +131,13 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
                 onPress={() => setShowOnboardingTest(true)}
               >
                 <Text style={styles.developerButtonText}>🎯 Test Onboarding Flow</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.supabaseButton}
+                onPress={handleSupabaseDebug}
+              >
+                <Text style={styles.supabaseButtonText}>🔧 Test Supabase Connection</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.clearButton} onPress={clearAllData}>
@@ -254,6 +283,20 @@ const styles = StyleSheet.create({
   },
   developerButtonText: {
     color: '#6B8E23',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  supabaseButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+    backgroundColor: '#dbeafe',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  supabaseButtonText: {
+    color: '#1d4ed8',
     fontSize: 14,
     fontWeight: '600',
   },
