@@ -41,7 +41,6 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
         }
 
         if (data.user && data.session) {
-          Alert.alert('Success', 'Account created successfully!')
           onAuthenticated()
         } else if (data.user && !data.session) {
           Alert.alert('Check your email', 'Please check your email for a confirmation link to complete your registration.')

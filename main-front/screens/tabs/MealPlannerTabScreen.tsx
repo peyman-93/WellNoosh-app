@@ -13,42 +13,24 @@ import {
 } from 'react-native'
 import { PanGestureHandler, GestureHandlerRootView, State } from 'react-native-gesture-handler'
 import { LinearGradient } from 'expo-linear-gradient'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
+import { useAuth } from '../../src/context/supabase-provider'
 
-interface MealPlan {
-  id: string
-  date: string
-  meals: {
-    breakfast?: { name: string; calories: number; time: string }
-    lunch?: { name: string; calories: number; time: string }
-    dinner?: { name: string; calories: number; time: string }
-  }
-}
-
-interface UserData {
-  fullName: string
-  email: string
-  age?: number
-  gender?: string
-  weight?: number
-  weightUnit?: 'kg' | 'lbs'
-  height?: number
-  heightUnit?: 'cm' | 'ft'
-  dietStyle?: string[]
-  healthGoals?: string[]
-  activityLevel?: string
-}
+// Services  
+import { getUserMealPlans, getDashboardMealPlan, hasMealPlanForDate } from '../../src/services/mealPlanService'
+import { generateAndSaveMealPlan, getUserCalorieTarget, getUserDietaryRestrictions } from '../../src/services/mealPlanGenerator'
+import type { UserMealPlan, DashboardMealPlan } from '../../src/types/mealPlan'
 
 const { width: screenWidth } = Dimensions.get('window')
 
 export default function PlannerScreen() {
+  const { session } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [mealPlans, setMealPlans] = useState<MealPlan[]>([])
+  const [mealPlans, setMealPlans] = useState<UserMealPlan[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-  const [userData, setUserData] = useState<UserData | null>(null)
-  const [dailyCalories, setDailyCalories] = useState(2000)
+  const [selectedMealPlan, setSelectedMealPlan] = useState<DashboardMealPlan | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [currentDayIndex, setCurrentDayIndex] = useState(0) // For 3-day pagination
   const [showGenerateMeals, setShowGenerateMeals] = useState(false)
   const [showRegenerateOptions, setShowRegenerateOptions] = useState(false)
@@ -127,88 +109,96 @@ export default function PlannerScreen() {
   }
 
   const loadMealPlans = async () => {
-    try {
-      const savedPlans = await AsyncStorage.getItem('mealPlans')
-      if (savedPlans) {
-        setMealPlans(JSON.parse(savedPlans))
-      }
-    } catch (error) {
-      console.error('Error loading meal plans:', error)
-    }
-  }
+    if (!session?.user?.id) return
 
-  const loadUserData = async () => {
     try {
-      const savedUserData = await AsyncStorage.getItem('userData')
-      if (savedUserData) {
-        setUserData(JSON.parse(savedUserData))
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error)
-    }
-  }
+      setLoading(true)
+      console.log('🔄 Loading meal plans from database...')
 
-  const saveMealPlans = async (plans: MealPlan[]) => {
-    try {
-      await AsyncStorage.setItem('mealPlans', JSON.stringify(plans))
+      // Get meal plans for the next 21 days
+      const today = new Date().toISOString().split('T')[0]
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 21)
+      const futureDateStr = futureDate.toISOString().split('T')[0]
+
+      const plans = await getUserMealPlans(session.user.id, {
+        date_from: today,
+        date_to: futureDateStr,
+        status: ['active', 'draft']
+      }, {
+        field: 'plan_date',
+        direction: 'asc'
+      })
+
       setMealPlans(plans)
+      console.log('✅ Loaded', plans.length, 'meal plans from database')
+
     } catch (error) {
-      console.error('Error saving meal plans:', error)
+      console.error('❌ Error loading meal plans:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const generateMealsForDate = (date: Date): MealPlan => {
-    const dateString = date.toISOString().split('T')[0]
-    
-    const mealOptions = {
-      breakfast: [
-        { name: 'Overnight Oats with Berries', calories: 320 },
-        { name: 'Greek Yogurt Parfait', calories: 280 },
-        { name: 'Avocado Toast with Eggs', calories: 380 },
-        { name: 'Smoothie Bowl', calories: 300 },
-        { name: 'Whole Grain Pancakes', calories: 420 }
-      ],
-      lunch: [
-        { name: 'Mediterranean Quinoa Salad', calories: 450 },
-        { name: 'Grilled Chicken Wrap', calories: 520 },
-        { name: 'Lentil Soup with Bread', calories: 390 },
-        { name: 'Buddha Bowl', calories: 480 },
-        { name: 'Turkey Club Sandwich', calories: 510 }
-      ],
-      dinner: [
-        { name: 'Salmon with Roasted Vegetables', calories: 580 },
-        { name: 'Chicken Stir-Fry', calories: 540 },
-        { name: 'Pasta Primavera', calories: 620 },
-        { name: 'Beef and Vegetable Curry', calories: 590 },
-        { name: 'Stuffed Bell Peppers', calories: 460 }
-      ]
-    }
+  const loadSelectedMealPlan = async (date: string) => {
+    if (!session?.user?.id) return
 
-    const getRandomMeal = (mealType: keyof typeof mealOptions) => {
-      const options = mealOptions[mealType]
-      return options[Math.floor(Math.random() * options.length)]
-    }
-
-    return {
-      id: `plan-${dateString}`,
-      date: dateString,
-      meals: {
-        breakfast: { ...getRandomMeal('breakfast'), time: '08:00' },
-        lunch: { ...getRandomMeal('lunch'), time: '12:30' },
-        dinner: { ...getRandomMeal('dinner'), time: '19:00' }
-      }
+    try {
+      console.log('🔄 Loading meal plan for date:', date)
+      const mealPlan = await getDashboardMealPlan(session.user.id, date)
+      setSelectedMealPlan(mealPlan)
+      console.log(mealPlan ? '✅ Loaded meal plan' : 'ℹ️ No meal plan found for date')
+    } catch (error) {
+      console.error('❌ Error loading selected meal plan:', error)
+      setSelectedMealPlan(null)
     }
   }
 
   const generateMealPlan = async () => {
+    if (!session?.user?.id) return
+
     setIsGenerating(true)
     setShowGenerateMeals(false)
     
     try {
-      // Generate meals for all 21 days
-      const newPlans = allDates.map(date => generateMealsForDate(date))
-      await saveMealPlans(newPlans)
+      console.log('🤖 Generating meal plans for 21 days...')
+
+      const [targetCalories, dietaryRestrictions] = await Promise.all([
+        getUserCalorieTarget(session.user.id),
+        getUserDietaryRestrictions(session.user.id)
+      ])
+
+      // Generate meal plans for the next 21 days
+      const generatePromises = allDates.map(async (date) => {
+        const dateString = date.toISOString().split('T')[0]
+        
+        // Check if meal plan already exists for this date
+        const exists = await hasMealPlanForDate(session.user.id, dateString)
+        if (exists) {
+          console.log('⏭️ Skipping', dateString, '- meal plan already exists')
+          return
+        }
+
+        return generateAndSaveMealPlan({
+          userId: session.user.id,
+          planDate: date,
+          targetCalories,
+          dietaryRestrictions,
+          mealsPerDay: 3,
+          includeSnacks: true
+        })
+      })
+
+      await Promise.all(generatePromises)
+      
+      // Reload meal plans
+      await loadMealPlans()
+      
+      console.log('✅ Generated meal plans for 21 days')
+      Alert.alert('Success', 'Generated your meal plans for the next 3 weeks!')
+
     } catch (error) {
+      console.error('❌ Error generating meal plan:', error)
       Alert.alert('Error', 'Failed to generate meal plan. Please try again.')
     } finally {
       setIsGenerating(false)
@@ -216,49 +206,61 @@ export default function PlannerScreen() {
   }
 
   const regenerateMealPlan = async () => {
+    if (!session?.user?.id) return
+
     setIsGenerating(true)
     setShowRegenerateOptions(false)
     
     try {
+      console.log('🔄 Regenerating meal plan with options:', regenerateOptions)
+
+      const [targetCalories, dietaryRestrictions] = await Promise.all([
+        getUserCalorieTarget(session.user.id),
+        getUserDietaryRestrictions(session.user.id)
+      ])
+
       let datesToRegenerate = []
       
       if (regenerateOptions.regenerateAll) {
-        // Regenerate all 21 days
-        datesToRegenerate = allDates
+        // Regenerate all dates that have meal plans
+        datesToRegenerate = allDates.filter(date => {
+          const dateString = date.toISOString().split('T')[0]
+          return mealPlans.some(plan => plan.plan_date === dateString)
+        })
       } else {
         // Regenerate only selected date
         datesToRegenerate = [new Date(selectedDate)]
       }
       
-      // Generate new meals based on options
-      const newPlans = datesToRegenerate.map(date => {
-        const plan = generateMealsForDate(date)
-        
-        // If using fridge ingredients, modify meal names to indicate this
-        if (regenerateOptions.useFridgeIngredients) {
-          Object.keys(plan.meals).forEach(mealType => {
-            const meal = plan.meals[mealType as keyof typeof plan.meals]
-            if (meal) {
-              meal.name = `${meal.name} (using fridge ingredients)`
-            }
+      // Delete existing meal plans and regenerate
+      const regeneratePromises = datesToRegenerate.map(async (date) => {
+        try {
+          const existingPlan = mealPlans.find(plan => plan.plan_date === date.toISOString().split('T')[0])
+          if (existingPlan) {
+            // Delete existing plan (this will cascade delete planned meals)
+            const { deleteMealPlan } = await import('../../src/services/mealPlanService')
+            await deleteMealPlan(existingPlan.id)
+          }
+
+          // Generate new plan
+          return generateAndSaveMealPlan({
+            userId: session.user.id,
+            planDate: date,
+            targetCalories,
+            dietaryRestrictions,
+            mealsPerDay: 3,
+            includeSnacks: true
           })
-        }
-        
-        return plan
-      })
-      
-      // Update existing plans or create new ones
-      const updatedPlans = [...mealPlans]
-      newPlans.forEach(newPlan => {
-        const existingIndex = updatedPlans.findIndex(plan => plan.date === newPlan.date)
-        if (existingIndex >= 0) {
-          updatedPlans[existingIndex] = newPlan
-        } else {
-          updatedPlans.push(newPlan)
+        } catch (error) {
+          console.error('Error regenerating plan for', date.toISOString().split('T')[0], error)
         }
       })
+
+      await Promise.all(regeneratePromises)
       
-      await saveMealPlans(updatedPlans)
+      // Reload meal plans and selected meal plan
+      await loadMealPlans()
+      await loadSelectedMealPlan(selectedDate)
       
       // Reset options
       setRegenerateOptions({
@@ -266,8 +268,12 @@ export default function PlannerScreen() {
         updateGoals: false,
         regenerateAll: false
       })
+
+      console.log('✅ Regenerated meal plans')
+      Alert.alert('Success', 'Regenerated your meal plans!')
       
     } catch (error) {
+      console.error('❌ Error regenerating meal plan:', error)
       Alert.alert('Error', 'Failed to regenerate meal plan. Please try again.')
     } finally {
       setIsGenerating(false)
@@ -275,11 +281,17 @@ export default function PlannerScreen() {
   }
 
   useEffect(() => {
-    loadMealPlans()
-    loadUserData()
-  }, [])
+    if (session?.user?.id) {
+      loadMealPlans()
+    }
+  }, [session?.user?.id])
 
-  const selectedMealPlan = mealPlans.find(plan => plan.date === selectedDate)
+  // Load selected meal plan when date changes
+  useEffect(() => {
+    if (session?.user?.id && selectedDate) {
+      loadSelectedMealPlan(selectedDate)
+    }
+  }, [selectedDate, session?.user?.id])
   const threeDays = getCurrentThreeDays()
 
   const renderMealCard = (mealType: 'breakfast' | 'lunch' | 'dinner', meal: any) => {
@@ -295,18 +307,51 @@ export default function PlannerScreen() {
       dinner: '#8BA654'     // Fresh sage green
     }
 
+    // Format time to HH:MM
+    const formatTime = (timeString: string): string => {
+      if (!timeString) return '12:00'
+      const parts = timeString.split(':')
+      if (parts.length >= 2) {
+        return `${parts[0]}:${parts[1]}`
+      }
+      return timeString
+    }
+
     return (
-      <View style={[styles.mealCard, { borderLeftColor: mealColors[mealType] }]}>
+      <View style={[
+        styles.mealCard, 
+        { borderLeftColor: mealColors[mealType] },
+        meal.isCompleted && styles.mealCardCompleted
+      ]}>
         <View style={styles.mealHeader}>
           <View style={styles.mealTitleRow}>
-            <Text style={styles.mealTypeLabel}>
+            <Text style={[
+              styles.mealTypeLabel,
+              meal.isCompleted && styles.mealTypeLabelCompleted
+            ]}>
               {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+              {meal.isCompleted && ' ✓'}
             </Text>
-            <Text style={styles.mealTime}>{meal.time}</Text>
+            <Text style={[
+              styles.mealTime,
+              meal.isCompleted && styles.mealTimeCompleted
+            ]}>
+              {formatTime(meal.time)}
+            </Text>
           </View>
         </View>
-        <Text style={styles.mealName}>{meal.name}</Text>
-        <Text style={styles.mealCalories}>{meal.calories} cal</Text>
+        <Text style={[
+          styles.mealName,
+          meal.isCompleted && styles.mealNameCompleted
+        ]}>
+          {meal.name}
+        </Text>
+        <Text style={[
+          styles.mealCalories,
+          meal.isCompleted && styles.mealCaloriesCompleted
+        ]}>
+          {meal.calories} cal
+        </Text>
       </View>
     )
   }
@@ -329,10 +374,10 @@ export default function PlannerScreen() {
     const currentYear = now.getFullYear()
     
     return mealPlans.filter(plan => {
-      const planDate = new Date(plan.date)
+      const planDate = new Date(plan.plan_date)
       return planDate.getMonth() === currentMonth && 
              planDate.getFullYear() === currentYear &&
-             plan.meals && Object.keys(plan.meals).length > 0
+             plan.total_meals_count > 0
     }).length
   }
 
@@ -346,7 +391,7 @@ export default function PlannerScreen() {
     const dateString = date.toISOString().split('T')[0]
     const isSelected = dateString === selectedDate
     const isTodayDate = isToday(dateString)
-    const hasMeals = mealPlans.some(plan => plan.date === dateString)
+    const hasMeals = mealPlans.some(plan => plan.plan_date === dateString && plan.total_meals_count > 0)
 
     return (
       <TouchableOpacity
@@ -492,18 +537,46 @@ export default function PlannerScreen() {
             </View>
 
             <View style={styles.mealsGrid}>
-              {selectedMealPlan.meals.breakfast && renderMealCard('breakfast', selectedMealPlan.meals.breakfast)}
-              {selectedMealPlan.meals.lunch && renderMealCard('lunch', selectedMealPlan.meals.lunch)}
-              {selectedMealPlan.meals.dinner && renderMealCard('dinner', selectedMealPlan.meals.dinner)}
+              {selectedMealPlan.meals
+                .filter(meal => meal.mealType === 'breakfast')
+                .map(meal => renderMealCard('breakfast', {
+                  name: meal.foodName,
+                  calories: meal.calories,
+                  time: meal.scheduledTime || '08:00',
+                  isCompleted: meal.isCompleted
+                }))}
+              {selectedMealPlan.meals
+                .filter(meal => meal.mealType === 'lunch')
+                .map(meal => renderMealCard('lunch', {
+                  name: meal.foodName,
+                  calories: meal.calories,
+                  time: meal.scheduledTime || '12:30',
+                  isCompleted: meal.isCompleted
+                }))}
+              {selectedMealPlan.meals
+                .filter(meal => meal.mealType === 'dinner')
+                .map(meal => renderMealCard('dinner', {
+                  name: meal.foodName,
+                  calories: meal.calories,
+                  time: meal.scheduledTime || '19:00',
+                  isCompleted: meal.isCompleted
+                }))}
             </View>
           </View>
         )}
 
         {/* No meals selected state */}
-        {!selectedMealPlan && mealPlans.length > 0 && (
+        {!selectedMealPlan && !loading && mealPlans.length > 0 && (
           <View style={styles.noMealsContainer}>
             <Text style={styles.noMealsTitle}>No meals planned</Text>
             <Text style={styles.noMealsText}>Select a day with meal plans to view details</Text>
+          </View>
+        )}
+
+        {/* Loading state */}
+        {loading && (
+          <View style={styles.noMealsContainer}>
+            <Text style={styles.noMealsTitle}>Loading meal plans...</Text>
           </View>
         )}
       </ScrollView>
@@ -939,6 +1012,25 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#6B8E23',
     fontFamily: 'Inter',
+  },
+  // Completed meal styles
+  mealCardCompleted: {
+    backgroundColor: '#F8F8F8',
+    borderColor: '#D0D0D0',
+    opacity: 0.7,
+  },
+  mealTypeLabelCompleted: {
+    color: '#7A7A7A',
+  },
+  mealTimeCompleted: {
+    color: '#7A7A7A',
+  },
+  mealNameCompleted: {
+    color: '#7A7A7A',
+    textDecorationLine: 'line-through',
+  },
+  mealCaloriesCompleted: {
+    color: '#7A7A7A',
   },
   noMealsContainer: {
     padding: 40,

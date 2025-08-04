@@ -43,8 +43,12 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
   const [currentStep, setCurrentStep] = useState(0);
   const [showCustomDietInput, setShowCustomDietInput] = useState(false);
   const [customDietText, setCustomDietText] = useState('');
+  const [showCustomAllergyInput, setShowCustomAllergyInput] = useState(false);
+  const [customAllergyText, setCustomAllergyText] = useState('');
+  const [showCustomMedicalInput, setShowCustomMedicalInput] = useState(false);
+  const [customMedicalText, setCustomMedicalText] = useState('');
   const [dietaryProfile, setDietaryProfile] = useState({
-    dietStyle: [] as string[],
+    dietStyle: '', // Changed to single string instead of array
     customDietStyle: '',
     allergies: [] as string[],
     medicalConditions: [] as string[],
@@ -63,19 +67,19 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
   // Diet Style Options
   const dietStyles = [
     'Balanced', 'Omnivore', 'Vegetarian', 'Vegan', 'Pescatarian', 'Keto', 'Paleo', 
-    'Mediterranean', 'Low Carb'
+    'Mediterranean', 'Low Carb', 'Custom'
   ];
 
   // Common Allergies
   const commonAllergies = [
     'Nuts', 'Peanuts', 'Shellfish', 'Fish', 'Eggs', 'Milk/Dairy', 
-    'Soy', 'Wheat/Gluten', 'Sesame', 'Sulfites'
+    'Soy', 'Wheat/Gluten', 'Sesame', 'Sulfites', 'Other'
   ];
 
   // Medical Conditions
   const medicalConditions = [
     'Diabetes', 'High Blood Pressure', 'High Cholesterol', 'Heart Disease',
-    'Kidney Disease', 'Liver Disease', 'Thyroid Issues', 'Food Allergies',
+    'Kidney Disease', 'Liver Disease', 'Thyroid Issues', 
     'Digestive Issues', 'Eating Disorder', 'Other'
   ];
 
@@ -111,6 +115,30 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
   ];
 
   const handleArrayToggle = (field: keyof typeof dietaryProfile, value: string) => {
+    // Special handling for diet style - single selection only
+    if (field === 'dietStyle') {
+      setDietaryProfile(prev => ({ 
+        ...prev, 
+        dietStyle: value,
+        // If custom is selected, show the custom input
+        customDietStyle: value === 'Custom' ? prev.customDietStyle : ''
+      }));
+      setShowCustomDietInput(value === 'Custom');
+      return;
+    }
+
+    // Special handling for allergies - show custom input for "Other"
+    if (field === 'allergies' && value === 'Other') {
+      setShowCustomAllergyInput(true);
+      return;
+    }
+
+    // Special handling for medical conditions - show custom input for "Other"
+    if (field === 'medicalConditions' && value === 'Other') {
+      setShowCustomMedicalInput(true);
+      return;
+    }
+
     setDietaryProfile(prev => {
       const currentArray = prev[field] as string[];
       
@@ -162,15 +190,45 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
     if (customDietText.trim()) {
       setDietaryProfile(prev => ({
         ...prev,
-        dietStyle: [...prev.dietStyle, customDietText.trim()],
+        dietStyle: 'Custom',
         customDietStyle: customDietText.trim()
       }));
-      setCustomDietText('');
-      setShowCustomDietInput(false);
+      // Show success feedback but keep the input visible
+      console.log('✅ Custom diet style added:', customDietText.trim());
+    }
+  };
+
+  const handleCustomAllergyAdd = () => {
+    if (customAllergyText.trim()) {
+      setDietaryProfile(prev => ({
+        ...prev,
+        allergies: [...prev.allergies, customAllergyText.trim()]
+      }));
+      // Show success feedback but keep the input visible
+      console.log('✅ Custom allergy added:', customAllergyText.trim());
+    }
+  };
+
+  const handleCustomMedicalAdd = () => {
+    if (customMedicalText.trim()) {
+      setDietaryProfile(prev => ({
+        ...prev,
+        medicalConditions: [...prev.medicalConditions, customMedicalText.trim()]
+      }));
+      // Show success feedback but keep the input visible
+      console.log('✅ Custom medical condition added:', customMedicalText.trim());
     }
   };
 
   const handleNext = () => {
+    // Clear custom inputs when moving to next step
+    setCustomDietText('');
+    setShowCustomDietInput(false);
+    setCustomAllergyText('');
+    setShowCustomAllergyInput(false);
+    setCustomMedicalText('');
+    setShowCustomMedicalInput(false);
+
     if (currentStep < onboardingSteps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -189,15 +247,6 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
     }
   };
 
-  const handleSkip = () => {
-    console.log('🏃‍♂️ Skip button pressed');
-    // Complete with current data
-    const completeUserData: UserData = {
-      ...userData!,
-      ...dietaryProfile
-    };
-    onComplete(completeUserData);
-  };
 
   const onboardingSteps = [
     // Step 0: Diet Style & Preferences
@@ -219,12 +268,12 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
                 onPress={() => handleArrayToggle('dietStyle', diet)}
                 style={[
                   styles.optionButton,
-                  dietaryProfile.dietStyle.includes(diet) && styles.optionButtonSelected
+                  dietaryProfile.dietStyle === diet && styles.optionButtonSelected
                 ]}
               >
                 <Text style={[
                   styles.optionButtonText,
-                  dietaryProfile.dietStyle.includes(diet) && styles.optionButtonTextSelected
+                  dietaryProfile.dietStyle === diet && styles.optionButtonTextSelected
                 ]}>
                   {diet}
                 </Text>
@@ -232,20 +281,13 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
             ))}
           </View>
 
-          {/* Custom Diet Style Section */}
-          <View style={styles.customSection}>
-            <Text style={styles.customSectionTitle}>
-              Can't find your diet style?
-            </Text>
-            
-            {!showCustomDietInput ? (
-              <TouchableOpacity
-                onPress={() => setShowCustomDietInput(true)}
-                style={styles.addCustomButton}
-              >
-                <Text style={styles.addCustomButtonText}>+ Add Custom Diet Style</Text>
-              </TouchableOpacity>
-            ) : (
+          {/* Custom Diet Style Section - Only show when Custom is selected */}
+          {dietaryProfile.dietStyle === 'Custom' && (
+            <View style={styles.customSection}>
+              <Text style={styles.customSectionTitle}>
+                Describe your custom diet style
+              </Text>
+              
               <View style={styles.customInputContainer}>
                 <View style={styles.customInputRow}>
                   <TextInput
@@ -262,22 +304,18 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
                   >
                     <Text style={styles.customButtonText}>✓</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowCustomDietInput(false);
-                      setCustomDietText('');
-                    }}
-                    style={[styles.customButton, styles.cancelButton]}
-                  >
-                    <Text style={styles.customButtonText}>✕</Text>
-                  </TouchableOpacity>
                 </View>
+                {dietaryProfile.customDietStyle && (
+                  <Text style={styles.customSuccessText}>
+                    ✅ Added: {dietaryProfile.customDietStyle}
+                  </Text>
+                )}
                 <Text style={styles.customInputHelp}>
                   Describe your specific dietary approach (e.g., "Intermittent Fasting", "Raw Food", "Macrobiotic")
                 </Text>
               </View>
-            )}
-          </View>
+            </View>
+          )}
         </View>
       )
     },
@@ -312,6 +350,50 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Custom Allergy Section - Show when Other is clicked */}
+          {showCustomAllergyInput && (
+            <View style={styles.customSection}>
+              <Text style={styles.customSectionTitle}>
+                Specify your other allergy
+              </Text>
+              
+              <View style={styles.customInputContainer}>
+                <View style={styles.customInputRow}>
+                  <TextInput
+                    style={styles.customInput}
+                    placeholder="Enter your allergy"
+                    value={customAllergyText}
+                    onChangeText={setCustomAllergyText}
+                    maxLength={50}
+                  />
+                  <TouchableOpacity
+                    onPress={handleCustomAllergyAdd}
+                    disabled={!customAllergyText.trim()}
+                    style={[styles.customButton, styles.addButton]}
+                  >
+                    <Text style={styles.customButtonText}>✓</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowCustomAllergyInput(false);
+                      setCustomAllergyText('');
+                    }}
+                    style={[styles.customButton, styles.cancelButton]}
+                  >
+                    <Text style={styles.customButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                {/* Show the most recently added custom allergy */}
+                {dietaryProfile.allergies.length > 0 && 
+                 dietaryProfile.allergies.some(allergy => !commonAllergies.includes(allergy)) && (
+                  <Text style={styles.customSuccessText}>
+                    ✅ Added: {dietaryProfile.allergies.filter(allergy => !commonAllergies.includes(allergy)).join(', ')}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
         </View>
       )
     },
@@ -346,6 +428,50 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Custom Medical Condition Section - Show when Other is clicked */}
+          {showCustomMedicalInput && (
+            <View style={styles.customSection}>
+              <Text style={styles.customSectionTitle}>
+                Specify your other medical condition
+              </Text>
+              
+              <View style={styles.customInputContainer}>
+                <View style={styles.customInputRow}>
+                  <TextInput
+                    style={styles.customInput}
+                    placeholder="Enter your condition"
+                    value={customMedicalText}
+                    onChangeText={setCustomMedicalText}
+                    maxLength={50}
+                  />
+                  <TouchableOpacity
+                    onPress={handleCustomMedicalAdd}
+                    disabled={!customMedicalText.trim()}
+                    style={[styles.customButton, styles.addButton]}
+                  >
+                    <Text style={styles.customButtonText}>✓</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowCustomMedicalInput(false);
+                      setCustomMedicalText('');
+                    }}
+                    style={[styles.customButton, styles.cancelButton]}
+                  >
+                    <Text style={styles.customButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                {/* Show the most recently added custom medical condition */}
+                {dietaryProfile.medicalConditions.length > 0 && 
+                 dietaryProfile.medicalConditions.some(condition => !medicalConditions.includes(condition)) && (
+                  <Text style={styles.customSuccessText}>
+                    ✅ Added: {dietaryProfile.medicalConditions.filter(condition => !medicalConditions.includes(condition)).join(', ')}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
         </View>
       )
     },
@@ -479,47 +605,6 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
         </View>
       )
     },
-    // Step 6: Setup Complete
-    {
-      title: "You're All Set!",
-      subtitle: `${getUserFirstName()}, your personalized WellNoosh experience is ready`,
-      icon: '✅',
-      iconBg: '#6B8E23',
-      content: (
-        <View style={styles.completionContent}>
-          <Text style={styles.completionTitle}>
-            🎉 Your Smart Kitchen Awaits!
-          </Text>
-          <Text style={styles.completionDescription}>
-            WellNoosh is now fully personalized with your dietary preferences, health goals, and cooking style. Next, we'll show you some delicious meal recommendations!
-          </Text>
-          <View style={styles.completionCards}>
-            <View style={[styles.completionCard, styles.completionCardGreen]}>
-              <Text style={styles.completionCardTitle}>
-                ✅ Complete Health Profile
-              </Text>
-              <Text style={styles.completionCardText}>
-                {dietaryProfile.dietStyle.length > 0 ? `${dietaryProfile.dietStyle.join(', ')} diet` : 'Diet preferences saved'}
-              </Text>
-            </View>
-            <View style={[styles.completionCard, styles.completionCardBlue]}>
-              <Text style={styles.completionCardTitle}>
-                🎯 Personalized Goals
-              </Text>
-              <Text style={styles.completionCardText}>
-                {dietaryProfile.healthGoals.length > 0 ? `${dietaryProfile.healthGoals.length} health goals set` : 'Health goals configured'}
-              </Text>
-            </View>
-            <View style={[styles.completionCard, styles.completionCardPurple]}>
-              <Text style={styles.completionCardTitle}>
-                🍽️ Meal Discovery
-              </Text>
-              <Text style={styles.completionCardText}>Ready to discover your perfect meals</Text>
-            </View>
-          </View>
-        </View>
-      )
-    }
   ];
 
   const totalSteps = onboardingSteps.length;
@@ -556,14 +641,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
           </View>
         </View>
         
-        <TouchableOpacity 
-          onPress={handleSkip} 
-          style={styles.skipButton}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.skipButtonText}>Skip</Text>
-        </TouchableOpacity>
+        <View style={{ width: 44, height: 44 }} />
       </View>
 
       {/* Step Content */}
@@ -589,7 +667,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
       <View style={styles.footer}>
         <TouchableOpacity onPress={handleNext} style={styles.continueButton}>
           <Text style={styles.continueButtonText}>
-            {currentStep === totalSteps - 1 ? 'Continue to Meal Discovery' : 'Continue'}
+            {currentStep === totalSteps - 1 ? 'Continue to Profile Completion' : 'Continue'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -896,6 +974,14 @@ const styles = StyleSheet.create({
   customInputHelp: {
     fontSize: 12,
     color: '#4A4A4A',
+  },
+  customSuccessText: {
+    fontSize: 14,
+    color: '#6B8E23',
+    fontWeight: '600',
+    marginTop: 8,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   sectionContainer: {
     gap: 24,

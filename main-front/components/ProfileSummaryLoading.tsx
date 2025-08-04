@@ -15,7 +15,7 @@ interface UserData {
   heightUnit?: 'cm' | 'ft';
   heightFeet?: number;
   heightInches?: number;
-  dietStyle?: string[];
+  dietStyle?: string | string[]; // Support both formats
   customDietStyle?: string;
   allergies?: string[];
   medicalConditions?: string[];
@@ -108,9 +108,17 @@ export function ProfileSummaryLoading({ userData, onComplete }: ProfileSummaryLo
   }, [fadeAnim, scaleAnim, onComplete]);
 
   const formatDietStyle = () => {
-    if (!userData.dietStyle || userData.dietStyle.length === 0) return 'Balanced';
-    return userData.dietStyle.slice(0, 2).join(', ') + 
-           (userData.dietStyle.length > 2 ? ` +${userData.dietStyle.length - 2} more` : '');
+    if (!userData.dietStyle) return 'Balanced';
+    // Handle both string and array formats for backward compatibility
+    if (typeof userData.dietStyle === 'string') {
+      return userData.dietStyle;
+    }
+    if (Array.isArray(userData.dietStyle) && userData.dietStyle.length === 0) return 'Balanced';
+    if (Array.isArray(userData.dietStyle)) {
+      return userData.dietStyle.slice(0, 2).join(', ') + 
+             (userData.dietStyle.length > 2 ? ` +${userData.dietStyle.length - 2} more` : '');
+    }
+    return 'Balanced';
   };
 
   const formatHealthGoals = () => {
@@ -235,7 +243,7 @@ export function ProfileSummaryLoading({ userData, onComplete }: ProfileSummaryLo
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7F0', // Match dashboard warm off-white background
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -252,11 +260,11 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6B8E23', // Match dashboard primary green
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    shadowColor: '#3b82f6',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -266,19 +274,22 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 24,
     fontWeight: 'bold',
+    fontFamily: 'Inter',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#1A1A1A', // Match dashboard soft black
     textAlign: 'center',
     marginBottom: 8,
+    fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#4A4A4A', // Match dashboard warm charcoal
     textAlign: 'center',
     lineHeight: 24,
+    fontFamily: 'Inter',
   },
   summaryContainer: {
     width: '100%',
@@ -320,15 +331,17 @@ const styles = StyleSheet.create({
   summaryCardTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: '#1A1A1A', // Match dashboard soft black
     marginBottom: 4,
     textAlign: 'center',
+    fontFamily: 'Inter',
   },
   summaryCardText: {
     fontSize: 11,
-    color: '#6b7280',
+    color: '#4A4A4A', // Match dashboard warm charcoal
     textAlign: 'center',
     lineHeight: 16,
+    fontFamily: 'Inter',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -353,16 +366,18 @@ const styles = StyleSheet.create({
   loadingTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#1A1A1A', // Match dashboard soft black
     marginBottom: 8,
     textAlign: 'center',
+    fontFamily: 'Inter',
   },
   loadingDescription: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#4A4A4A', // Match dashboard warm charcoal
     marginBottom: 24,
     textAlign: 'center',
     lineHeight: 24,
+    fontFamily: 'Inter',
   },
   progressContainer: {
     width: '100%',
@@ -374,7 +389,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6B8E23', // Match dashboard primary green
     borderRadius: 3,
   },
   stepIndicators: {
@@ -388,6 +403,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#d1d5db',
   },
   stepDotActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6B8E23', // Match dashboard primary green
   },
 });

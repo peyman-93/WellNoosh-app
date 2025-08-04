@@ -15,6 +15,8 @@ interface UserData {
   heightUnit?: 'cm' | 'ft';
   heightFeet?: number;
   heightInches?: number;
+  targetWeight?: number;
+  targetWeightUnit?: 'kg' | 'lbs';
 }
 
 interface ProfileCompletionProps {
@@ -31,7 +33,9 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
     height: '',
     heightUnit: 'cm' as 'cm' | 'ft',
     heightFeet: '',
-    heightInches: ''
+    heightInches: '',
+    targetWeight: '',
+    targetWeightUnit: 'kg' as 'kg' | 'lbs'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -72,6 +76,16 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
       const maxWeight = profileData.weightUnit === 'kg' ? 300 : 660;
       if (isNaN(weight) || weight < minWeight || weight > maxWeight) {
         newErrors.weight = `Please enter a valid weight (${minWeight}-${maxWeight} ${profileData.weightUnit})`;
+      }
+    }
+
+    // Target weight validation (optional)
+    if (profileData.targetWeight) {
+      const targetWeight = parseFloat(profileData.targetWeight);
+      const minWeight = profileData.targetWeightUnit === 'kg' ? 30 : 66;
+      const maxWeight = profileData.targetWeightUnit === 'kg' ? 300 : 660;
+      if (isNaN(targetWeight) || targetWeight < minWeight || targetWeight > maxWeight) {
+        newErrors.targetWeight = `Please enter a valid target weight (${minWeight}-${maxWeight} ${profileData.targetWeightUnit})`;
       }
     }
 
@@ -125,7 +139,9 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
           (parseInt(profileData.heightFeet) * 12 + parseInt(profileData.heightInches)) * 2.54 : undefined),
       heightUnit: profileData.heightUnit,
       heightFeet: profileData.heightUnit === 'ft' && profileData.heightFeet ? parseInt(profileData.heightFeet) : undefined,
-      heightInches: profileData.heightUnit === 'ft' && profileData.heightInches ? parseInt(profileData.heightInches) : undefined
+      heightInches: profileData.heightUnit === 'ft' && profileData.heightInches ? parseInt(profileData.heightInches) : undefined,
+      targetWeight: profileData.targetWeight ? parseFloat(profileData.targetWeight) : undefined,
+      targetWeightUnit: profileData.targetWeightUnit
     };
 
     onComplete(completeUserData);
@@ -272,6 +288,37 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
             </View>
             {errors.height && <Text style={styles.errorText}>{errors.height}</Text>}
           </View>
+
+          {/* Target Weight (Optional) */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Target Weight <Text style={styles.optionalText}>(Optional)</Text></Text>
+            <View style={styles.weightContainer}>
+              <TextInput
+                style={[styles.weightInput, errors.targetWeight && styles.inputError]}
+                placeholder="65"
+                value={profileData.targetWeight}
+                onChangeText={(value) => handleInputChange('targetWeight', value)}
+                keyboardType="decimal-pad"
+              />
+              <TouchableOpacity
+                style={styles.unitButton}
+                onPress={() => {
+                  Alert.alert(
+                    'Select Unit',
+                    '',
+                    [
+                      { text: 'kg', onPress: () => handleInputChange('targetWeightUnit', 'kg') },
+                      { text: 'lbs', onPress: () => handleInputChange('targetWeightUnit', 'lbs') }
+                    ]
+                  );
+                }}
+              >
+                <Text style={styles.unitButtonText}>{profileData.targetWeightUnit}</Text>
+                <Text style={styles.pickerArrow}>▼</Text>
+              </TouchableOpacity>
+            </View>
+            {errors.targetWeight && <Text style={styles.errorText}>{errors.targetWeight}</Text>}
+          </View>
         </View>
       </ScrollView>
 
@@ -288,7 +335,7 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7F0', // Match dashboard warm off-white background
   },
   scrollView: {
     flex: 1,
@@ -306,11 +353,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6B8E23', // Match dashboard primary green
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-    shadowColor: '#3b82f6',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -323,15 +370,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#1A1A1A', // Match dashboard soft black
     textAlign: 'center',
     marginBottom: 8,
+    fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#4A4A4A', // Match dashboard warm charcoal
     textAlign: 'center',
     lineHeight: 24,
+    fontFamily: 'Inter',
   },
   form: {
     gap: 24,
@@ -349,8 +398,9 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#1A1A1A', // Match dashboard soft black
     marginBottom: 8,
+    fontFamily: 'Inter',
   },
   input: {
     borderWidth: 1,
@@ -385,14 +435,15 @@ const styles = StyleSheet.create({
   },
   pickerText: {
     fontSize: 16,
-    color: '#374151',
+    color: '#1A1A1A', // Match dashboard soft black
+    fontFamily: 'Inter',
   },
   placeholderText: {
-    color: '#9ca3af',
+    color: '#4A4A4A', // Match dashboard warm charcoal
   },
   pickerArrow: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#4A4A4A',
   },
   weightContainer: {
     flexDirection: 'row',
@@ -452,7 +503,8 @@ const styles = StyleSheet.create({
   },
   unitLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#4A4A4A', // Match dashboard warm charcoal
+    fontFamily: 'Inter',
   },
   unitButton: {
     borderWidth: 1,
@@ -468,7 +520,14 @@ const styles = StyleSheet.create({
   },
   unitButtonText: {
     fontSize: 16,
-    color: '#374151',
+    color: '#1A1A1A', // Match dashboard soft black
+    fontFamily: 'Inter',
+  },
+  optionalText: {
+    fontSize: 14,
+    color: '#4A4A4A', // Match dashboard warm charcoal
+    fontWeight: '400',
+    fontFamily: 'Inter',
   },
   footer: {
     paddingHorizontal: 24,
@@ -478,11 +537,11 @@ const styles = StyleSheet.create({
     borderTopColor: '#e5e7eb',
   },
   continueButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6B8E23', // Match dashboard primary green
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: '#3b82f6',
+    shadowColor: '#6B8E23',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -492,5 +551,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: 'Inter',
   },
 });

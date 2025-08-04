@@ -28,7 +28,7 @@ import { ProfileCompletion } from './components/ProfileCompletion'
 
 const Stack = createNativeStackNavigator()
 
-type AppState = 'landing' | 'auth' | 'onboarding' | 'authenticated' | 'familyVoteShare' | 'familyVoteLanding' | 'voteResults'
+type AppState = 'landing' | 'auth' | 'onboarding' | 'profileCompletion' | 'profileSummary' | 'authenticated' | 'familyVoteShare' | 'familyVoteLanding' | 'voteResults'
 type AuthMode = 'login' | 'signup' | 'google'
 
 interface Recipe {
@@ -57,11 +57,12 @@ interface Recipe {
 
 function AppContent() {
   const { session, loading } = useAuth()
-  const { userData, loading: userDataLoading } = useUserData()
+  const { userData, loading: userDataLoading, updateUserData, saveToSupabase, saveToSupabaseWithData } = useUserData()
   const [appState, setAppState] = React.useState<AppState>('landing')
   const [authMode, setAuthMode] = React.useState<AuthMode>('login')
   const [currentRecipeForVote, setCurrentRecipeForVote] = React.useState<Recipe | null>(null)
   const [currentVoteId, setCurrentVoteId] = React.useState<string | null>(null)
+  const [onboardingData, setOnboardingData] = React.useState<any>(null)
 
   React.useEffect(() => {
     if (!loading && !userDataLoading) {
@@ -94,8 +95,43 @@ function AppContent() {
     // and useEffect will handle the state transition
   }
 
-  const handleOnboardingComplete = () => {
-    setAppState('authenticated')
+  const handleOnboardingComplete = (userData: any) => {
+    setOnboardingData(userData)
+    setAppState('profileCompletion')
+  }
+
+  const handleProfileCompletionComplete = (completeUserData: any) => {
+    // Merge the profile completion data with existing onboarding data
+    setOnboardingData(prev => ({ ...prev, ...completeUserData }))
+    setAppState('profileSummary')
+  }
+
+  const handleProfileSummaryComplete = async () => {
+    try {
+      // Update user data with onboarding data
+      if (onboardingData) {
+        console.log('🔍 Debug - onboardingData being saved:', onboardingData)
+        console.log('🔍 Debug - current userData before merge:', userData)
+        
+        // Get the merged data directly and pass it to save function
+        const mergedData = await updateUserData(onboardingData)
+        if (mergedData) {
+          console.log('🔍 Debug - merged data for save:', mergedData)
+          // Save the merged data directly instead of relying on state update
+          await saveToSupabaseWithData(mergedData)
+        }
+        console.log('✅ Onboarding data saved to Supabase')
+      }
+      
+      // Mark onboarding as completed
+      await updateUserData({ onboardingCompleted: true })
+      
+      setAppState('authenticated')
+    } catch (error) {
+      console.error('❌ Error saving onboarding data:', error)
+      // Still continue to authenticated state even if save fails
+      setAppState('authenticated')
+    }
   }
 
   const handleShareWithFamily = (recipe: Recipe) => {
@@ -219,7 +255,39 @@ function AppContent() {
       <SafeAreaProvider>
         <View style={styles.container}>
           <StatusBar style="dark" />
-          <OnboardingFlow onComplete={handleOnboardingComplete} />
+          <OnboardingFlow 
+            onComplete={handleOnboardingComplete} 
+            onSkip={handleOnboardingComplete}
+            userData={userData}
+          />
+        </View>
+      </SafeAreaProvider>
+    )
+  }
+
+  if (appState === 'profileCompletion') {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.container}>
+          <StatusBar style="dark" />
+          <ProfileCompletion 
+            onComplete={handleProfileCompletionComplete}
+            userData={onboardingData}
+          />
+        </View>
+      </SafeAreaProvider>
+    )
+  }
+
+  if (appState === 'profileSummary') {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.container}>
+          <StatusBar style="dark" />
+          <ProfileSummaryLoading 
+            userData={onboardingData}
+            onComplete={handleProfileSummaryComplete}
+          />
         </View>
       </SafeAreaProvider>
     )

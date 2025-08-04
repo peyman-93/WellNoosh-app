@@ -12,6 +12,7 @@ import CommunityTabScreen from './tabs/CommunityTabScreen'
 import GroceryListTabScreen from './tabs/GroceryListTabScreen'
 import PantryTabScreen from './tabs/PantryTabScreen'
 import ProfileScreen from './ProfileScreen'
+import TrackerScreen from './TrackerScreen'
 
 // Tab icon components with organic wellness style
 const HomeIcon = ({ color, size }: { color: string; size: number }) => (
@@ -162,6 +163,22 @@ export default function MainTabs() {
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+          tabBarIconStyle: { display: 'none' },
+          tabBarLabelStyle: { display: 'none' },
+          tabBarBadgeStyle: { display: 'none' },
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault(); // Prevent default tab behavior
+          },
+        }}
+      />
+      <Tab.Screen
+        name="TrackerScreen"
+        component={TrackerScreen}
         options={{
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },

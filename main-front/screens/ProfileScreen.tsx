@@ -10,26 +10,16 @@ import {
   TextInput,
   Alert
 } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../src/context/supabase-provider'
 import { useUserData } from '../src/context/user-data-provider'
 import { useNavigation } from '@react-navigation/native'
 import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
 
-interface Achievement {
-  id: string
-  title: string
-  description: string
-  emoji: string
-  earned: boolean
-  date?: string
-}
-
-interface ProfileMetric {
-  label: string
-  value: string
-  emoji: string
-  color: string
+interface MembershipInfo {
+  tier: string
+  status: string
+  joinDate: string
+  nextBilling?: string
 }
 
 export default function ProfileScreen() {
@@ -38,82 +28,23 @@ export default function ProfileScreen() {
   const navigation = useNavigation()
   const [showEditProfile, setShowEditProfile] = useState(false)
 
-  const profileMetrics: ProfileMetric[] = [
-    {
-      label: 'Meals Logged',
-      value: '127',
-      emoji: '🍽️',
-      color: '#3B82F6'
-    },
-    {
-      label: 'Streak Days', 
-      value: '12',
-      emoji: '🔥',
-      color: '#10B981'
-    },
-    {
-      label: 'Achievements',
-      value: '8',
-      emoji: '🏆', 
-      color: '#8B5CF6'
-    },
-    {
-      label: 'Health Score',
-      value: '4.9',
-      emoji: '⭐',
-      color: '#F59E0B'
-    }
-  ]
+  // Mock membership data - replace with actual API call when implemented
+  const membershipInfo: MembershipInfo = {
+    tier: 'Premium',
+    status: 'Active',
+    joinDate: 'January 2025',
+    nextBilling: 'February 1, 2025'
+  }
 
-  const achievements: Achievement[] = [
-    {
-      id: 'week-streak',
-      title: '7-Day Streak',
-      description: 'Logged meals for 7 consecutive days',
-      emoji: '🔥',
-      earned: true,
-      date: '2 days ago'
-    },
-    {
-      id: 'healthy-choices',
-      title: 'Healthy Choice Master',
-      description: 'Made 50 healthy meal choices',
-      emoji: '🥗',
-      earned: true,
-      date: '1 week ago'
-    },
-    {
-      id: 'chef-assistant',
-      title: 'AI Chef Pal',
-      description: 'Used AI Chef for 25 recipes',
-      emoji: '👨‍🍳',
-      earned: true,
-      date: '2 weeks ago'
-    },
-    {
-      id: 'zero-waste',
-      title: 'Zero Waste Hero',
-      description: 'Prevented 10kg of food waste',
-      emoji: '🌱',
-      earned: false
-    },
-    {
-      id: 'budget-master',
-      title: 'Budget Master',
-      description: 'Saved €500 on groceries',
-      emoji: '💰',
-      earned: false
-    },
-    {
-      id: 'meal-planner',
-      title: 'Meal Planning Pro',
-      description: 'Planned 30 weekly meal schedules',
-      emoji: '📅',
-      earned: false
-    }
-  ]
 
   const menuSections = [
+    {
+      title: 'Health & Wellness',
+      items: [
+        { emoji: '📊', label: 'Health Tracker', action: () => navigation.navigate('TrackerScreen' as never) },
+        { emoji: '🎯', label: 'Update Health Goals', action: () => Alert.alert('Health Goals', 'Navigate to onboarding to update your health goals.') }
+      ]
+    },
     {
       title: 'Account',
       items: [
@@ -123,18 +54,9 @@ export default function ProfileScreen() {
       ]
     },
     {
-      title: 'Preferences', 
+      title: 'App',
       items: [
-        { emoji: '🥗', label: 'Edit Diet Style', action: () => Alert.alert('Diet Style', 'Tap to edit your dietary preferences and cooking style.') },
-        { emoji: '⚠️', label: 'Edit Allergies', action: () => Alert.alert('Allergies', 'Tap to update your allergies and dietary restrictions.') },
-        { emoji: '🎯', label: 'Edit Health Goals', action: () => Alert.alert('Health Goals', 'Tap to modify your health and wellness goals.') },
-        { emoji: '🏃‍♂️', label: 'Edit Activity Level', action: () => Alert.alert('Activity Level', 'Tap to update your activity and exercise information.') },
-        { emoji: '📱', label: 'App Settings', action: () => Alert.alert('App Settings', 'Coming soon!') }
-      ]
-    },
-    {
-      title: 'Support',
-      items: [
+        { emoji: '📱', label: 'App Settings', action: () => Alert.alert('App Settings', 'Coming soon!') },
         { emoji: '❓', label: 'Help & Support', action: () => Alert.alert('Help & Support', 'Coming soon!') },
         { emoji: '⚙️', label: 'Advanced Settings', action: () => Alert.alert('Advanced Settings', 'Coming soon!') }
       ]
@@ -149,16 +71,13 @@ export default function ProfileScreen() {
     }
   }
 
-  const userName = session?.user?.email?.split('@')[0] || 'Guest User'
+  const userName = userData?.fullName || session?.user?.email?.split('@')[0] || 'Guest User'
   const userEmail = session?.user?.email || 'guest@wellnoosh.com'
 
   return (
     <ScreenWrapper>
       {/* Header */}
-      <LinearGradient
-        colors={['#10B981', '#3B82F6']}
-        style={styles.header}
-      >
+      <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -178,31 +97,60 @@ export default function ProfileScreen() {
           <Text style={styles.userName}>{userName}</Text>
           <Text style={styles.userEmail}>{userEmail}</Text>
           
-          <View style={styles.healthScore}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Text key={star} style={styles.star}>⭐</Text>
-            ))}
-            <Text style={styles.healthScoreText}>4.9 Health Score</Text>
+          <View style={styles.membershipBadge}>
+            <Text style={styles.membershipText}>
+              ✨ {membershipInfo.tier} Member
+            </Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          {/* Quick Stats */}
-          <View style={styles.statsCard}>
-            <View style={styles.statsGrid}>
-              {profileMetrics.map((metric) => (
-                <View key={metric.label} style={styles.statItem}>
-                  <Text style={styles.statEmoji}>{metric.emoji}</Text>
-                  <Text style={[styles.statValue, { color: metric.color }]}>
-                    {metric.value}
-                  </Text>
-                  <Text style={styles.statLabel}>{metric.label}</Text>
+          {/* Membership Info */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionEmoji}>👑</Text>
+              <Text style={styles.sectionTitle}>Membership</Text>
+            </View>
+            
+            <View style={styles.infoCard}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoEmoji}>✨</Text>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoValue}>{membershipInfo.tier}</Text>
+                  <Text style={styles.infoLabel}>Plan Type</Text>
                 </View>
-              ))}
+              </View>
+              
+              <View style={styles.infoItem}>
+                <Text style={styles.infoEmoji}>📅</Text>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoValue}>{membershipInfo.joinDate}</Text>
+                  <Text style={styles.infoLabel}>Member Since</Text>
+                </View>
+              </View>
+              
+              <View style={styles.infoItem}>
+                <Text style={styles.infoEmoji}>🔄</Text>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoValue}>{membershipInfo.status}</Text>
+                  <Text style={styles.infoLabel}>Status</Text>
+                </View>
+              </View>
+              
+              {membershipInfo.nextBilling && (
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoEmoji}>💳</Text>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoValue}>{membershipInfo.nextBilling}</Text>
+                    <Text style={styles.infoLabel}>Next Billing</Text>
+                  </View>
+                </View>
+              )}
             </View>
           </View>
+
 
           {/* Personal Information */}
           <View style={styles.section}>
@@ -223,26 +171,30 @@ export default function ProfileScreen() {
               <View style={styles.infoItem}>
                 <Text style={styles.infoEmoji}>📍</Text>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>Barcelona, Spain</Text>
+                  <Text style={styles.infoValue}>
+                    {userData?.city || 'City not specified'}, {userData?.country || 'Country not specified'}
+                  </Text>
                   <Text style={styles.infoLabel}>Location</Text>
                 </View>
               </View>
               
               <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>📅</Text>
+                <Text style={styles.infoEmoji}>🏠</Text>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>Member since Dec 2024</Text>
-                  <Text style={styles.infoLabel}>Join Date</Text>
+                  <Text style={styles.infoValue}>
+                    {userData?.address || userData?.postalCode || 'Not specified'}
+                  </Text>
+                  <Text style={styles.infoLabel}>Address</Text>
                 </View>
               </View>
             </View>
           </View>
 
-          {/* Diet & Preferences */}
+          {/* Cooking Profile */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>🥗</Text>
-              <Text style={styles.sectionTitle}>Diet & Preferences</Text>
+              <Text style={styles.sectionEmoji}>👨‍🍳</Text>
+              <Text style={styles.sectionTitle}>Cooking Profile</Text>
             </View>
             
             <View style={styles.infoCard}>
@@ -250,29 +202,19 @@ export default function ProfileScreen() {
                 <Text style={styles.infoEmoji}>🌱</Text>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoValue}>
-                    {userData?.dietStyle?.join(', ') || 'Not specified'}
+                    {userData?.dietStyle || 'Not specified'}
                   </Text>
                   <Text style={styles.infoLabel}>Diet Style</Text>
                 </View>
               </View>
               
               <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>⚠️</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.allergies?.length ? userData.allergies.join(', ') : 'None reported'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Allergies & Restrictions</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>👨‍🍳</Text>
+                <Text style={styles.infoEmoji}>🍳</Text>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoValue}>
                     {userData?.cookingSkill || 'Not specified'}
                   </Text>
-                  <Text style={styles.infoLabel}>Cooking Skill Level</Text>
+                  <Text style={styles.infoLabel}>Cooking Experience</Text>
                 </View>
               </View>
               
@@ -280,77 +222,11 @@ export default function ProfileScreen() {
                 <Text style={styles.infoEmoji}>⏱️</Text>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoValue}>
-                    {userData?.mealPreferences?.join(', ') || 'Not specified'}
+                    {userData?.mealPreference || 'Not specified'}
                   </Text>
-                  <Text style={styles.infoLabel}>Meal Preferences</Text>
+                  <Text style={styles.infoLabel}>Cooking Time Preference</Text>
                 </View>
               </View>
-            </View>
-          </View>
-
-          {/* Health & Wellness */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>💪</Text>
-              <Text style={styles.sectionTitle}>Health & Wellness</Text>
-            </View>
-            
-            <View style={styles.infoCard}>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>🎯</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.healthGoals?.join(', ') || 'Not specified'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Health Goals</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>🏃‍♂️</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.activityLevel || 'Not specified'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Activity Level</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>🏥</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.medicalConditions?.length ? userData.medicalConditions.join(', ') : 'None reported'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Medical Conditions</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Achievements */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>🏆</Text>
-              <Text style={styles.sectionTitle}>Achievements</Text>
-            </View>
-            
-            <View style={styles.achievementsGrid}>
-              {achievements.map((achievement) => (
-                <View 
-                  key={achievement.id} 
-                  style={[
-                    styles.achievementItem,
-                    achievement.earned ? styles.achievementEarned : styles.achievementLocked
-                  ]}
-                >
-                  <Text style={styles.achievementEmoji}>{achievement.emoji}</Text>
-                  <Text style={styles.achievementTitle}>{achievement.title}</Text>
-                  {achievement.earned && achievement.date && (
-                    <Text style={styles.achievementDate}>{achievement.date}</Text>
-                  )}
-                </View>
-              ))}
             </View>
           </View>
 
@@ -426,6 +302,7 @@ export default function ProfileScreen() {
                     defaultValue={userEmail}
                     placeholder="Enter your email"
                     keyboardType="email-address"
+                    editable={false}
                   />
                 </View>
                 
@@ -433,7 +310,7 @@ export default function ProfileScreen() {
                   <Text style={styles.inputLabel}>Location</Text>
                   <TextInput
                     style={styles.textInput}
-                    defaultValue="Barcelona, Spain"
+                    defaultValue={`${userData?.city || ''}, ${userData?.country || ''}`}
                     placeholder="Enter your location"
                   />
                 </View>
@@ -466,6 +343,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   header: {
+    backgroundColor: '#6B8E23',
     paddingTop: 16,
     paddingBottom: 40,
     paddingHorizontal: 20,
@@ -478,6 +356,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Inter',
   },
   profileInfo: {
     alignItems: 'center',
@@ -501,72 +380,42 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: 'white',
     fontWeight: 'bold',
+    fontFamily: 'Inter',
   },
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
     marginBottom: 4,
+    fontFamily: 'Inter',
   },
   userEmail: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 16,
+    fontFamily: 'Inter',
   },
-  healthScore: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  membershipBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    marginTop: 8,
   },
-  star: {
-    fontSize: 16,
-  },
-  healthScoreText: {
-    color: 'rgba(255, 255, 255, 0.9)',
+  membershipText: {
     fontSize: 14,
-    marginLeft: 8,
+    fontWeight: '600',
+    color: '#FFD700',
+    fontFamily: 'Inter',
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#FAF7F0',
     marginTop: -20,
   },
   content: {
     padding: 20,
     gap: 20,
-  },
-  statsCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  statItem: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-  },
-  statEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
   },
   section: {
     gap: 12,
@@ -582,7 +431,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   infoCard: {
     backgroundColor: 'white',
@@ -612,55 +462,20 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   infoLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
     marginTop: 2,
-  },
-  achievementsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  achievementItem: {
-    flex: 1,
-    minWidth: '30%',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-  },
-  achievementEarned: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
-  },
-  achievementLocked: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#E5E7EB',
-    opacity: 0.6,
-  },
-  achievementEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  achievementTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  achievementDate: {
-    fontSize: 10,
-    color: '#F59E0B',
-    fontWeight: '500',
+    fontFamily: 'Inter',
   },
   menuSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#4A4A4A',
+    fontFamily: 'Inter',
   },
   menuCard: {
     backgroundColor: 'white',
@@ -689,7 +504,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   menuArrow: {
     fontSize: 20,
@@ -705,6 +521,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Inter',
   },
   versionInfo: {
     alignItems: 'center',
@@ -712,13 +529,15 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4A4A4A',
     fontWeight: '500',
+    fontFamily: 'Inter',
   },
   versionSubtext: {
     fontSize: 12,
     color: '#9CA3AF',
     marginTop: 4,
+    fontFamily: 'Inter',
   },
   
   // Modal Styles
@@ -744,11 +563,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   modalCloseButton: {
     fontSize: 20,
-    color: '#6B7280',
+    color: '#4A4A4A',
     padding: 4,
   },
   modalContent: {
@@ -761,7 +581,8 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
   },
   textInput: {
     borderWidth: 1,
@@ -770,6 +591,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: '#F9FAFB',
+    fontFamily: 'Inter',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -786,11 +608,12 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#4A4A4A',
+    fontFamily: 'Inter',
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#10B981',
+    backgroundColor: '#6B8E23',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -799,5 +622,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+    fontFamily: 'Inter',
   },
 })
