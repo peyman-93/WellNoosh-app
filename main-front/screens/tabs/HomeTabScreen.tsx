@@ -234,6 +234,9 @@ export default function DashboardScreen() {
   const [loadingMealPlan, setLoadingMealPlan] = useState(true)
   const [generatingMealPlan, setGeneratingMealPlan] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  
+  // Greeting state
+  const [greeting, setGreeting] = useState('')
 
   // Water tracking state
   const [waterIntake, setWaterIntake] = useState<boolean[]>(new Array(10).fill(false))
@@ -243,6 +246,26 @@ export default function DashboardScreen() {
   const [showBreathingExercise, setShowBreathingExercise] = useState(false)
   const [breathingExercises, setBreathingExercises] = useState<boolean[]>(new Array(6).fill(false))
   const completedBreathingExercises = breathingExercises.filter(exercise => exercise).length
+
+  // Update greeting based on current time
+  useEffect(() => {
+    const updateGreeting = () => {
+      const hour = new Date().getHours()
+      
+      let newGreeting
+      if (hour < 12) {
+        newGreeting = 'Good morning'
+      } else if (hour < 17) {
+        newGreeting = 'Good afternoon'
+      } else {
+        newGreeting = 'Good evening'
+      }
+      
+      setGreeting(newGreeting)
+    }
+    
+    updateGreeting() // Set initial greeting
+  }, [])
 
   // Load today's meal plan on component mount
   useEffect(() => {
@@ -700,7 +723,7 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good morning, {session?.user?.email?.split('@')[0] || 'Guest'}</Text>
+            <Text style={styles.greeting}>{greeting}, {session?.user?.email?.split('@')[0] || 'Guest'}</Text>
             <Text style={styles.date}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
           </View>
           <View style={styles.headerActions}>
@@ -822,40 +845,50 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Today's Meals Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleArea}>
-              <Text style={styles.sectionTitle}>Today's Meals</Text>
+        {/* Meal's Plan Section */}
+        <View style={styles.mealPlanSection}>
+          <View style={styles.mealPlanningHeader}>
+            <TouchableOpacity 
+              style={styles.mealPlanningTitleButton}
+              onPress={() => navigation.navigate('MealPlanner' as never)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.mealPlanningTitleSection}>
+                <View style={styles.mealPlanningTitleRow}>
+                  <Text style={styles.mealPlanningTitle}>Meal's Plan</Text>
+                  <Text style={styles.mealPlanningArrow}>›</Text>
+                </View>
+                {dashboardMealPlan ? (
+                  <Text style={styles.mealPlanningSubtitle}>{greeting}! {completedMeals} of {totalMeals} completed today</Text>
+                ) : (
+                  <Text style={styles.mealPlanningSubtitle}>{greeting}! Plan your daily nutrition</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.mealPlanningActions}>
+              {/* Generate/Add Button */}
               {dashboardMealPlan ? (
                 <TouchableOpacity 
-                  style={styles.expandArrow}
-                  onPress={() => setShowAllMeals(!showAllMeals)}
+                  style={styles.addMealButton} 
+                  onPress={handleAddMeal}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.sectionSubtitle}>{completedMeals} of {totalMeals} completed</Text>
-                  <Text style={[styles.expandArrowIcon, showAllMeals && styles.expandArrowIconRotated]}>▼</Text>
+                  <Text style={styles.addMealIcon}>+</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity 
-                  style={[styles.expandArrow, { opacity: generatingMealPlan ? 0.5 : 1 }]}
+                  style={[styles.generateMealButton, { opacity: generatingMealPlan ? 0.5 : 1 }]}
                   onPress={handleGenerateMealPlan}
                   activeOpacity={0.7}
                   disabled={generatingMealPlan}
                 >
-                  <Text style={styles.sectionSubtitle}>
-                    {generatingMealPlan ? 'Generating...' : 'Generate meal plan'}
+                  <Text style={styles.generateMealButtonText}>
+                    {generatingMealPlan ? 'Generating...' : 'Generate Plan'}
                   </Text>
                 </TouchableOpacity>
               )}
             </View>
-            <TouchableOpacity 
-              style={styles.addMealButton} 
-              onPress={handleAddMeal}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.addMealIcon}>+</Text>
-            </TouchableOpacity>
           </View>
           
           {dashboardMealPlan ? (
@@ -924,23 +957,6 @@ export default function DashboardScreen() {
             </View>
           </TouchableOpacity>
           
-          {/* Meal Plan Progress */}
-          <TouchableOpacity style={styles.mealPlanProgress} onPress={() => navigation.navigate('MealPlanner' as never)}>
-            <View style={styles.mealPlanHeader}>
-              <View style={styles.mealPlanInfo}>
-                <Text style={styles.mealPlanTitle}>Meal Planning</Text>
-                <Text style={styles.mealPlanDaysText}>{getMealPlanDaysPlanned()} days planned</Text>
-              </View>
-            </View>
-            <View style={styles.mealPlanProgressBar}>
-              <View 
-                style={[
-                  styles.mealPlanProgressFill, 
-                  { width: `${getMealPlanPercentage()}%` }
-                ]} 
-              />
-            </View>
-          </TouchableOpacity>
           
           {/* Health Tracker Button */}
           <TouchableOpacity style={styles.healthTrackerButton} onPress={() => navigation.navigate('TrackerScreen' as never)}>
@@ -1254,11 +1270,94 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 16,
   },
+  mealPlanSection: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    marginHorizontal: 16,
+    paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  // New Meal Planning Header Styles
+  mealPlanningHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8FAF5',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E8F0E3',
+  },
+  mealPlanningTitleSection: {
+    flex: 1,
+  },
+  mealPlanningTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
+    marginBottom: 4,
+  },
+  mealPlanningSubtitle: {
+    fontSize: 12,
+    color: '#4A4A4A',
+    fontFamily: 'Inter',
+    fontWeight: '500',
+  },
+  mealPlanningActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  mealPlanningTitleButton: {
+    flex: 1,
+    marginRight: 16,
+  },
+  mealPlanningTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  mealPlanningArrow: {
+    fontSize: 20,
+    color: '#6B8E23',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  generateMealButton: {
+    backgroundColor: '#6B8E23',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  generateMealButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'Inter',
   },
   sectionTitleArea: {
     flex: 1,
@@ -1328,11 +1427,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0', // Light gray - borders & dividers
+    borderWidth: 1.5,
+    borderColor: '#D1D1D1', // Slightly darker border for better definition
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 60,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   mealCompactCardCompleted: {
     borderColor: '#6B8E23', // Organic leaf green - accent
