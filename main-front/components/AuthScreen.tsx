@@ -78,20 +78,30 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
   }
 
   const handleGoogleSignIn = async () => {
+    console.log('🔍 Google button pressed')
     setLoading(true)
     try {
+      console.log('🔍 Calling signInWithGoogle...')
       const { data, error } = await signInWithGoogle()
 
+      console.log('🔍 signInWithGoogle result:', { data, error })
+
       if (error) {
+        console.error('❌ Error from signInWithGoogle:', error)
         Alert.alert('Google Sign In Error', error.message)
+        setLoading(false)
         return
       }
 
-      // Google OAuth will handle the redirect
-      onAuthenticated()
+      // OAuth flow will open in browser
+      // Don't call onAuthenticated here - it will be handled by the auth state change listener
+      // when the user returns from Google OAuth
+      
+      console.log('✅ Google Sign-In initiated successfully')
+      setLoading(false)
     } catch (error) {
+      console.error('❌ Unexpected error in handleGoogleSignIn:', error)
       Alert.alert('Error', 'An unexpected error occurred. Please try again.')
-    } finally {
       setLoading(false)
     }
   }

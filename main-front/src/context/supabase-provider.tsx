@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../services/supabase'
+import { Linking } from 'react-native'
 
 interface AuthContextType {
   session: Session | null
@@ -50,13 +51,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔍 Auth state change:', event, session?.user?.email || 'no user')
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Handle deep links for OAuth redirect
+    const handleUrl = async (url: string) => {
+      console.log('🔍 Deep link received:', url)
+      
+      if (url.includes('#access_token=') || url.includes('#error=')) {
+        console.log('🔍 Processing OAuth redirect URL')
+        try {
+          // Parse the URL fragment manually
+          const urlParts = url.split('#')[1]
+          if (!urlParts) return
+          
+          const params = new URLSearchParams(urlParts)
+          const accessToken = params.get('access_token')
+          const refreshToken = params.get('refresh_token')
+          const expiresIn = params.get('expires_in')
+          
+          console.log('🔍 Parsed tokens:', { 
+            hasAccessToken: !!accessToken, 
+            hasRefreshToken: !!refreshToken,
+            expiresIn
+          })
+          
+          if (accessToken && refreshToken) {
+            // Set the session manually using the tokens
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            })
+            
+            console.log('🔍 Set session result:', { data: !!data.session, error })
+            
+            if (error) {
+              console.error('❌ Error setting session:', error)
+              return
+            }
+            
+            if (data?.session) {
+              console.log('✅ Successfully set session from OAuth redirect')
+              setSession(data.session)
+              setUser(data.session.user)
+            }
+          } else {
+            console.log('⚠️ Missing required tokens in OAuth redirect')
+          }
+        } catch (err) {
+          console.error('❌ Exception handling OAuth redirect:', err)
+        }
+      } else {
+        console.log('🔍 URL does not match OAuth pattern, ignoring')
+      }
+    }
+
+    // Listen for URL changes (OAuth redirects)
+    const linkingSubscription = Linking.addEventListener('url', ({ url }) => {
+      handleUrl(url)
+    })
+
+    // Check if app was opened with a URL
+    Linking.getInitialURL().then(url => {
+      if (url) {
+        handleUrl(url)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+      linkingSubscription?.remove()
+    }
   }, [])
 
   const signUp = async (email: string, password: string, userData: any) => {
@@ -131,16 +200,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
+      console.log('🔍 Starting Google Sign-In...')
+      console.log('🔍 Google Client ID:', process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID)
+      
+      // Let Supabase handle the redirect automatically
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: 'exp://localhost:8081',
-        },
       })
 
-      return { data, error }
-    } catch (error) {
-      return { data: null, error }
+      console.log('🔍 OAuth Response:', { data, error })
+
+      if (error) {
+        console.error('❌ OAuth Error:', error)
+        throw error
+      }
+
+      // Check if we got a URL to open
+      if (data?.url) {
+        console.log('🔍 Opening OAuth URL:', data.url)
+        const supported = await Linking.canOpenURL(data.url)
+        if (supported) {
+          await Linking.openURL(data.url)
+          console.log('✅ OAuth URL opened successfully')
+        } else {
+          throw new Error('Cannot open OAuth URL')
+        }
+      } else {
+        console.log('⚠️ No OAuth URL received')
+      }
+
+      console.log('✅ OAuth initiated successfully')
+      return { data, error: null }
+    } catch (error: any) {
+      console.error('❌ Google Sign-In Error:', error)
+      return { 
+        data: null, 
+        error: { 
+          message: error.message || 'Google sign-in failed. Please try again.' 
+        } 
+      }
     }
   }
 

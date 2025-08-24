@@ -123,109 +123,16 @@ function MealCard({ meal, onToggle }: MealCardProps) {
   )
 }
 
-// Settings Modal Component
-interface SettingsModalProps {
-  visible: boolean
-  onClose: () => void
-  selectedWheels: string[]
-  onUpdateWheels: (wheels: string[]) => void
-}
-
-function SettingsModal({ visible, onClose, selectedWheels, onUpdateWheels }: SettingsModalProps) {
-  const [tempSelection, setTempSelection] = useState(selectedWheels)
-  
-  const availableWheels = [
-    { id: 'calories', label: 'Calories', icon: '🔥' },
-    { id: 'protein', label: 'Protein', icon: '🥩' },
-    { id: 'fiber', label: 'Fiber', icon: '🌾' },
-    { id: 'carbs', label: 'Carbohydrates', icon: '🍞' },
-    { id: 'fat', label: 'Fat', icon: '🥑' },
-    { id: 'sugar', label: 'Sugar', icon: '🍬' },
-    { id: 'sodium', label: 'Sodium', icon: '🧂' },
-    { id: 'water', label: 'Water', icon: '💧' }
-  ]
-
-  const toggleWheel = (wheelId: string) => {
-    if (tempSelection.includes(wheelId)) {
-      if (tempSelection.length > 1) {
-        setTempSelection(tempSelection.filter(id => id !== wheelId))
-      }
-    } else {
-      if (tempSelection.length < 3) {
-        setTempSelection([...tempSelection, wheelId])
-      }
-    }
-  }
-
-  const handleSave = () => {
-    onUpdateWheels(tempSelection)
-    onClose()
-  }
-
-  return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.settingsModal}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Customize Dashboard</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.settingsDescription}>
-            Select up to 3 metrics to display on your dashboard
-          </Text>
-          
-          <View style={styles.wheelOptions}>
-            {availableWheels.map(wheel => (
-              <TouchableOpacity
-                key={wheel.id}
-                style={[
-                  styles.wheelOption,
-                  tempSelection.includes(wheel.id) && styles.wheelOptionSelected
-                ]}
-                onPress={() => toggleWheel(wheel.id)}
-              >
-                <Text style={styles.wheelOptionIcon}>{wheel.icon}</Text>
-                <Text style={[
-                  styles.wheelOptionLabel,
-                  tempSelection.includes(wheel.id) && styles.wheelOptionLabelSelected
-                ]}>
-                  {wheel.label}
-                </Text>
-                {tempSelection.includes(wheel.id) && (
-                  <View style={styles.wheelOptionCheck}>
-                    <Text style={styles.wheelOptionCheckText}>✓</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save Changes</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  )
-}
 
 export default function DashboardScreen() {
   const { session, signOut } = useAuth()
   const navigation = useNavigation()
   
   // State
-  const [selectedWheels, setSelectedWheels] = useState(['calories', 'protein', 'fiber'])
-  const [showSettings, setShowSettings] = useState(false)
   const [showDailyCheckIn, setShowDailyCheckIn] = useState(false)
   const [showAddMeal, setShowAddMeal] = useState(false)
+  // Fixed nutrition wheels (no longer customizable)
+  const selectedWheels = ['calories', 'protein', 'fiber']
   const [showNutritionModal, setShowNutritionModal] = useState(false)
   const [showAllMeals, setShowAllMeals] = useState(false)
   
@@ -753,14 +660,11 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>{greeting}, {session?.user?.email?.split('@')[0] || 'Guest'}</Text>
+            <Text style={styles.greeting}>{greeting}, {session?.user?.user_metadata?.name || session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || 'Guest'}</Text>
             <Text style={styles.date}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.settingsButton}>
-              <Text style={styles.settingsIcon}>⚙️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleProfilePress} style={styles.profileButton}>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.profileButton}>
               <Text style={styles.profileIcon}>👤</Text>
             </TouchableOpacity>
           </View>
@@ -1037,13 +941,6 @@ export default function DashboardScreen() {
 
       </ScrollView>
 
-      {/* Settings Modal */}
-      <SettingsModal
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-        selectedWheels={selectedWheels}
-        onUpdateWheels={setSelectedWheels}
-      />
 
       {/* Daily Check-in Modal */}
       {showDailyCheckIn && (
@@ -1231,19 +1128,6 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 12,
-  },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  settingsIcon: {
-    fontSize: 20,
   },
   profileButton: {
     width: 40,

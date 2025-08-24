@@ -166,14 +166,6 @@ export default function MainTabs() {
         options={{
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },
-          tabBarIconStyle: { display: 'none' },
-          tabBarLabelStyle: { display: 'none' },
-          tabBarBadgeStyle: { display: 'none' },
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault(); // Prevent default tab behavior
-          },
         }}
       />
       <Tab.Screen
