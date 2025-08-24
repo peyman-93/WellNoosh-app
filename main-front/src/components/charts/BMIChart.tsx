@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native'
 import Svg, { Path, Circle, Line, Text as SvgText, G, Rect } from 'react-native-svg'
 
 const { width: screenWidth } = Dimensions.get('window')
@@ -12,8 +12,20 @@ interface BMIData {
 
 interface BMIChartProps {
   data: BMIData[]
+  loading?: boolean
+  error?: string | null
   width?: number
   height?: number
+}
+
+interface NoDataState {
+  type: 'loading' | 'error' | 'no_data'
+  title: string
+  message: string
+  action?: {
+    text: string
+    onPress: () => void
+  }
 }
 
 // BMI categories and their color zones
@@ -30,9 +42,73 @@ function getBMICategory(bmi: number) {
 
 export function BMIChart({ 
   data, 
+  loading = false,
+  error = null,
   width = screenWidth - 40, 
   height = 220 
 }: BMIChartProps) {
+  
+  // No data state component
+  const NoDataDisplay: React.FC<{ state: NoDataState }> = ({ state }) => (
+    <View style={[styles.container, styles.noDataContainer]}>
+      <Text style={styles.noDataTitle}>{state.title}</Text>
+      <Text style={styles.noDataMessage}>{state.message}</Text>
+      {state.action && (
+        <TouchableOpacity onPress={state.action.onPress}>
+          <Text style={styles.noDataAction}>
+            {state.action.text}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  )
+
+  // Loading state
+  if (loading) {
+    return (
+      <NoDataDisplay 
+        state={{
+          type: 'loading',
+          title: 'Loading BMI data...',
+          message: 'Please wait while we calculate your BMI trends.'
+        }}
+      />
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <NoDataDisplay 
+        state={{
+          type: 'error',
+          title: 'Unable to load data',
+          message: error,
+          action: {
+            text: 'Tap to retry',
+            onPress: () => console.log('Retry loading BMI data')
+          }
+        }}
+      />
+    )
+  }
+
+  // No data available
+  if (!data || data.length === 0) {
+    return (
+      <NoDataDisplay 
+        state={{
+          type: 'no_data',
+          title: 'No BMI data available',
+          message: 'Start logging your weight and height to see BMI trends here. BMI is calculated automatically from your weight measurements.',
+          action: {
+            text: 'Log weight →',
+            onPress: () => console.log('Navigate to weight logging')
+          }
+        }}
+      />
+    )
+  }
   const chartWidth = width - 80
   const chartHeight = height - 80
   const padding = 40
@@ -357,6 +433,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4A4A4A',
     marginTop: 4,
+    fontFamily: 'Inter',
+  },
+  noDataContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 150,
+  },
+  noDataTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noDataMessage: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  noDataAction: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B8E23',
     fontFamily: 'Inter',
   },
 })

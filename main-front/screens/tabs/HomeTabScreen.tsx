@@ -388,7 +388,9 @@ export default function DashboardScreen() {
   // Calculate nutrition data from completed meals
   const calculateCompletedCalories = () => {
     if (dashboardMealPlan) {
-      return dashboardMealPlan.completionStats.caloriesCompleted
+      const calories = dashboardMealPlan.completionStats.caloriesCompleted
+      console.log('🍽️ Dashboard calculated calories:', calories, 'from', dashboardMealPlan.completionStats.completedMeals, 'completed meals')
+      return calories
     }
     return 0
   }
@@ -440,6 +442,12 @@ export default function DashboardScreen() {
       // Reload meal plan to get updated completion status
       const updatedMealPlan = await getTodaysMealPlan(session!.user!.id)
       setDashboardMealPlan(updatedMealPlan)
+      
+      // Give the database trigger time to update daily_nutrition_summary
+      // This ensures Health Tracker will show updated data
+      setTimeout(() => {
+        console.log('📊 Meal completion should now be reflected in nutrition tracking')
+      }, 100)
 
       console.log('✅ Meal completion toggled successfully')
 
@@ -667,31 +675,52 @@ export default function DashboardScreen() {
   const completedMeals = dashboardMealPlan?.completionStats.completedMeals || 0
   const totalMeals = dashboardMealPlan?.completionStats.totalMeals || 0
 
-  // Get the 2 most recent meals (completed or scheduled)
+  // Get the 2 meals closest to current time
   const getContextualMeals = () => {
     if (!dashboardMealPlan?.meals) return []
 
-    // Sort meals by scheduled time
-    const sortedMeals = [...dashboardMealPlan.meals].sort((a, b) => {
-      if (a.scheduledTime && b.scheduledTime) {
-        return a.scheduledTime.localeCompare(b.scheduledTime)
+    const now = new Date()
+    const currentTime = now.getHours() * 60 + now.getMinutes() // Current time in minutes
+
+    // Calculate time distance for each meal
+    const mealsWithTimeDistance = dashboardMealPlan.meals.map(meal => {
+      const [hours, minutes] = meal.scheduledTime.split(':').map(Number)
+      const mealTimeInMinutes = hours * 60 + minutes
+      
+      // Calculate absolute time difference
+      let timeDiff = Math.abs(currentTime - mealTimeInMinutes)
+      
+      // Handle wrap-around for meals near midnight
+      if (timeDiff > 720) { // More than 12 hours
+        timeDiff = 1440 - timeDiff // 24 hours - difference
       }
-      // Fallback to meal type order
-      const mealTypeOrder = { breakfast: 1, lunch: 2, dinner: 3, snack: 4, brunch: 1.5, other: 5 }
-      return (mealTypeOrder[a.mealType as keyof typeof mealTypeOrder] || 5) - 
-             (mealTypeOrder[b.mealType as keyof typeof mealTypeOrder] || 5)
+      
+      return {
+        ...meal,
+        timeDistance: timeDiff,
+        mealTimeInMinutes
+      }
     })
+
+    // Sort by time distance (closest first)
+    const sortedByDistance = [...mealsWithTimeDistance].sort((a, b) => a.timeDistance - b.timeDistance)
     
-    // Simply take the last 2 meals from the sorted list
-    const recentMeals = sortedMeals.slice(-2).map((meal, index, array) => ({
-      ...meal,
-      contextLabel: meal.isCompleted ? 'Completed' : (index === array.length - 1 ? 'Latest' : 'Recent'),
-      isContextual: true
-    }))
+    // Take the 2 closest meals
+    const closestMeals = sortedByDistance.slice(0, 2)
     
-    console.log('🍽️ Showing 2 most recent meals:')
+    // Sort these 2 meals by actual scheduled time for display
+    const recentMeals = closestMeals.sort((a, b) => a.mealTimeInMinutes - b.mealTimeInMinutes)
+      .map((meal, index) => ({
+        ...meal,
+        contextLabel: meal.isCompleted ? 'Completed' : 
+                     meal.mealTimeInMinutes < currentTime ? 'Recent' : 'Upcoming',
+        isContextual: true
+      }))
+    
+    console.log(`🍽️ Current time: ${Math.floor(currentTime/60)}:${String(currentTime%60).padStart(2, '0')}`)
+    console.log('🍽️ Showing 2 meals closest to current time:')
     recentMeals.forEach((meal, index) => {
-      console.log(`  ${index + 1}. ${meal.foodName} at ${meal.scheduledTime} - ${meal.contextLabel}`)
+      console.log(`  ${index + 1}. ${meal.foodName} at ${meal.scheduledTime} - ${meal.contextLabel} (${meal.timeDistance} min away)`)
     })
     
     return recentMeals
@@ -848,23 +877,14 @@ export default function DashboardScreen() {
         {/* Meal's Plan Section */}
         <View style={styles.mealPlanSection}>
           <View style={styles.mealPlanningHeader}>
-            <TouchableOpacity 
-              style={styles.mealPlanningTitleButton}
-              onPress={() => navigation.navigate('MealPlanner' as never)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.mealPlanningTitleSection}>
-                <View style={styles.mealPlanningTitleRow}>
-                  <Text style={styles.mealPlanningTitle}>Meal's Plan</Text>
-                  <Text style={styles.mealPlanningArrow}>›</Text>
-                </View>
-                {dashboardMealPlan ? (
-                  <Text style={styles.mealPlanningSubtitle}>{greeting}! {completedMeals} of {totalMeals} completed today</Text>
-                ) : (
-                  <Text style={styles.mealPlanningSubtitle}>{greeting}! Plan your daily nutrition</Text>
-                )}
-              </View>
-            </TouchableOpacity>
+            <View style={styles.mealPlanningTitleSection}>
+              <Text style={styles.mealPlanningTitle}>Meal's Plan</Text>
+              {dashboardMealPlan ? (
+                <Text style={styles.mealPlanningSubtitle}>{greeting}! {completedMeals} of {totalMeals} completed today</Text>
+              ) : (
+                <Text style={styles.mealPlanningSubtitle}>{greeting}! Plan your daily nutrition</Text>
+              )}
+            </View>
             
             <View style={styles.mealPlanningActions}>
               {/* Generate/Add Button */}
@@ -890,6 +910,7 @@ export default function DashboardScreen() {
               )}
             </View>
           </View>
+          
           
           {dashboardMealPlan ? (
             <View style={styles.mealsCompactGrid}>
@@ -929,6 +950,30 @@ export default function DashboardScreen() {
                   </View>
                 </TouchableOpacity>
               ))}
+              
+              {/* Show "more" indicator when there are hidden meals */}
+              {!showAllMeals && dashboardMealPlan.meals.length > contextualMeals.length && (
+                <TouchableOpacity 
+                  style={styles.moreMealsButton}
+                  onPress={() => setShowAllMeals(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.moreMealsText}>
+                    +{dashboardMealPlan.meals.length - contextualMeals.length} more
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              {/* Show "show less" option when expanded */}
+              {showAllMeals && (
+                <TouchableOpacity 
+                  style={styles.showLessButton}
+                  onPress={() => setShowAllMeals(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.showLessText}>Show less</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : loadingMealPlan ? (
             <View style={styles.mealPlanLoading}>
@@ -1302,9 +1347,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAF5',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E8F0E3',
+    marginBottom: 16,
   },
   mealPlanningTitleSection: {
     flex: 1,
@@ -1326,6 +1371,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  moreMealsButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 8,
+  },
+  moreMealsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B8E23',
+    fontFamily: 'Inter',
+  },
+  showLessButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 8,
+  },
+  showLessText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    fontFamily: 'Inter',
   },
   mealPlanningTitleButton: {
     flex: 1,

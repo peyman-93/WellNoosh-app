@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native'
 import Svg, { Path, Circle, Line, Text as SvgText, G, Defs, LinearGradient, Stop } from 'react-native-svg'
 
 const { width: screenWidth } = Dimensions.get('window')
@@ -12,19 +12,95 @@ interface WeightData {
 
 interface WeightChartProps {
   data: WeightData[]
-  targetWeight: number
-  startWeight: number
+  loading?: boolean
+  error?: string | null
+  targetWeight?: number
+  startWeight?: number
   width?: number
   height?: number
 }
 
+interface NoDataState {
+  type: 'loading' | 'error' | 'no_data'
+  title: string
+  message: string
+  action?: {
+    text: string
+    onPress: () => void
+  }
+}
+
 export function WeightChart({ 
   data, 
-  targetWeight, 
-  startWeight,
+  loading = false,
+  error = null,
+  targetWeight = 70, 
+  startWeight = 75,
   width = screenWidth - 40, 
   height = 200 
 }: WeightChartProps) {
+  
+  // No data state component
+  const NoDataDisplay: React.FC<{ state: NoDataState }> = ({ state }) => (
+    <View style={[styles.container, styles.noDataContainer]}>
+      <Text style={styles.noDataTitle}>{state.title}</Text>
+      <Text style={styles.noDataMessage}>{state.message}</Text>
+      {state.action && (
+        <TouchableOpacity onPress={state.action.onPress}>
+          <Text style={styles.noDataAction}>
+            {state.action.text}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  )
+
+  // Loading state
+  if (loading) {
+    return (
+      <NoDataDisplay 
+        state={{
+          type: 'loading',
+          title: 'Loading weight data...',
+          message: 'Please wait while we fetch your weight information.'
+        }}
+      />
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <NoDataDisplay 
+        state={{
+          type: 'error',
+          title: 'Unable to load data',
+          message: error,
+          action: {
+            text: 'Tap to retry',
+            onPress: () => console.log('Retry loading weight data')
+          }
+        }}
+      />
+    )
+  }
+
+  // No data available
+  if (!data || data.length === 0) {
+    return (
+      <NoDataDisplay 
+        state={{
+          type: 'no_data',
+          title: 'No weight data available',
+          message: 'Start logging your weight to see progress trends here. Track your weight regularly to monitor your health journey.',
+          action: {
+            text: 'Log weight →',
+            onPress: () => console.log('Navigate to weight logging')
+          }
+        }}
+      />
+    )
+  }
   const chartWidth = width - 60
   const chartHeight = height - 60
   const padding = 30
@@ -33,8 +109,19 @@ export function WeightChart({
   const maxValue = Math.max(...allWeights) + 2
   const minValue = Math.min(...allWeights) - 2
 
-  const getX = (index: number) => padding + (index * chartWidth) / (data.length - 1)
-  const getY = (value: number) => padding + chartHeight - ((value - minValue) / (maxValue - minValue)) * chartHeight
+  const getX = (index: number) => {
+    if (data.length <= 1) return padding + chartWidth / 2 // Center single point
+    const result = padding + (index * chartWidth) / (data.length - 1)
+    return isFinite(result) ? result : padding
+  }
+  
+  const getY = (value: number) => {
+    if (!isFinite(value) || !isFinite(maxValue) || !isFinite(minValue)) {
+      return padding + chartHeight / 2
+    }
+    const result = padding + chartHeight - ((value - minValue) / (maxValue - minValue)) * chartHeight
+    return isFinite(result) ? result : padding + chartHeight / 2
+  }
 
   // Weight progress line
   const weightPath = data.map((point, index) => {
@@ -281,6 +368,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4A4A4A',
     marginTop: 4,
+    fontFamily: 'Inter',
+  },
+  noDataContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 150,
+  },
+  noDataTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noDataMessage: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  noDataAction: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B8E23',
     fontFamily: 'Inter',
   },
 })

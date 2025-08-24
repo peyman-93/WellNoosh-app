@@ -22,34 +22,77 @@ export function CalorieChart({
   width = screenWidth - 40, 
   height = 200 
 }: CalorieChartProps) {
+  // Safety check for empty data
+  if (!data || data.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Daily Calorie Intake</Text>
+        <View style={[styles.noDataContainer, { width, height }]}>
+          <Text style={styles.noDataText}>No calorie data available</Text>
+        </View>
+      </View>
+    )
+  }
+
   const chartWidth = width - 60 // Leave space for labels
   const chartHeight = height - 60 // Leave space for labels
   const padding = 30
 
-  // Find max value for scaling
-  const maxValue = Math.max(...data.map(d => Math.max(d.consumed, d.goal))) * 1.1
+  // Find max value for scaling with safety checks
+  const validData = data.filter(d => 
+    d && 
+    typeof d.consumed === 'number' && 
+    typeof d.goal === 'number' && 
+    !isNaN(d.consumed) && 
+    !isNaN(d.goal) &&
+    isFinite(d.consumed) &&
+    isFinite(d.goal)
+  )
+  
+  if (validData.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Daily Calorie Intake</Text>
+        <View style={[styles.noDataContainer, { width, height }]}>
+          <Text style={styles.noDataText}>Invalid calorie data</Text>
+        </View>
+      </View>
+    )
+  }
+
+  const maxValue = Math.max(...validData.map(d => Math.max(d.consumed, d.goal))) * 1.1
   const minValue = 0
 
-  // Calculate positions
-  const getX = (index: number) => padding + (index * chartWidth) / (data.length - 1)
-  const getY = (value: number) => padding + chartHeight - ((value - minValue) / (maxValue - minValue)) * chartHeight
+  // Calculate positions with safety checks
+  const getX = (index: number) => {
+    const result = padding + (index * chartWidth) / (validData.length - 1)
+    return isFinite(result) ? result : padding
+  }
+  
+  const getY = (value: number) => {
+    if (!isFinite(value) || !isFinite(maxValue) || !isFinite(minValue)) {
+      return padding + chartHeight / 2 // Return middle position for invalid values
+    }
+    const result = padding + chartHeight - ((value - minValue) / (maxValue - minValue)) * chartHeight
+    return isFinite(result) ? result : padding + chartHeight / 2
+  }
 
   // Generate path for consumed calories line
-  const consumedPath = data.map((point, index) => {
+  const consumedPath = validData.map((point, index) => {
     const x = getX(index)
     const y = getY(point.consumed)
     return index === 0 ? `M${x},${y}` : `L${x},${y}`
   }).join(' ')
 
   // Generate path for goal line
-  const goalPath = data.map((point, index) => {
+  const goalPath = validData.map((point, index) => {
     const x = getX(index)
     const y = getY(point.goal)
     return index === 0 ? `M${x},${y}` : `L${x},${y}`
   }).join(' ')
 
   // Generate area path for consumed calories (gradient fill)
-  const areaPath = `${consumedPath} L${getX(data.length - 1)},${getY(0)} L${getX(0)},${getY(0)} Z`
+  const areaPath = `${consumedPath} L${getX(validData.length - 1)},${getY(0)} L${getX(0)},${getY(0)} Z`
 
   return (
     <View style={styles.container}>
@@ -117,7 +160,7 @@ export function CalorieChart({
         />
 
         {/* Data points for consumed calories */}
-        {data.map((point, index) => (
+        {validData.map((point, index) => (
           <Circle
             key={`consumed-${index}`}
             cx={getX(index)}
@@ -130,7 +173,7 @@ export function CalorieChart({
         ))}
 
         {/* Data points for goal line */}
-        {data.map((point, index) => (
+        {validData.map((point, index) => (
           <Circle
             key={`goal-${index}`}
             cx={getX(index)}
@@ -143,7 +186,7 @@ export function CalorieChart({
         ))}
 
         {/* X-axis labels */}
-        {data.map((point, index) => (
+        {validData.map((point, index) => (
           <SvgText
             key={`label-${index}`}
             x={getX(index)}
@@ -174,22 +217,22 @@ export function CalorieChart({
       <View style={styles.stats}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>
-            {Math.round(data.reduce((sum, d) => sum + d.consumed, 0) / data.length)}
+            {Math.round(validData.reduce((sum, d) => sum + d.consumed, 0) / validData.length)}
           </Text>
           <Text style={styles.statLabel}>Avg Daily</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>
-            {data.filter(d => d.consumed >= d.goal).length}/{data.length}
+            {validData.filter(d => d.consumed >= d.goal).length}/{validData.length}
           </Text>
           <Text style={styles.statLabel}>Goals Met</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={[
             styles.statValue,
-            { color: data[data.length - 1]?.consumed >= data[data.length - 1]?.goal ? '#10B981' : '#EF4444' }
+            { color: validData[validData.length - 1]?.consumed >= validData[validData.length - 1]?.goal ? '#10B981' : '#EF4444' }
           ]}>
-            {data[data.length - 1]?.consumed || 0}
+            {validData[validData.length - 1]?.consumed || 0}
           </Text>
           <Text style={styles.statLabel}>Today</Text>
         </View>
@@ -268,5 +311,18 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
     marginTop: 4,
     fontFamily: 'Inter',
+  },
+  noDataContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    margin: 8,
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    textAlign: 'center',
   },
 })

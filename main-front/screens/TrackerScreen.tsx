@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   View, 
   Text, 
@@ -6,7 +6,10 @@ import {
   StyleSheet, 
   TouchableOpacity,
   Dimensions,
-  Alert
+  Alert,
+  RefreshControl,
+  Modal,
+  TextInput
 } from 'react-native'
 import { useAuth } from '../src/context/supabase-provider'
 import { useUserData } from '../src/context/user-data-provider'
@@ -16,6 +19,30 @@ import { supabase } from '../src/services/supabase'
 import { CalorieChart } from '../src/components/charts/CalorieChart'
 import { WeightChart } from '../src/components/charts/WeightChart'
 import { BMIChart } from '../src/components/charts/BMIChart'
+import { NutritionChart } from '../src/components/charts/NutritionChart'
+
+// Import nutrition and weight tracking services
+import { 
+  getNutritionDashboardSummary, 
+  getNutritionChartData,
+  getBatchNutritionData 
+} from '../src/services/nutritionTrackingService'
+import { 
+  getWeightChartData, 
+  getBMIChartData,
+  getWeightDashboardSummary,
+  createWeightLog 
+} from '../src/services/weightTrackingService'
+import type { 
+  NutritionDashboardSummary, 
+  NutritionChartData,
+  BatchNutritionResponse 
+} from '../src/types/nutrition-tracking.types'
+import type { 
+  WeightChartData, 
+  BMIChartData,
+  WeightDashboardSummary 
+} from '../src/types/weight-tracking.types'
 
 const { width } = Dimensions.get('window')
 
@@ -99,74 +126,241 @@ export default function TrackerScreen() {
   const [healthProfile, setHealthProfile] = useState<HealthProfile>({})
   const [dietaryPrefs, setDietaryPrefs] = useState<DietaryPreferences>({})
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  
+  // Real nutrition tracking data
+  const [nutritionSummary, setNutritionSummary] = useState<NutritionDashboardSummary | null>(null)
+  const [nutritionChartData, setNutritionChartData] = useState<NutritionChartData | null>(null)
+  const [nutritionLoading, setNutritionLoading] = useState(true)
+  const [nutritionError, setNutritionError] = useState<string | null>(null)
+  
+  // Real weight tracking data
+  const [weightSummary, setWeightSummary] = useState<WeightDashboardSummary | null>(null)
+  const [weightChartData, setWeightChartData] = useState<WeightChartData | null>(null)
+  const [bmiChartData, setBmiChartData] = useState<BMIChartData | null>(null)
+  const [weightLoading, setWeightLoading] = useState(true)
+  const [weightError, setWeightError] = useState<string | null>(null)
+  
+  // Weight logging modal state
+  const [showWeightModal, setShowWeightModal] = useState(false)
+  const [weightInput, setWeightInput] = useState('')
+  const [loggingWeight, setLoggingWeight] = useState(false)
 
-  // Mock chart data - replace with real data later
-  const mockCalorieData = [
-    { date: '2025-01-26', consumed: 1850, goal: 2000, day: 'Sun' },
-    { date: '2025-01-27', consumed: 2100, goal: 2000, day: 'Mon' },
-    { date: '2025-01-28', consumed: 1950, goal: 2000, day: 'Tue' },
-    { date: '2025-01-29', consumed: 2200, goal: 2000, day: 'Wed' },
-    { date: '2025-01-30', consumed: 1800, goal: 2000, day: 'Thu' },
-    { date: '2025-01-31', consumed: 2050, goal: 2000, day: 'Fri' },
-    { date: '2025-02-01', consumed: 1750, goal: 2000, day: 'Today' },
-  ]
+  // Load nutrition data from database
+  const loadNutritionData = useCallback(async () => {
+    if (!session?.user?.id) return
 
-  const mockWeightData = [
-    { date: '2025-01-26', weight: 75.2, day: 'Sun' },
-    { date: '2025-01-27', weight: 75.0, day: 'Mon' },
-    { date: '2025-01-28', weight: 74.8, day: 'Tue' },
-    { date: '2025-01-29', weight: 74.9, day: 'Wed' },
-    { date: '2025-01-30', weight: 74.5, day: 'Thu' },
-    { date: '2025-01-31', weight: 74.3, day: 'Fri' },
-    { date: '2025-02-01', weight: 74.1, day: 'Today' },
-  ]
+    try {
+      setNutritionLoading(true)
+      setNutritionError(null)
+      console.log('📊 Loading nutrition data for TrackerScreen...')
 
-  const mockBMIData = [
-    { date: '2025-01-26', bmi: 24.8, day: 'Sun' },
-    { date: '2025-01-27', bmi: 24.7, day: 'Mon' },
-    { date: '2025-01-28', bmi: 24.6, day: 'Tue' },
-    { date: '2025-01-29', bmi: 24.7, day: 'Wed' },
-    { date: '2025-01-30', bmi: 24.5, day: 'Thu' },
-    { date: '2025-01-31', bmi: 24.4, day: 'Fri' },
-    { date: '2025-02-01', bmi: 24.3, day: 'Today' },
-  ]
+      // Get batch nutrition data for dashboard
+      const batchData = await getBatchNutritionData(session.user.id, 'week')
+      
+      // Get chart data separately for more detailed visualization
+      const [summary, chartData] = await Promise.all([
+        getNutritionDashboardSummary(session.user.id),
+        getNutritionChartData(session.user.id, 'week')
+      ])
 
-  // Fetch health profile and dietary preferences from Supabase
+      setNutritionSummary(summary)
+      setNutritionChartData(chartData)
+
+      console.log('✅ Loaded nutrition data:', {
+        todayCalories: summary.today?.total_calories || 0,
+        chartDays: chartData.days_with_data,
+        goalCalories: summary.goals.daily_calories,
+        completedMeals: summary.meal_completion.completed,
+        completionPercentage: summary.meal_completion.percentage
+      })
+      
+      console.log('📊 Health Tracker calories:', summary.today?.total_calories || 0, 'from nutrition summary')
+
+    } catch (error) {
+      console.error('❌ Error loading nutrition data:', error)
+      setNutritionError('Failed to load nutrition data')
+    } finally {
+      setNutritionLoading(false)
+    }
+  }, [session?.user?.id])
+
+  // Load weight data from database
+  const loadWeightData = useCallback(async () => {
+    if (!session?.user?.id) return
+
+    try {
+      setWeightLoading(true)
+      setWeightError(null)
+      console.log('⚖️ Loading weight data for TrackerScreen...')
+
+      // Get weight data for charts and dashboard  
+      const [summary, chartData, bmiData] = await Promise.all([
+        getWeightDashboardSummary(session.user.id),
+        getWeightChartData(session.user.id, 'week'),
+        getBMIChartData(session.user.id, 'week')
+      ])
+
+      setWeightSummary(summary)
+      setWeightChartData(chartData)
+      setBmiChartData(bmiData)
+
+      console.log('✅ Loaded weight data:', {
+        currentWeight: summary.current_log?.weight_kg || 'No data',
+        chartDays: chartData.days_with_data,
+        targetWeight: summary.target_weight_kg || 'Not set'
+      })
+
+    } catch (error) {
+      console.error('❌ Error loading weight data:', error)
+      setWeightError('Failed to load weight data')
+    } finally {
+      setWeightLoading(false)
+    }
+  }, [session?.user?.id])
+
+  // Transform nutrition chart data to format expected by CalorieChart
+  const getCalorieChartData = () => {
+    if (!nutritionChartData || nutritionChartData.data_points.length === 0) {
+      return []
+    }
+
+    return nutritionChartData.data_points.map((point, index) => ({
+      date: point.date,
+      consumed: point.calories,
+      goal: point.goal_calories || nutritionChartData.goals.daily_calories,
+      day: index === nutritionChartData.data_points.length - 1 ? 'Today' : 
+           new Date(point.date).toLocaleDateString('en-US', { weekday: 'short' })
+    }))
+  }
+
+  // Transform weight chart data to format expected by WeightChart component
+  const getWeightChartFormatted = () => {
+    if (!weightChartData || weightChartData.data_points.length === 0) {
+      return []
+    }
+
+    return weightChartData.data_points.map(point => ({
+      date: point.date,
+      weight: point.weight,
+      day: point.day || new Date(point.date).toLocaleDateString('en-US', { weekday: 'short' })
+    }))
+  }
+
+  // Transform BMI chart data to format expected by BMIChart component
+  const getBMIChartFormatted = () => {
+    if (!bmiChartData || bmiChartData.data_points.length === 0) {
+      return []
+    }
+
+    return bmiChartData.data_points.map(point => ({
+      date: point.date,
+      bmi: point.bmi,
+      day: point.day || new Date(point.date).toLocaleDateString('en-US', { weekday: 'short' })
+    }))
+  }
+
+  // Fetch health profile, dietary preferences, and nutrition data from Supabase
   useEffect(() => {
-    const fetchProfileData = async () => {
+    const fetchAllData = async () => {
       if (!session?.user?.id) return
 
       try {
-        // Fetch health profile
-        const { data: healthData, error: healthError } = await supabase
-          .from('user_health_profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single()
+        // Fetch health profile and dietary preferences in parallel
+        const [
+          { data: healthData, error: healthError },
+          { data: dietData, error: dietError }
+        ] = await Promise.all([
+          supabase
+            .from('user_health_profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single(),
+          supabase
+            .from('user_dietary_preferences')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single()
+        ])
 
         if (healthData && !healthError) {
           setHealthProfile(healthData)
         }
 
-        // Fetch dietary preferences
-        const { data: dietData, error: dietError } = await supabase
-          .from('user_dietary_preferences')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single()
-
         if (dietData && !dietError) {
           setDietaryPrefs(dietData)
         }
+
+        // Load nutrition and weight data
+        await Promise.all([
+          loadNutritionData(),
+          loadWeightData()
+        ])
+
       } catch (error) {
-        console.error('Error fetching profile data:', error)
+        console.error('Error fetching tracker data:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchProfileData()
-  }, [session])
+    fetchAllData()
+  }, [session, loadNutritionData])
+
+  // Pull-to-refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      await Promise.all([
+        loadNutritionData(),
+        loadWeightData()
+      ])
+    } catch (error) {
+      console.error('Error refreshing tracker data:', error)
+    } finally {
+      setRefreshing(false)
+    }
+  }, [loadNutritionData, loadWeightData])
+
+  // Handle weight logging
+  const handleLogWeight = useCallback(async () => {
+    if (!session?.user?.id || !weightInput.trim()) {
+      Alert.alert('Error', 'Please enter a valid weight')
+      return
+    }
+
+    const weight = parseFloat(weightInput)
+    if (isNaN(weight) || weight < 20 || weight > 500) {
+      Alert.alert('Error', 'Please enter a weight between 20 and 500 kg')
+      return
+    }
+
+    try {
+      setLoggingWeight(true)
+      console.log('📝 Logging new weight:', weight, 'kg')
+      
+      await createWeightLog(session.user.id, {
+        weight_kg: weight,
+        measurement_method: 'manual',
+        confidence_level: 'high'
+      })
+
+      console.log('✅ Weight logged successfully')
+      
+      // Refresh weight data and close modal
+      await loadWeightData()
+      setShowWeightModal(false)
+      setWeightInput('')
+      
+      Alert.alert('Success', `Weight logged: ${weight} kg`)
+
+    } catch (error) {
+      console.error('❌ Error logging weight:', error)
+      Alert.alert('Error', 'Failed to log weight. Please try again.')
+    } finally {
+      setLoggingWeight(false)
+    }
+  }, [session?.user?.id, weightInput, loadWeightData])
 
   const healthMetrics: HealthMetric[] = [
     {
@@ -186,10 +380,11 @@ export default function TrackerScreen() {
       trend: 'stable'
     },
     {
-      label: 'Daily Calories',
-      value: healthProfile.daily_calorie_goal?.toString() || '--',
+      label: 'Today\'s Calories',
+      value: nutritionSummary?.today?.total_calories?.toString() || '0',
       emoji: '🔥',
-      color: '#F59E0B',
+      color: nutritionSummary?.calorie_progress.status === 'on_track' ? '#10B981' : 
+             nutritionSummary?.calorie_progress.status === 'over' ? '#EF4444' : '#F59E0B',
       unit: 'kcal',
       trend: 'stable'
     },
@@ -205,20 +400,28 @@ export default function TrackerScreen() {
 
   const goals = [
     {
+      title: 'Calorie Goal',
+      current: nutritionSummary?.today?.total_calories || 0,
+      target: nutritionSummary?.goals.daily_calories || 2000,
+      unit: 'kcal',
+      emoji: '🔥',
+      color: '#F59E0B'
+    },
+    {
+      title: 'Protein Goal',
+      current: Math.round(nutritionSummary?.today?.total_protein_g || 0),
+      target: nutritionSummary?.goals.daily_protein_g || 125,
+      unit: 'g',
+      emoji: '💪',
+      color: '#10B981'
+    },
+    {
       title: 'Weight Goal',
       current: healthProfile.weight_kg || 0,
       target: healthProfile.target_weight_kg || 0,
       unit: 'kg',
       emoji: '🎯',
       color: '#6B8E23'
-    },
-    {
-      title: 'Daily Steps',
-      current: 8500, // Mock data
-      target: 10000,
-      unit: 'steps',
-      emoji: '👟',
-      color: '#3B82F6'
     },
     {
       title: 'Water Intake',
@@ -270,10 +473,12 @@ export default function TrackerScreen() {
   const medicalConditions = parseJSONBArray(healthProfile.medical_conditions)
   const medications = parseJSONBArray(healthProfile.medications)
 
-  // Calculate weight progress
-  const currentWeight = mockWeightData[mockWeightData.length - 1]?.weight || healthProfile.weight_kg || 0
-  const weightProgress = calculateWeightProgress(healthProfile.weight_kg, healthProfile.target_weight_kg)
-  const bmiStatus = calculateBMIStatus(healthProfile.bmi)
+  // Calculate weight progress using real data
+  const currentWeight = weightSummary?.current_log?.weight_kg || 
+                       weightChartData?.data_points[weightChartData.data_points.length - 1]?.weight || 
+                       healthProfile.weight_kg || 0
+  const weightProgress = calculateWeightProgress(currentWeight, weightSummary?.target_weight_kg || healthProfile.target_weight_kg)
+  const bmiStatus = calculateBMIStatus(weightSummary?.current_log?.bmi || healthProfile.bmi)
 
   const userName = userData?.fullName || session?.user?.email?.split('@')[0] || 'Guest User'
 
@@ -301,7 +506,13 @@ export default function TrackerScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.content}>
           {/* Charts Section - First */}
           <View style={styles.section}>
@@ -310,18 +521,37 @@ export default function TrackerScreen() {
               <Text style={styles.sectionTitle}>Health Trends</Text>
             </View>
             
-            {/* Calorie Chart */}
-            <CalorieChart data={mockCalorieData} />
-            
-            {/* Weight Chart */}
-            <WeightChart 
-              data={mockWeightData} 
-              targetWeight={healthProfile.target_weight_kg || 70} 
-              startWeight={76}
+            {/* Nutrition Chart - Real Data */}
+            <NutritionChart 
+              data={nutritionChartData}
+              loading={nutritionLoading}
+              error={nutritionError}
+              period="week"
+              showGoals={true}
+            />
+
+            {/* Calorie Chart - Real Data */}
+            <CalorieChart 
+              data={getCalorieChartData()} 
+              loading={nutritionLoading}
+              error={nutritionError}
             />
             
-            {/* BMI Chart */}
-            <BMIChart data={mockBMIData} />
+            {/* Weight Chart - Real Data */}
+            <WeightChart 
+              data={getWeightChartFormatted()} 
+              loading={weightLoading}
+              error={weightError}
+              targetWeight={weightSummary?.target_weight_kg || healthProfile.target_weight_kg || 70} 
+              startWeight={weightChartData?.starting_weight || 76}
+            />
+            
+            {/* BMI Chart - Real Data */}
+            <BMIChart 
+              data={getBMIChartFormatted()}
+              loading={weightLoading}
+              error={weightError}
+            />
           </View>
 
           {/* Compact Health Overview */}
@@ -409,7 +639,7 @@ export default function TrackerScreen() {
             <View style={styles.quickActionsGrid}>
               <TouchableOpacity 
                 style={styles.quickActionButton}
-                onPress={() => Alert.alert('Log Weight', 'Weight logging feature coming soon!')}
+                onPress={() => setShowWeightModal(true)}
               >
                 <Text style={styles.quickActionEmoji}>⚖️</Text>
                 <Text style={styles.quickActionText}>Log Weight</Text>
@@ -442,6 +672,52 @@ export default function TrackerScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Weight Logging Modal */}
+      <Modal
+        visible={showWeightModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowWeightModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Log Your Weight</Text>
+            <Text style={styles.modalSubtitle}>Enter your current weight in kilograms</Text>
+            
+            <TextInput
+              style={styles.weightInput}
+              value={weightInput}
+              onChangeText={setWeightInput}
+              placeholder="e.g. 75.5"
+              keyboardType="decimal-pad"
+              autoFocus={true}
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setShowWeightModal(false)
+                  setWeightInput('')
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalSaveButton, loggingWeight && styles.modalSaveButtonDisabled]}
+                onPress={handleLogWeight}
+                disabled={loggingWeight}
+              >
+                <Text style={styles.modalSaveText}>
+                  {loggingWeight ? 'Saving...' : 'Save Weight'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   )
 }
@@ -868,6 +1144,86 @@ const styles = StyleSheet.create({
   compactGoalValues: {
     fontSize: 12,
     color: '#4A4A4A',
+    fontFamily: 'Inter',
+  },
+  
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  weightInput: {
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 18,
+    fontFamily: 'Inter',
+    textAlign: 'center',
+    marginBottom: 24,
+    backgroundColor: '#F9FAFB',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  modalSaveButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#6B8E23',
+    alignItems: 'center',
+  },
+  modalSaveButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  modalSaveText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
     fontFamily: 'Inter',
   },
 })
