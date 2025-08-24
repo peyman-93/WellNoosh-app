@@ -154,7 +154,7 @@ config_local.py
 .DS_Store
 .AppleDouble
 .LSOverride
-Icon?
+Icon\r
 ._*
 *.pem
 

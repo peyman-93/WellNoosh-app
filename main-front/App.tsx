@@ -25,10 +25,11 @@ import { FamilyVoteLanding } from './components/FamilyVoteLanding'
 import { VoteResults } from './components/VoteResults'
 import { ProfileSummaryLoading } from './components/ProfileSummaryLoading'
 import { ProfileCompletion } from './components/ProfileCompletion'
+import RecipeSwipeScreen from './screens/RecipeSwipeScreen'
 
 const Stack = createNativeStackNavigator()
 
-type AppState = 'landing' | 'auth' | 'onboarding' | 'profileCompletion' | 'profileSummary' | 'authenticated' | 'familyVoteShare' | 'familyVoteLanding' | 'voteResults'
+type AppState = 'landing' | 'auth' | 'onboarding' | 'profileCompletion' | 'profileSummary' | 'recipeSwipe' | 'authenticated' | 'familyVoteShare' | 'familyVoteLanding' | 'voteResults'
 type AuthMode = 'login' | 'signup' | 'google'
 
 interface Recipe {
@@ -126,11 +127,12 @@ function AppContent() {
       // Mark onboarding as completed
       await updateUserData({ onboardingCompleted: true })
       
-      setAppState('authenticated')
+      // Go to recipe swipe screen before main dashboard
+      setAppState('recipeSwipe')
     } catch (error) {
       console.error('❌ Error saving onboarding data:', error)
-      // Still continue to authenticated state even if save fails
-      setAppState('authenticated')
+      // Still continue to recipe swipe even if save fails
+      setAppState('recipeSwipe')
     }
   }
 
@@ -162,6 +164,10 @@ function AppContent() {
   }
 
   const handleFamilyVoteBack = () => {
+    setAppState('authenticated')
+  }
+
+  const handleRecipeSwipeComplete = () => {
     setAppState('authenticated')
   }
 
@@ -287,6 +293,19 @@ function AppContent() {
           <ProfileSummaryLoading 
             userData={onboardingData}
             onComplete={handleProfileSummaryComplete}
+          />
+        </View>
+      </SafeAreaProvider>
+    )
+  }
+
+  if (appState === 'recipeSwipe') {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.container}>
+          <StatusBar style="dark" />
+          <RecipeSwipeScreen 
+            onNavigateBack={handleRecipeSwipeComplete}
           />
         </View>
       </SafeAreaProvider>
