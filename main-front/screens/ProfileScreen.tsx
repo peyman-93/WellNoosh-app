@@ -14,6 +14,7 @@ import { useAuth } from '../src/context/supabase-provider'
 import { useUserData } from '../src/context/user-data-provider'
 import { useNavigation } from '@react-navigation/native'
 import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
+import RecipeSwipeScreen from './RecipeSwipeScreen'
 
 interface MembershipInfo {
   tier: string
@@ -27,6 +28,7 @@ export default function ProfileScreen() {
   const { userData } = useUserData()
   const navigation = useNavigation()
   const [showEditProfile, setShowEditProfile] = useState(false)
+  const [showRecipeSwipe, setShowRecipeSwipe] = useState(false)
 
   // Mock membership data - replace with actual API call when implemented
   const membershipInfo: MembershipInfo = {
@@ -59,6 +61,12 @@ export default function ProfileScreen() {
         { emoji: '📱', label: 'App Settings', action: () => Alert.alert('App Settings', 'Coming soon!') },
         { emoji: '❓', label: 'Help & Support', action: () => Alert.alert('Help & Support', 'Coming soon!') },
         { emoji: '⚙️', label: 'Advanced Settings', action: () => Alert.alert('Advanced Settings', 'Coming soon!') }
+      ]
+    },
+    {
+      title: 'Developer',
+      items: [
+        { emoji: '🧪', label: 'Test Recipe Swipe', action: () => setShowRecipeSwipe(true) }
       ]
     }
   ]
@@ -335,6 +343,20 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+        </Modal>
+      )}
+
+      {/* Recipe Swipe Modal */}
+      {showRecipeSwipe && (
+        <Modal
+          visible={showRecipeSwipe}
+          transparent={false}
+          animationType="slide"
+          onRequestClose={() => setShowRecipeSwipe(false)}
+        >
+          <RecipeSwipeScreen
+            onNavigateBack={() => setShowRecipeSwipe(false)}
+          />
         </Modal>
       )}
     </ScreenWrapper>

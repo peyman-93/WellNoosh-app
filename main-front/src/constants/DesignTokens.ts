@@ -16,6 +16,7 @@ export const Colors = {
   foreground: '#1A1A1A',
   mutedForeground: '#4A4A4A',
   inputBackground: '#FFFFFF',
+  gradientBackground: ['#FAF7F0', '#F5F5F0'],
   // Brand colors structure
   brand: {
     // Gray palette

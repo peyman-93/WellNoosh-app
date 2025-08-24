@@ -46,11 +46,33 @@ export default function RecipeSwipeScreen({ navigation, onNavigateBack, onRecipe
   const translateX = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(0)).current
   const rotate = useRef(new Animated.Value(0)).current
+
+  // Debug component mount/unmount
+  React.useEffect(() => {
+    console.log('🍽️ RecipeSwipeScreen - Component mounted:', {
+      hasNavigation: !!navigation,
+      hasOnNavigateBack: !!onNavigateBack,
+      initialRecipeIndex: currentRecipeIndex
+    })
+    
+    return () => {
+      console.log('🍽️ RecipeSwipeScreen - Component unmounting')
+    }
+  }, [])
   
   const handleNavigateBack = () => {
+    console.log('🍽️ RecipeSwipeScreen - Navigate back called:', {
+      hasOnNavigateBack: !!onNavigateBack,
+      hasNavigation: !!navigation,
+      likedRecipesCount: likedRecipes.length,
+      dislikedRecipesCount: dislikedRecipes.length
+    })
+    
     if (onNavigateBack) {
+      console.log('🍽️ Using onNavigateBack callback')
       onNavigateBack()
     } else if (navigation) {
+      console.log('🍽️ Using navigation.reset')
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs', params: { screen: 'Cooking' } }],
@@ -156,6 +178,15 @@ export default function RecipeSwipeScreen({ navigation, onNavigateBack, onRecipe
   const currentRecipe = recipes[currentRecipeIndex]
   const hasMoreRecipes = currentRecipeIndex < recipes.length - 1
 
+  // Debug logging
+  console.log('🔍 RecipeSwipeScreen Debug:', {
+    currentRecipeIndex,
+    recipesLength: recipes.length,
+    hasCurrentRecipe: !!currentRecipe,
+    currentRecipeName: currentRecipe?.name,
+    hasMoreRecipes
+  })
+
   const handleSwipeLeft = () => {
     if (currentRecipe) {
       setDislikedRecipes([...dislikedRecipes, currentRecipe.id])
@@ -173,13 +204,21 @@ export default function RecipeSwipeScreen({ navigation, onNavigateBack, onRecipe
   }
 
   const nextRecipe = () => {
+    console.log('🍽️ RecipeSwipeScreen - Next recipe:', {
+      currentIndex: currentRecipeIndex,
+      hasMoreRecipes: hasMoreRecipes,
+      totalRecipes: recipes.length
+    })
+    
     if (hasMoreRecipes) {
       setCurrentRecipeIndex(currentRecipeIndex + 1)
       setIsCardFlipped(false)
       resetCardPosition()
     } else {
       // All recipes completed, automatically go back to cooking screen
+      console.log('🍽️ All recipes completed, setting timeout for auto-navigation')
       setTimeout(() => {
+        console.log('🍽️ Auto-navigation timeout triggered')
         handleNavigateBack()
       }, 2000) // Wait 2 seconds to show completion message
     }

@@ -29,7 +29,7 @@ import RecipeSwipeScreen from './screens/RecipeSwipeScreen'
 
 const Stack = createNativeStackNavigator()
 
-type AppState = 'landing' | 'auth' | 'onboarding' | 'profileCompletion' | 'profileSummary' | 'recipeSwipe' | 'authenticated' | 'familyVoteShare' | 'familyVoteLanding' | 'voteResults'
+type AppState = 'landing' | 'auth' | 'profileCompletion' | 'onboarding' | 'profileSummary' | 'recipeSwipe' | 'authenticated' | 'familyVoteShare' | 'familyVoteLanding' | 'voteResults'
 type AuthMode = 'login' | 'signup' | 'google'
 
 interface Recipe {
@@ -66,16 +66,32 @@ function AppContent() {
   const [onboardingData, setOnboardingData] = React.useState<any>(null)
 
   React.useEffect(() => {
+    console.log('🔍 App State Effect - Initial Check:', {
+      loading,
+      userDataLoading,
+      hasSession: !!session,
+      onboardingCompleted: userData?.onboardingCompleted,
+      currentAppState: appState
+    })
+    
     if (!loading && !userDataLoading) {
       if (session) {
         // User is authenticated, check onboarding status
         if (userData?.onboardingCompleted) {
-          setAppState('authenticated')
+          // Don't override recipeSwipe state - let it complete naturally
+          if (appState !== 'recipeSwipe') {
+            console.log('✅ User onboarding completed, setting to authenticated')
+            setAppState('authenticated')
+          } else {
+            console.log('🍽️ User in recipe swipe, not overriding state')
+          }
         } else {
-          setAppState('onboarding')
+          console.log('🔄 User needs onboarding, setting to profileCompletion')
+          setAppState('profileCompletion')
         }
       } else {
         // User is not authenticated
+        console.log('🚪 No session, setting to landing')
         setAppState('landing')
       }
     }
@@ -96,18 +112,36 @@ function AppContent() {
     // and useEffect will handle the state transition
   }
 
-  const handleOnboardingComplete = (userData: any) => {
+  const handleProfileCompletionComplete = (userData: any) => {
+    console.log('🔄 Profile Completion Complete:', {
+      userData: userData,
+      currentState: appState,
+      nextState: 'onboarding'
+    })
     setOnboardingData(userData)
-    setAppState('profileCompletion')
+    setAppState('onboarding')
   }
 
-  const handleProfileCompletionComplete = (completeUserData: any) => {
-    // Merge the profile completion data with existing onboarding data
+  const handleOnboardingComplete = (completeUserData: any) => {
+    console.log('🔄 Onboarding Complete:', {
+      completeUserData: completeUserData,
+      currentOnboardingData: onboardingData,
+      currentState: appState,
+      nextState: 'profileSummary'
+    })
+    // Merge the onboarding data with existing profile completion data
     setOnboardingData(prev => ({ ...prev, ...completeUserData }))
     setAppState('profileSummary')
   }
 
   const handleProfileSummaryComplete = async () => {
+    console.log('🔄 Profile Summary Complete - Starting:', {
+      currentState: appState,
+      hasOnboardingData: !!onboardingData,
+      onboardingDataKeys: onboardingData ? Object.keys(onboardingData) : [],
+      expectedNextState: 'recipeSwipe'
+    })
+    
     try {
       // Update user data with onboarding data
       if (onboardingData) {
@@ -126,12 +160,15 @@ function AppContent() {
       
       // Mark onboarding as completed
       await updateUserData({ onboardingCompleted: true })
+      console.log('✅ Onboarding marked as completed')
       
       // Go to recipe swipe screen before main dashboard
+      console.log('🍽️ Setting state to recipeSwipe')
       setAppState('recipeSwipe')
     } catch (error) {
       console.error('❌ Error saving onboarding data:', error)
       // Still continue to recipe swipe even if save fails
+      console.log('🍽️ Error occurred, still setting state to recipeSwipe')
       setAppState('recipeSwipe')
     }
   }
@@ -168,6 +205,10 @@ function AppContent() {
   }
 
   const handleRecipeSwipeComplete = () => {
+    console.log('🔄 Recipe Swipe Complete:', {
+      currentState: appState,
+      nextState: 'authenticated'
+    })
     setAppState('authenticated')
   }
 
@@ -256,6 +297,20 @@ function AppContent() {
     )
   }
 
+  if (appState === 'profileCompletion') {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.container}>
+          <StatusBar style="dark" />
+          <ProfileCompletion 
+            onComplete={handleProfileCompletionComplete}
+            userData={userData}
+          />
+        </View>
+      </SafeAreaProvider>
+    )
+  }
+
   if (appState === 'onboarding') {
     return (
       <SafeAreaProvider>
@@ -264,20 +319,6 @@ function AppContent() {
           <OnboardingFlow 
             onComplete={handleOnboardingComplete} 
             onSkip={handleOnboardingComplete}
-            userData={userData}
-          />
-        </View>
-      </SafeAreaProvider>
-    )
-  }
-
-  if (appState === 'profileCompletion') {
-    return (
-      <SafeAreaProvider>
-        <View style={styles.container}>
-          <StatusBar style="dark" />
-          <ProfileCompletion 
-            onComplete={handleProfileCompletionComplete}
             userData={onboardingData}
           />
         </View>
@@ -286,6 +327,7 @@ function AppContent() {
   }
 
   if (appState === 'profileSummary') {
+    console.log('📊 Rendering ProfileSummaryLoading state')
     return (
       <SafeAreaProvider>
         <View style={styles.container}>
@@ -300,6 +342,7 @@ function AppContent() {
   }
 
   if (appState === 'recipeSwipe') {
+    console.log('🍽️ Rendering RecipeSwipeScreen state')
     return (
       <SafeAreaProvider>
         <View style={styles.container}>
@@ -313,6 +356,7 @@ function AppContent() {
   }
 
   // Authenticated state - main app
+  console.log('🏠 Rendering MainTabs authenticated state - appState:', appState)
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
