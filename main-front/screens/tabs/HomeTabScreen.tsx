@@ -289,8 +289,9 @@ export default function DashboardScreen() {
           setDashboardMealPlan(null)
         }
       } catch (error) {
-        console.error('❌ Error loading meal plan:', error)
-        // Don't show error to user, just fall back to manual meal tracking
+        console.error('❌ Error loading meal plan (expected due to simplified database):', error)
+        // Gracefully handle missing meal plan services - show no meal plan state
+        setDashboardMealPlan(null)
       } finally {
         setLoadingMealPlan(false)
       }

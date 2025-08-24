@@ -5,7 +5,6 @@ interface UserData {
   fullName: string;
   email: string;
   country: string;
-  city: string;
   postalCode: string;
   age?: number;
   gender?: string;
@@ -15,8 +14,6 @@ interface UserData {
   heightUnit?: 'cm' | 'ft';
   heightFeet?: number;
   heightInches?: number;
-  targetWeight?: number;
-  targetWeightUnit?: 'kg' | 'lbs';
 }
 
 interface ProfileCompletionProps {
@@ -33,9 +30,7 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
     height: '',
     heightUnit: 'cm' as 'cm' | 'ft',
     heightFeet: '',
-    heightInches: '',
-    targetWeight: '',
-    targetWeightUnit: 'kg' as 'kg' | 'lbs'
+    heightInches: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -79,15 +74,6 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
       }
     }
 
-    // Target weight validation (optional)
-    if (profileData.targetWeight) {
-      const targetWeight = parseFloat(profileData.targetWeight);
-      const minWeight = profileData.targetWeightUnit === 'kg' ? 30 : 66;
-      const maxWeight = profileData.targetWeightUnit === 'kg' ? 300 : 660;
-      if (isNaN(targetWeight) || targetWeight < minWeight || targetWeight > maxWeight) {
-        newErrors.targetWeight = `Please enter a valid target weight (${minWeight}-${maxWeight} ${profileData.targetWeightUnit})`;
-      }
-    }
 
     // Height validation
     if (profileData.heightUnit === 'cm') {
@@ -139,9 +125,7 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
           (parseInt(profileData.heightFeet) * 12 + parseInt(profileData.heightInches)) * 2.54 : undefined),
       heightUnit: profileData.heightUnit,
       heightFeet: profileData.heightUnit === 'ft' && profileData.heightFeet ? parseInt(profileData.heightFeet) : undefined,
-      heightInches: profileData.heightUnit === 'ft' && profileData.heightInches ? parseInt(profileData.heightInches) : undefined,
-      targetWeight: profileData.targetWeight ? parseFloat(profileData.targetWeight) : undefined,
-      targetWeightUnit: profileData.targetWeightUnit
+      heightInches: profileData.heightUnit === 'ft' && profileData.heightInches ? parseInt(profileData.heightInches) : undefined
     };
 
     onComplete(completeUserData);
@@ -289,36 +273,6 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
             {errors.height && <Text style={styles.errorText}>{errors.height}</Text>}
           </View>
 
-          {/* Target Weight (Optional) */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Target Weight <Text style={styles.optionalText}>(Optional)</Text></Text>
-            <View style={styles.weightContainer}>
-              <TextInput
-                style={[styles.weightInput, errors.targetWeight && styles.inputError]}
-                placeholder="65"
-                value={profileData.targetWeight}
-                onChangeText={(value) => handleInputChange('targetWeight', value)}
-                keyboardType="decimal-pad"
-              />
-              <TouchableOpacity
-                style={styles.unitButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Select Unit',
-                    '',
-                    [
-                      { text: 'kg', onPress: () => handleInputChange('targetWeightUnit', 'kg') },
-                      { text: 'lbs', onPress: () => handleInputChange('targetWeightUnit', 'lbs') }
-                    ]
-                  );
-                }}
-              >
-                <Text style={styles.unitButtonText}>{profileData.targetWeightUnit}</Text>
-                <Text style={styles.pickerArrow}>▼</Text>
-              </TouchableOpacity>
-            </View>
-            {errors.targetWeight && <Text style={styles.errorText}>{errors.targetWeight}</Text>}
-          </View>
         </View>
       </ScrollView>
 

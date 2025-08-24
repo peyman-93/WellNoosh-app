@@ -38,35 +38,31 @@ const calculateDailyCalories = (bmr: number, activityLevel: string): number => {
 }
 
 interface UserData {
+  // Basic profile info (user_profiles table)
   fullName: string
   email: string
   country: string
-  city: string
   postalCode: string
-  address?: string
+  // Health profile info (user_health_profiles table)
   age?: number
   gender?: string
   weight?: number
   weightUnit?: 'kg' | 'lbs'
   height?: number
   heightUnit?: 'cm' | 'ft'
-  targetWeight?: number
-  targetWeightUnit?: 'kg' | 'lbs'
-  medications?: string[]
-  healthNotes?: string
-  dietStyle?: string | string[] // Support both formats for backward compatibility
-  healthGoals?: string[]
   activityLevel?: string
+  cookingSkill?: string
+  dietStyle?: string
   allergies?: string[]
   medicalConditions?: string[]
-  cookingSkill?: string
-  cookingFrequency?: string
-  mealPreference?: string
+  healthGoals?: string[]
+  targetWeight?: number
+  targetWeightUnit?: 'kg' | 'lbs'
+  timeline?: string
+  bmi?: number
+  dailyCalorieGoal?: number
   // Onboarding completion flags
   onboardingCompleted?: boolean
-  profileCompleted?: boolean
-  slidesCompleted?: boolean
-  mealsCompleted?: boolean
 }
 
 interface UserDataContextType {
@@ -102,7 +98,7 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
     const fetchUserData = async () => {
       if (user) {
         try {
-          // First try to fetch complete user profile from database
+          // Fetch basic user profile
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
             .select('*')
@@ -116,24 +112,14 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
             .eq('user_id', user.id)
             .single()
 
-          // Fetch dietary preferences
-          const { data: dietaryData, error: dietaryError } = await supabase
-            .from('user_dietary_preferences')
-            .select('*')
-            .eq('user_id', user.id)
-            .single()
-
           if (profileData && !profileError) {
             // User profile exists in database, build complete user data
             const completeUserData: UserData = {
+              // Basic profile data
               fullName: profileData.full_name || user.user_metadata?.full_name || '',
-              email: user.email || '',
+              email: profileData.email || user.email || '',
               country: profileData.country || user.user_metadata?.country || '',
-              city: profileData.city || user.user_metadata?.city || '',
               postalCode: profileData.postal_code || user.user_metadata?.postal_code || '',
-              address: profileData.address || '',
-              cookingSkill: profileData.cooking_experience_level || '',
-              cookingFrequency: profileData.cooking_frequency || '',
               onboardingCompleted: true, // If profile exists, onboarding is completed
               
               // Add health data if available
@@ -144,24 +130,18 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
                 weightUnit: 'kg' as const,
                 height: healthData.height_cm,
                 heightUnit: 'cm' as const,
+                activityLevel: healthData.activity_level,
+                cookingSkill: healthData.cooking_skill,
+                dietStyle: healthData.diet_style,
+                allergies: healthData.allergies || [],
+                medicalConditions: healthData.medical_conditions || [],
+                healthGoals: healthData.health_goals || [],
                 targetWeight: healthData.target_weight_kg,
                 targetWeightUnit: 'kg' as const,
-                activityLevel: healthData.activity_level,
-                healthGoals: healthData.health_goals ? JSON.parse(healthData.health_goals) : undefined,
-                medicalConditions: healthData.medical_conditions ? JSON.parse(healthData.medical_conditions) : undefined,
-                medications: healthData.medications ? JSON.parse(healthData.medications) : undefined,
-                healthNotes: healthData.notes,
+                timeline: healthData.timeline,
+                bmi: healthData.bmi,
+                dailyCalorieGoal: healthData.daily_calorie_goal,
               }),
-
-              // Add dietary data if available
-              ...(dietaryData && !dietaryError && {
-                dietStyle: dietaryData.dietary_restrictions || [],
-                allergies: dietaryData.allergies || [],
-                mealPreference: dietaryData.cooking_time_preference,
-              }),
-
-              // Add any other metadata from Supabase
-              ...user.user_metadata,
             }
             console.log('✅ Complete user profile loaded from database:', completeUserData)
             setUserData(completeUserData)
@@ -171,11 +151,8 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
               fullName: user.user_metadata?.full_name || '',
               email: user.email || '',
               country: user.user_metadata?.country || '',
-              city: user.user_metadata?.city || '',
               postalCode: user.user_metadata?.postal_code || '',
               onboardingCompleted: false,
-              // Add any other metadata from Supabase
-              ...user.user_metadata,
             }
             console.log('ℹ️ No profile found in database, using basic metadata for onboarding')
             setUserData(initialData)
@@ -187,10 +164,8 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
             fullName: user.user_metadata?.full_name || '',
             email: user.email || '',
             country: user.user_metadata?.country || '',
-            city: user.user_metadata?.city || '',
             postalCode: user.user_metadata?.postal_code || '',
             onboardingCompleted: false,
-            ...user.user_metadata,
           }
           setUserData(initialData)
         }
@@ -217,31 +192,14 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
     try {
       const userId = session.user.id
       console.log('💾 Saving user data to Supabase:', userData)
-      console.log('🔍 Debug - userData.cookingSkill:', userData.cookingSkill)
-      console.log('🔍 Debug - userData.address:', userData.address)
 
-      // Convert weight to kg if needed
-      const weightInKg = userData.weight && userData.weightUnit === 'lbs' 
-        ? Number((userData.weight * 0.453592).toFixed(2))
-        : userData.weight
-
-      // Convert height to cm if needed
-      let heightInCm = userData.height
-      if (userData.heightUnit === 'ft' && userData.height) {
-        heightInCm = Number((userData.height * 30.48).toFixed(2))
-      }
-
-      // 1. Save user profile
+      // 1. Save basic user profile
       const profileData = {
         user_id: userId,
         email: userData.email || session.user.email || null,
         full_name: userData.fullName || null,
         country: userData.country || null,
-        city: userData.city || null,
         postal_code: userData.postalCode || null,
-        address: userData.address || null,
-        cooking_experience_level: userData.cookingSkill || null,
-        cooking_frequency: userData.cookingFrequency || null,
       }
 
       const { error: profileError } = await supabase
@@ -254,44 +212,55 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
       }
       console.log('✅ User profile saved successfully')
 
-      // Convert target weight to kg if needed
-      const targetWeightInKg = userData.targetWeight && userData.targetWeightUnit === 'lbs' 
-        ? Number((userData.targetWeight * 0.453592).toFixed(2))
-        : userData.targetWeight
+      // 2. Save health profile if health data exists
+      if (userData.age || userData.gender || userData.weight || userData.height || userData.activityLevel) {
+        // Convert weight to kg if needed
+        const weightInKg = userData.weight && userData.weightUnit === 'lbs' 
+          ? Number((userData.weight * 0.453592).toFixed(2))
+          : userData.weight
 
-      // Calculate BMI if we have weight and height
-      let bmi = null
-      if (weightInKg && heightInCm) {
-        bmi = calculateBMI(weightInKg, heightInCm)
-      }
-
-      // Calculate BMR if we have weight, height, age, and gender
-      let bmr = null
-      let dailyCalorieGoal = null
-      if (weightInKg && heightInCm && userData.age && userData.gender) {
-        bmr = calculateBMR(weightInKg, heightInCm, userData.age, userData.gender)
-        if (userData.activityLevel) {
-          dailyCalorieGoal = calculateDailyCalories(bmr, userData.activityLevel)
+        // Convert height to cm if needed
+        let heightInCm = userData.height
+        if (userData.heightUnit === 'ft' && userData.height) {
+          heightInCm = Number((userData.height * 30.48).toFixed(2))
         }
-      }
 
-      // 2. Save health profile
-      if (userData.age || userData.gender || weightInKg || heightInCm || userData.activityLevel || userData.healthGoals) {
+        // Convert target weight to kg if needed
+        const targetWeightInKg = userData.targetWeight && userData.targetWeightUnit === 'lbs' 
+          ? Number((userData.targetWeight * 0.453592).toFixed(2))
+          : userData.targetWeight
+
+        // Calculate BMI if we have weight and height
+        let bmi = null
+        if (weightInKg && heightInCm) {
+          bmi = calculateBMI(weightInKg, heightInCm)
+        }
+
+        // Calculate BMR and daily calories if we have required data
+        let dailyCalorieGoal = null
+        if (weightInKg && heightInCm && userData.age && userData.gender) {
+          const bmr = calculateBMR(weightInKg, heightInCm, userData.age, userData.gender)
+          if (userData.activityLevel) {
+            dailyCalorieGoal = calculateDailyCalories(bmr, userData.activityLevel)
+          }
+        }
+
         const healthData = {
           user_id: userId,
           age: userData.age || null,
           gender: userData.gender || null,
-          height_cm: heightInCm || null,
           weight_kg: weightInKg || null,
-          target_weight_kg: targetWeightInKg || null,
+          height_cm: heightInCm || null,
           activity_level: userData.activityLevel || null,
-          health_goals: userData.healthGoals ? JSON.stringify(userData.healthGoals) : null,
-          medical_conditions: userData.medicalConditions ? JSON.stringify(userData.medicalConditions) : null,
-          medications: userData.medications ? JSON.stringify(userData.medications) : null,
+          cooking_skill: userData.cookingSkill || null,
+          diet_style: userData.dietStyle || null,
+          allergies: userData.allergies || null,
+          medical_conditions: userData.medicalConditions || null,
+          health_goals: userData.healthGoals || null,
+          target_weight_kg: targetWeightInKg || null,
+          timeline: userData.timeline || null,
           bmi: bmi,
-          bmr: bmr,
           daily_calorie_goal: dailyCalorieGoal,
-          notes: userData.healthNotes || null,
         }
 
         const { error: healthError } = await supabase
@@ -303,36 +272,6 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
           throw healthError
         }
         console.log('✅ Health profile saved successfully')
-      }
-
-      // 3. Save dietary preferences
-      if (userData.dietStyle || userData.allergies || userData.medicalConditions) {
-        // Handle both string and array formats for dietStyle
-        const dietStyleArray = userData.dietStyle 
-          ? (typeof userData.dietStyle === 'string' ? [userData.dietStyle] : userData.dietStyle)
-          : [];
-
-        const dietaryData = {
-          user_id: userId,
-          dietary_restrictions: dietStyleArray,
-          allergies: userData.allergies || [],
-          intolerances: userData.medicalConditions || [], // Using medicalConditions as intolerances for now
-          liked_cuisines: [],
-          disliked_cuisines: [],
-          preferred_meal_types: dietStyleArray,
-          cooking_time_preference: userData.mealPreference || null,
-          spice_tolerance: null,
-        }
-
-        const { error: dietaryError } = await supabase
-          .from('user_dietary_preferences')
-          .upsert(dietaryData, { onConflict: 'user_id' })
-
-        if (dietaryError) {
-          console.error('❌ Error saving dietary preferences:', dietaryError)
-          throw dietaryError
-        }
-        console.log('✅ Dietary preferences saved successfully')
       }
 
       console.log('🎉 All user data saved to Supabase successfully!')
@@ -349,32 +288,14 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
     try {
       const userId = session.user.id
       console.log('💾 Saving specific user data to Supabase:', dataToSave)
-      console.log('🔍 Debug - dataToSave.cookingSkill:', dataToSave.cookingSkill)
-      console.log('🔍 Debug - dataToSave.mealPreference:', dataToSave.mealPreference)
-      console.log('🔍 Debug - dataToSave.address:', dataToSave.address)
 
-      // Convert weight to kg if needed
-      const weightInKg = dataToSave.weight && dataToSave.weightUnit === 'lbs' 
-        ? Number((dataToSave.weight * 0.453592).toFixed(2))
-        : dataToSave.weight
-
-      // Convert height to cm if needed
-      let heightInCm = dataToSave.height
-      if (dataToSave.heightUnit === 'ft' && dataToSave.height) {
-        heightInCm = Number((dataToSave.height * 30.48).toFixed(2))
-      }
-
-      // 1. Save user profile
+      // 1. Save basic user profile
       const profileData = {
         user_id: userId,
         email: dataToSave.email || session.user.email || null,
         full_name: dataToSave.fullName || null,
         country: dataToSave.country || null,
-        city: dataToSave.city || null,
         postal_code: dataToSave.postalCode || null,
-        address: dataToSave.address || null,
-        cooking_experience_level: dataToSave.cookingSkill || null,
-        cooking_frequency: dataToSave.cookingFrequency || null,
       }
 
       const { error: profileError } = await supabase
@@ -387,44 +308,55 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
       }
       console.log('✅ User profile saved successfully')
 
-      // Convert target weight to kg if needed
-      const targetWeightInKg = dataToSave.targetWeight && dataToSave.targetWeightUnit === 'lbs' 
-        ? Number((dataToSave.targetWeight * 0.453592).toFixed(2))
-        : dataToSave.targetWeight
+      // 2. Save health profile if health data exists
+      if (dataToSave.age || dataToSave.gender || dataToSave.weight || dataToSave.height || dataToSave.activityLevel) {
+        // Convert weight to kg if needed
+        const weightInKg = dataToSave.weight && dataToSave.weightUnit === 'lbs' 
+          ? Number((dataToSave.weight * 0.453592).toFixed(2))
+          : dataToSave.weight
 
-      // Calculate BMI if we have weight and height
-      let bmi = null
-      if (weightInKg && heightInCm) {
-        bmi = calculateBMI(weightInKg, heightInCm)
-      }
-
-      // Calculate BMR if we have weight, height, age, and gender
-      let bmr = null
-      let dailyCalorieGoal = null
-      if (weightInKg && heightInCm && dataToSave.age && dataToSave.gender) {
-        bmr = calculateBMR(weightInKg, heightInCm, dataToSave.age, dataToSave.gender)
-        if (dataToSave.activityLevel) {
-          dailyCalorieGoal = calculateDailyCalories(bmr, dataToSave.activityLevel)
+        // Convert height to cm if needed
+        let heightInCm = dataToSave.height
+        if (dataToSave.heightUnit === 'ft' && dataToSave.height) {
+          heightInCm = Number((dataToSave.height * 30.48).toFixed(2))
         }
-      }
 
-      // 2. Save health profile
-      if (dataToSave.age || dataToSave.gender || weightInKg || heightInCm || dataToSave.activityLevel || dataToSave.healthGoals) {
+        // Convert target weight to kg if needed
+        const targetWeightInKg = dataToSave.targetWeight && dataToSave.targetWeightUnit === 'lbs' 
+          ? Number((dataToSave.targetWeight * 0.453592).toFixed(2))
+          : dataToSave.targetWeight
+
+        // Calculate BMI if we have weight and height
+        let bmi = null
+        if (weightInKg && heightInCm) {
+          bmi = calculateBMI(weightInKg, heightInCm)
+        }
+
+        // Calculate BMR and daily calories if we have required data
+        let dailyCalorieGoal = null
+        if (weightInKg && heightInCm && dataToSave.age && dataToSave.gender) {
+          const bmr = calculateBMR(weightInKg, heightInCm, dataToSave.age, dataToSave.gender)
+          if (dataToSave.activityLevel) {
+            dailyCalorieGoal = calculateDailyCalories(bmr, dataToSave.activityLevel)
+          }
+        }
+
         const healthData = {
           user_id: userId,
           age: dataToSave.age || null,
           gender: dataToSave.gender || null,
-          height_cm: heightInCm || null,
           weight_kg: weightInKg || null,
-          target_weight_kg: targetWeightInKg || null,
+          height_cm: heightInCm || null,
           activity_level: dataToSave.activityLevel || null,
-          health_goals: dataToSave.healthGoals ? JSON.stringify(dataToSave.healthGoals) : null,
-          medical_conditions: dataToSave.medicalConditions ? JSON.stringify(dataToSave.medicalConditions) : null,
-          medications: dataToSave.medications ? JSON.stringify(dataToSave.medications) : null,
+          cooking_skill: dataToSave.cookingSkill || null,
+          diet_style: dataToSave.dietStyle || null,
+          allergies: dataToSave.allergies || null,
+          medical_conditions: dataToSave.medicalConditions || null,
+          health_goals: dataToSave.healthGoals || null,
+          target_weight_kg: targetWeightInKg || null,
+          timeline: dataToSave.timeline || null,
           bmi: bmi,
-          bmr: bmr,
           daily_calorie_goal: dailyCalorieGoal,
-          notes: dataToSave.healthNotes || null,
         }
 
         const { error: healthError } = await supabase
@@ -436,36 +368,6 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
           throw healthError
         }
         console.log('✅ Health profile saved successfully')
-      }
-
-      // 3. Save dietary preferences
-      if (dataToSave.dietStyle || dataToSave.allergies || dataToSave.medicalConditions) {
-        // Handle both string and array formats for dietStyle
-        const dietStyleArray = dataToSave.dietStyle 
-          ? (typeof dataToSave.dietStyle === 'string' ? [dataToSave.dietStyle] : dataToSave.dietStyle)
-          : [];
-
-        const dietaryData = {
-          user_id: userId,
-          dietary_restrictions: dietStyleArray,
-          allergies: dataToSave.allergies || [],
-          intolerances: dataToSave.medicalConditions || [], // Using medicalConditions as intolerances for now
-          liked_cuisines: [],
-          disliked_cuisines: [],
-          preferred_meal_types: dietStyleArray,
-          cooking_time_preference: dataToSave.mealPreference || null,
-          spice_tolerance: null,
-        }
-
-        const { error: dietaryError } = await supabase
-          .from('user_dietary_preferences')
-          .upsert(dietaryData, { onConflict: 'user_id' })
-
-        if (dietaryError) {
-          console.error('❌ Error saving dietary preferences:', dietaryError)
-          throw dietaryError
-        }
-        console.log('✅ Dietary preferences saved successfully')
       }
 
       console.log('🎉 All user data saved to Supabase successfully!')

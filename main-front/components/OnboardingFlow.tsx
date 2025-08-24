@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, SafeAreaView, Alert } from 'react-native';
 
 interface UserData {
   fullName: string;
   email: string;
   country: string;
-  city: string;
   postalCode: string;
   age?: number;
   gender?: string;
@@ -15,22 +14,18 @@ interface UserData {
   heightUnit?: 'cm' | 'ft';
   heightFeet?: number;
   heightInches?: number;
-  // Expanded Health Profile
-  dietStyle?: string[];
+  // Health Profile
+  dietStyle?: string;
   customDietStyle?: string;
   allergies?: string[];
   medicalConditions?: string[];
   activityLevel?: string;
   healthGoals?: string[];
-  foodRestrictions?: string[];
   cookingSkill?: string;
   mealPreference?: string;
-  // Subscription
-  subscriptionTier?: 'free' | 'premium';
-  dailySwipesUsed?: number;
-  lastSwipeDate?: string;
-  favoriteRecipes?: string[];
-  selectedRecipes?: string[];
+  targetWeight?: number;
+  targetWeightUnit?: 'kg' | 'lbs';
+  timeline?: string;
 }
 
 interface OnboardingFlowProps {
@@ -56,7 +51,10 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
     healthGoals: [] as string[],
     foodRestrictions: [] as string[],
     cookingSkill: '',
-    mealPreference: ''
+    mealPreference: '',
+    targetWeight: '',
+    targetWeightUnit: 'kg' as 'kg' | 'lbs',
+    timeline: ''
   });
 
   const getUserFirstName = () => {
@@ -95,6 +93,11 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
   // Health Goals
   const healthGoals = [
     'Lose Weight', 'Gain Weight', 'Maintain Weight', 'Build Muscle', 'Improve Energy'
+  ];
+
+  // Timeline Options
+  const timelineOptions = [
+    '1-3 months', '3-6 months', '6-12 months', '1+ years'
   ];
 
   // Cooking Skills
@@ -184,6 +187,14 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
 
   const handleSingleSelect = (field: keyof typeof dietaryProfile, value: string) => {
     setDietaryProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleInputChange = (field: keyof typeof dietaryProfile, value: string) => {
+    setDietaryProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const hasWeightGoal = () => {
+    return dietaryProfile.healthGoals.includes('Lose Weight') || dietaryProfile.healthGoals.includes('Gain Weight');
   };
 
   const handleCustomDietAdd = () => {
@@ -540,6 +551,69 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Target Weight and Timeline Section - Only show when weight goals are selected */}
+          {hasWeightGoal() && (
+            <View style={styles.customSection}>
+              <Text style={styles.customSectionTitle}>
+                Weight Goal Details
+              </Text>
+              
+              <View style={styles.sectionContainer}>
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Target Weight</Text>
+                  <View style={styles.weightContainer}>
+                    <TextInput
+                      style={styles.customInput}
+                      placeholder="Enter target weight"
+                      value={dietaryProfile.targetWeight}
+                      onChangeText={(value) => handleInputChange('targetWeight', value)}
+                      keyboardType="decimal-pad"
+                    />
+                    <TouchableOpacity
+                      style={styles.unitButton}
+                      onPress={() => {
+                        Alert.alert(
+                          'Select Unit',
+                          '',
+                          [
+                            { text: 'kg', onPress: () => handleInputChange('targetWeightUnit', 'kg') },
+                            { text: 'lbs', onPress: () => handleInputChange('targetWeightUnit', 'lbs') }
+                          ]
+                        );
+                      }}
+                    >
+                      <Text style={styles.unitButtonText}>{dietaryProfile.targetWeightUnit}</Text>
+                      <Text style={styles.pickerArrow}>▼</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Timeline</Text>
+                  <View style={styles.listContainer}>
+                    {timelineOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option}
+                        onPress={() => handleInputChange('timeline', option)}
+                        style={[
+                          styles.listOptionButton,
+                          dietaryProfile.timeline === option && styles.listOptionButtonSelectedGreen
+                        ]}
+                      >
+                        <Text style={[
+                          styles.optionButtonText,
+                          dietaryProfile.timeline === option && styles.optionButtonTextSelected
+                        ]}>
+                          {option}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
       )
     },
@@ -905,6 +979,39 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  listOptionButtonSelectedGreen: {
+    backgroundColor: '#6B8E23',
+    shadowColor: '#6B8E23',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  weightContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  unitButton: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 80,
+  },
+  unitButtonText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
+  },
+  pickerArrow: {
+    fontSize: 12,
+    color: '#4A4A4A',
   },
   customSection: {
     width: '100%',
