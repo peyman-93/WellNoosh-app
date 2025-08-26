@@ -1,0 +1,19 @@
+# Database
+psycopg2-binary
+
+
+# HTTP requests
+requests
+
+# Environment variables
+python-dotenv
+
+# Optional but recommended
+pandas       # For data analysis
+numpy          # For numerical operations
+
+fastapi
+uvicorn
+langgraph
+langchain
+langchain-openai
