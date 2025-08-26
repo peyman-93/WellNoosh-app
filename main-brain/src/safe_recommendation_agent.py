@@ -1,701 +1,623 @@
 """
-Complete Safe Recommendation Agent with Built-in Safety Verification
+Safe Recommendation Agent - Fixed Version with Debugging
 Location: main-brain/src/safe_recommendation_agent.py
-Purpose: Single script that handles recommendations AND safety verification
 """
 
 import os
 import json
 import psycopg2
-from psycopg2.extras import RealDictCursor, Json
-from typing import Dict, List, TypedDict, Optional, Tuple
+from psycopg2.extras import RealDictCursor
+from typing import Dict, List, TypedDict, Optional
 from datetime import datetime
-from pathlib import Path
-from enum import Enum
-import sys
 import re
-import logging
+import traceback
 
 # LangGraph imports
 from langgraph.graph import StateGraph, END
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
-
-# Setup
-sys.path.append(str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 
-env_path = Path(__file__).parent.parent / '.env'
-load_dotenv(env_path)
+load_dotenv()
 
-# Configure logging for safety issues
-logging.basicConfig(
-    filename='safety_alerts.log',
-    level=logging.WARNING,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-# ============================
-# Configuration
-# ============================
-
-DB_PARAMS = {
+# Database configuration using YOUR exact environment variable names
+DB_CONFIG = {
     'host': os.getenv('SUPABASE_HOST'),
-    'dbname': os.getenv('SUPABASE_DB', 'postgres'),
+    'port': os.getenv('SUPABASE_PORT', 5432),
+    'database': os.getenv('SUPABASE_DB', 'postgres'),
     'user': os.getenv('SUPABASE_USER', 'postgres'),
     'password': os.getenv('SUPABASE_PASSWORD'),
-    'port': int(os.getenv('SUPABASE_PORT', '5432')),
     'sslmode': os.getenv('SUPABASE_SSLMODE', 'require')
 }
 
-LLM_PROVIDER = os.getenv('LLM_PROVIDER', 'openai')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-
-# ============================
-# Safety Enums and Constants
-# ============================
-
-class SafetyLevel(Enum):
-    SAFE = "safe"
-    SAFE_WITH_MODIFICATIONS = "safe_with_modifications"
-    RISKY = "risky"
-    DANGEROUS = "dangerous"
-
-# Critical allergen mappings
-ALLERGEN_KEYWORDS = {
-    'nuts': [
-        'nut', 'almond', 'walnut', 'pecan', 'cashew', 'pistachio',
-        'hazelnut', 'macadamia', 'brazil nut', 'pine nut', 'chestnut'
-    ],
-    'peanuts': ['peanut', 'groundnut', 'arachis'],
-    'shellfish': [
-        'shrimp', 'crab', 'lobster', 'crayfish', 'prawn',
-        'clam', 'oyster', 'mussel', 'scallop', 'abalone',
-        'squid', 'octopus', 'calamari'
-    ],
-    'fish': [
-        'fish', 'salmon', 'tuna', 'cod', 'bass', 'trout',
-        'sardine', 'anchovy', 'herring', 'mackerel'
-    ],
-    'eggs': ['egg', 'albumin', 'mayonnaise', 'meringue', 'custard'],
-    'milk/dairy': [
-        'milk', 'cheese', 'butter', 'cream', 'yogurt', 'yoghurt',
-        'dairy', 'lactose', 'whey', 'casein', 'ghee'
-    ],
-    'wheat/gluten': [
-        'wheat', 'flour', 'bread', 'pasta', 'gluten', 'semolina',
-        'couscous', 'bulgur', 'barley', 'rye'
-    ],
-    'soy': ['soy', 'soya', 'tofu', 'tempeh', 'edamame', 'miso', 'soy sauce'],
-    'sesame': ['sesame', 'tahini', 'halvah']
-}
-
-# Medical restrictions
-MEDICAL_RESTRICTIONS = {
-    'diabetes': {
-        'max_sugar_g': 10,
-        'max_carbs_g': 45,
-        'avoid_ingredients': ['sugar', 'honey', 'syrup']
-    },
-    'high blood pressure': {
-        'max_sodium_mg': 600,
-        'avoid_ingredients': ['salt', 'soy sauce', 'bacon', 'pickled', 'cured']
-    },
-    'high cholesterol': {
-        'max_fat_g': 20,
-        'max_saturated_fat_g': 7,
-        'avoid_ingredients': ['butter', 'cream', 'fatty meat']
-    },
-    'kidney disease': {
-        'max_protein_g': 20,
-        'max_sodium_mg': 500,
-        'avoid_ingredients': ['beans', 'nuts', 'dairy']
-    }
-}
-
-# ============================
-# State Definition
-# ============================
-
-class AgentState(TypedDict):
-    """State that flows through the graph"""
+class GraphState(TypedDict):
+    """State for the recommendation graph"""
     user_id: str
-    user_profile: Dict
+    user_profile: Optional[Dict]
     dietary_filters: Dict
-    sql_filters: List[str]
+    sql_query: Optional[str]
     candidate_recipes: List[Dict]
-    safety_verified_recipes: List[Dict]  # After safety check
-    final_recommendations: List[Dict]
-    safety_reports: List[Dict]
-    messages: List[Dict]
-
-# ============================
-# Database Functions
-# ============================
-
-def get_db_connection():
-    """Create database connection"""
-    return psycopg2.connect(**DB_PARAMS, cursor_factory=RealDictCursor)
-
-def get_llm():
-    """Get configured LLM instance"""
-    if LLM_PROVIDER == 'gemini' and GOOGLE_API_KEY:
-        return ChatGoogleGenerativeAI(
-            model="gemini-pro",
-            google_api_key=GOOGLE_API_KEY,
-            temperature=0.3
-        )
-    elif OPENAI_API_KEY:
-        return ChatOpenAI(
-            model="gpt-4-turbo-preview",
-            api_key=OPENAI_API_KEY,
-            temperature=0.3
-        )
-    else:
-        raise ValueError("No LLM API key configured")
-
-# ============================
-# Pipeline Node Functions
-# ============================
-
-def load_user_profile(state: AgentState) -> AgentState:
-    """Load user health profile from database"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    try:
-        cur.execute("""
-            SELECT * FROM user_health_profiles 
-            WHERE user_id = %s
-        """, (state['user_id'],))
-        
-        profile = cur.fetchone()
-        if profile:
-            state['user_profile'] = dict(profile)
-            state['messages'].append({
-                "type": "system",
-                "content": f"Loaded profile for user {state['user_id']}"
-            })
-        else:
-            state['messages'].append({
-                "type": "error",
-                "content": f"No profile found for user {state['user_id']}"
-            })
-    finally:
-        cur.close()
-        conn.close()
-    
-    return state
-
-def create_dietary_filters(state: AgentState) -> AgentState:
-    """Convert user profile into dietary filters"""
-    profile = state['user_profile']
-    filters = {}
-    
-    filters['cooking_skill'] = profile.get('cooking_skill', 'beginner')
-    filters['diet_style'] = profile.get('diet_style', 'balanced')
-    filters['allergies'] = profile.get('allergies', [])
-    filters['medical_conditions'] = profile.get('medical_conditions', [])
-    filters['daily_calories'] = profile.get('daily_calorie', 2000)
-    filters['health_goal'] = profile.get('health_goal', 'maintain')
-    
-    # Time-based meal type
-    from datetime import datetime
-    current_hour = datetime.now().hour
-    
-    if 5 <= current_hour < 11:
-        filters['meal_period'] = 'breakfast'
-        filters['appropriate_categories'] = ['Breakfast', 'Miscellaneous', 'Side']
-    elif 11 <= current_hour < 15:
-        filters['meal_period'] = 'lunch'
-        filters['appropriate_categories'] = ['Chicken', 'Beef', 'Vegetarian', 'Pasta', 'Seafood', 'Vegan']
-    elif 15 <= current_hour < 17:
-        filters['meal_period'] = 'snack'
-        filters['appropriate_categories'] = ['Side', 'Dessert', 'Starter']
-    elif 17 <= current_hour < 22:
-        filters['meal_period'] = 'dinner'
-        filters['appropriate_categories'] = ['Chicken', 'Beef', 'Vegetarian', 'Pasta', 'Seafood', 'Vegan', 'Lamb']
-    else:
-        filters['meal_period'] = 'light'
-        filters['appropriate_categories'] = ['Side', 'Starter', 'Vegetarian', 'Vegan']
-    
-    state['dietary_filters'] = filters
-    return state
-
-def fetch_candidate_recipes(state: AgentState) -> AgentState:
-    """Fetch recipes using scoring system"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    try:
-        filters = state['dietary_filters']
-        score_components = []
-        
-        # Time appropriateness score
-        categories_str = "', '".join(filters.get('appropriate_categories', []))
-        if categories_str:
-            score_components.append(f"CASE WHEN r.category IN ('{categories_str}') THEN 100 ELSE 0 END")
-        
-        # Diet style compatibility
-        diet_style = filters.get('diet_style', '').lower()
-        if diet_style in ['vegetarian', 'vegan']:
-            score_components.append("CASE WHEN r.category NOT IN ('Beef', 'Chicken', 'Lamb', 'Pork', 'Goat', 'Seafood') THEN 50 ELSE -50 END")
-        
-        # Calorie appropriateness
-        target_calories = filters.get('daily_calories', 2000) / 3
-        score_components.append(f"GREATEST(0, 30 - ABS((rn.per_serving->>'kcal')::numeric - {target_calories}) / 10)")
-        
-        # Medical conditions
-        if 'diabetes' in filters.get('medical_conditions', []):
-            score_components.append("CASE WHEN (rn.per_serving->>'sugar_g')::numeric <= 10 THEN 20 ELSE -10 END")
-        if 'high blood pressure' in filters.get('medical_conditions', []):
-            score_components.append("CASE WHEN (rn.per_serving->>'sodium_mg')::numeric <= 600 THEN 20 ELSE -10 END")
-        
-        total_score = " + ".join(score_components) if score_components else "0"
-        
-        query = f"""
-            WITH scored_recipes AS (
-                SELECT 
-                    r.id,
-                    r.title,
-                    r.category,
-                    r.area as cuisine,
-                    r.image_url,
-                    r.instructions,
-                    rn.per_serving->>'kcal' as calories,
-                    rn.per_serving->>'protein_g' as protein,
-                    rn.per_serving->>'carbs_g' as carbs,
-                    rn.per_serving->>'fat_g' as fat,
-                    rn.per_serving->>'sugar_g' as sugar,
-                    rn.per_serving->>'sodium_mg' as sodium,
-                    array_length(string_to_array(r.instructions, '.'), 1) as instruction_steps,
-                    (
-                        SELECT COUNT(*) 
-                        FROM recipe_ingredients ri 
-                        WHERE ri.recipe_id = r.id
-                    ) as ingredient_count,
-                    ({total_score}) as match_score,
-                    ARRAY(
-                        SELECT ri.ingredient_name 
-                        FROM recipe_ingredients ri 
-                        WHERE ri.recipe_id = r.id
-                    ) as ingredients
-                FROM recipes r
-                LEFT JOIN recipe_nutrients rn ON rn.recipe_id = r.id
-                WHERE r.image_url IS NOT NULL
-                AND rn.per_serving IS NOT NULL
-            )
-            SELECT * FROM scored_recipes
-            ORDER BY match_score DESC
-            LIMIT 30
-        """
-        
-        cur.execute(query)
-        recipes = cur.fetchall()
-        state['candidate_recipes'] = [dict(r) for r in recipes]
-        
-        state['messages'].append({
-            "type": "info",
-            "content": f"Found {len(recipes)} candidate recipes"
-        })
-        
-    except Exception as e:
-        state['messages'].append({
-            "type": "error",
-            "content": f"Error fetching recipes: {e}"
-        })
-        state['candidate_recipes'] = []
-    finally:
-        cur.close()
-        conn.close()
-    
-    return state
-
-def verify_safety(state: AgentState) -> AgentState:
-    """Safety verification step - checks for allergens and medical restrictions"""
-    filters = state['dietary_filters']
-    allergies = filters.get('allergies', [])
-    conditions = filters.get('medical_conditions', [])
-    
-    safe_recipes = []
-    safety_reports = []
-    
-    for recipe in state['candidate_recipes']:
-        safety_level = SafetyLevel.SAFE
-        issues = []
-        modifications = []
-        warnings = []
-        
-        # Check allergens
-        ingredients_str = ' '.join(recipe.get('ingredients', [])).lower()
-        
-        for allergy in allergies:
-            if allergy and allergy.lower() in ALLERGEN_KEYWORDS:
-                allergen_terms = ALLERGEN_KEYWORDS[allergy.lower()]
-                
-                for term in allergen_terms:
-                    if term in ingredients_str:
-                        safety_level = SafetyLevel.DANGEROUS
-                        issues.append(f"Contains {allergy}")
-                        modifications.append(f"MUST remove/substitute {term}")
-                        break
-        
-        # Check medical conditions
-        for condition in conditions:
-            if condition in MEDICAL_RESTRICTIONS:
-                restrictions = MEDICAL_RESTRICTIONS[condition]
-                
-                if condition == 'diabetes':
-                    sugar = float(recipe.get('sugar', 0)) if recipe.get('sugar') else 0
-                    if sugar > restrictions['max_sugar_g']:
-                        warnings.append(f"High sugar ({sugar}g) for diabetes")
-                        safety_level = max(safety_level, SafetyLevel.RISKY)
-                
-                elif condition == 'high blood pressure':
-                    sodium = float(recipe.get('sodium', 0)) if recipe.get('sodium') else 0
-                    if sodium > restrictions['max_sodium_mg']:
-                        warnings.append(f"High sodium ({sodium}mg)")
-                        safety_level = max(safety_level, SafetyLevel.RISKY)
-        
-        # Determine if recipe passes safety check
-        if safety_level != SafetyLevel.DANGEROUS:
-            recipe['safety_level'] = safety_level.value
-            recipe['safety_warnings'] = warnings
-            recipe['required_modifications'] = modifications
-            recipe['safety_verified'] = True
-            safe_recipes.append(recipe)
-        
-        safety_reports.append({
-            'recipe_id': recipe['id'],
-            'title': recipe['title'],
-            'safety_level': safety_level.value,
-            'issues': issues,
-            'warnings': warnings
-        })
-    
-    # If not enough safe recipes, take risky ones with warnings
-    if len(safe_recipes) < 5:
-        for recipe in state['candidate_recipes']:
-            if recipe not in safe_recipes:
-                recipe['safety_level'] = SafetyLevel.SAFE_WITH_MODIFICATIONS.value
-                recipe['safety_verified'] = False
-                recipe['safety_warnings'] = ["Review ingredients carefully"]
-                safe_recipes.append(recipe)
-                if len(safe_recipes) >= 10:
-                    break
-    
-    state['safety_verified_recipes'] = safe_recipes
-    state['safety_reports'] = safety_reports
-    
-    # Log if user has limited safe options
-    safe_count = len([r for r in safety_reports if r['safety_level'] == 'safe'])
-    if safe_count < 3:
-        logging.warning(f"User {state['user_id']} has only {safe_count} safe recipes available")
-    
-    return state
-
-def rank_with_llm(state: AgentState) -> AgentState:
-    """Use LLM to rank safety-verified recipes"""
-    
-    if not state['safety_verified_recipes']:
-        state['final_recommendations'] = []
-        return state
-    
-    llm = get_llm()
-    
-    prompt = ChatPromptTemplate.from_template("""
-    You are a nutritionist selecting meals for a user with these requirements:
-    
-    Profile:
-    Health Goal: {health_goal}
-    Diet Style: {diet_style}
-    Allergies: {allergies}
-    Medical Conditions: {medical_conditions}
-    Meal Time: {meal_period}
-    
-    Select EXACTLY 5 recipes from below.
-    Prioritize SAFE recipes over ones needing modifications.
-    
-    Candidates (with safety levels):
-    {candidates}
-    
-    Return JSON array of 5 recipes:
-    [{{"id": "recipe_id", "reason": "why this is good", "safety_note": "any safety concerns"}}]
-    """)
-    
-    candidates_str = json.dumps([{
-        "id": r['id'],
-        "title": r['title'],
-        "safety_level": r.get('safety_level'),
-        "calories": r.get('calories'),
-        "category": r['category'],
-        "warnings": r.get('safety_warnings', [])
-    } for r in state['safety_verified_recipes'][:15]], indent=2)
-    
-    messages = [
-        SystemMessage(content="You are a safety-conscious nutritionist."),
-        HumanMessage(content=prompt.format(
-            health_goal=state['dietary_filters'].get('health_goal'),
-            diet_style=state['dietary_filters'].get('diet_style'),
-            allergies=state['dietary_filters'].get('allergies'),
-            medical_conditions=state['dietary_filters'].get('medical_conditions'),
-            meal_period=state['dietary_filters'].get('meal_period'),
-            candidates=candidates_str
-        ))
-    ]
-    
-    try:
-        response = llm.invoke(messages)
-        
-        # Parse response
-        import re
-        json_match = re.search(r'\[.*\]', response.content, re.DOTALL)
-        if json_match:
-            recommendations = json.loads(json_match.group())
-            recipe_map = {r['id']: r for r in state['safety_verified_recipes']}
-            
-            final = []
-            for rec in recommendations[:5]:
-                if rec['id'] in recipe_map:
-                    recipe = recipe_map[rec['id']].copy()
-                    recipe['recommendation_reason'] = rec.get('reason', '')
-                    if rec.get('safety_note'):
-                        recipe['safety_note'] = rec['safety_note']
-                    final.append(recipe)
-            
-            state['final_recommendations'] = final
-        else:
-            # Fallback: just take top 5 safe ones
-            state['final_recommendations'] = state['safety_verified_recipes'][:5]
-            
-    except Exception as e:
-        state['messages'].append({"type": "error", "content": f"LLM error: {e}"})
-        state['final_recommendations'] = state['safety_verified_recipes'][:5]
-    
-    return state
-
-def format_for_ui(state: AgentState) -> AgentState:
-    """Format recommendations for Tinder-style UI"""
-    formatted = []
-    
-    for recipe in state['final_recommendations']:
-        # Calculate UI elements
-        steps = recipe.get('instruction_steps', 6)
-        prep_time = steps * 5 if steps else 25
-        ingredient_count = recipe.get('ingredient_count', 10)
-        
-        if ingredient_count <= 5 and steps <= 4:
-            difficulty = 'Easy'
-        elif ingredient_count <= 10 and steps <= 8:
-            difficulty = 'Medium'
-        else:
-            difficulty = 'Advanced'
-        
-        # Build tags
-        tags = []
-        if recipe.get('cuisine'):
-            tags.append(recipe['cuisine'])
-        if recipe.get('safety_level') == 'safe':
-            tags.append('Healthy')
-        if recipe.get('safety_level') == 'safe_with_modifications':
-            tags.append('Adapted')
-        if recipe.get('category') in ['Vegetarian', 'Vegan']:
-            tags.append(recipe['category'])
-        
-        formatted_recipe = {
-            'id': recipe['id'],
-            'title': recipe['title'],
-            'image_url': recipe.get('image_url', 'https://via.placeholder.com/400x300'),
-            'rating': None,  # Will be populated from ratings table
-            'prep_time': prep_time,
-            'servings': 2,
-            'difficulty': difficulty,
-            'tags': tags[:3],
-            'description': recipe.get('recommendation_reason', ''),
-            'nutrition': {
-                'calories': int(float(recipe.get('calories', 0))) if recipe.get('calories') else 250,
-                'protein': int(float(recipe.get('protein', 0))) if recipe.get('protein') else 10,
-                'carbs': int(float(recipe.get('carbs', 0))) if recipe.get('carbs') else 30,
-                'fat': int(float(recipe.get('fat', 0))) if recipe.get('fat') else 10,
-            },
-            'safety_verified': recipe.get('safety_verified', False),
-            'safety_level': recipe.get('safety_level', 'unknown'),
-            'safety_warnings': recipe.get('safety_warnings', []),
-            'adaptations': recipe.get('required_modifications', [])
-        }
-        
-        formatted.append(formatted_recipe)
-    
-    state['final_recommendations'] = formatted
-    return state
-
-def save_events(state: AgentState) -> AgentState:
-    """Save recommendation events"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    try:
-        for recipe in state['final_recommendations']:
-            cur.execute("""
-                INSERT INTO recipe_events (user_id, recipe_id, event, created_at)
-                VALUES (%s, %s, 'recommended', NOW())
-                ON CONFLICT DO NOTHING
-            """, (state['user_id'], recipe['id']))
-        
-        conn.commit()
-    except Exception as e:
-        state['messages'].append({"type": "error", "content": f"Error saving events: {e}"})
-    finally:
-        cur.close()
-        conn.close()
-    
-    return state
-
-# ============================
-# Build Complete Graph
-# ============================
-
-def build_safe_recommendation_graph():
-    """Build the complete recommendation + safety graph"""
-    
-    graph = StateGraph(AgentState)
-    
-    # Add all nodes
-    graph.add_node("load_profile", load_user_profile)
-    graph.add_node("create_filters", create_dietary_filters)
-    graph.add_node("fetch_recipes", fetch_candidate_recipes)
-    graph.add_node("verify_safety", verify_safety)
-    graph.add_node("rank_with_llm", rank_with_llm)
-    graph.add_node("format_ui", format_for_ui)
-    graph.add_node("save_events", save_events)
-    
-    # Connect nodes in sequence
-    graph.add_edge("load_profile", "create_filters")
-    graph.add_edge("create_filters", "fetch_recipes")
-    graph.add_edge("fetch_recipes", "verify_safety")
-    graph.add_edge("verify_safety", "rank_with_llm")
-    graph.add_edge("rank_with_llm", "format_ui")
-    graph.add_edge("format_ui", "save_events")
-    graph.add_edge("save_events", END)
-    
-    graph.set_entry_point("load_profile")
-    
-    return graph.compile()
-
-# ============================
-# Main Agent Class
-# ============================
+    recommended_recipes: List[Dict]
+    error: Optional[str]
+    messages: List[str]
 
 class SafeRecommendationAgent:
-    """Complete recommendation agent with built-in safety"""
+    def __init__(self, llm_provider: str = None):
+        """Initialize with chosen LLM provider"""
+        # Test database connection first
+        self._test_connection()
+        self.llm = self._setup_llm(llm_provider)
+        self.graph = self._build_graph()
     
-    def __init__(self):
-        self.graph = build_safe_recommendation_graph()
-    
-    def get_recommendations(self, user_id: str) -> Dict:
-        """Get safe, personalized recommendations"""
+    def _test_connection(self):
+        """Test database connection on initialization"""
+        try:
+            print(f"🔄 Connecting to Supabase at {DB_CONFIG['host']}...")
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor()
+            
+            # Test basic connection
+            cur.execute("SELECT 1")
+            
+            # Check if we have recipes
+            cur.execute("SELECT COUNT(*) FROM recipes")
+            recipe_count = cur.fetchone()[0]
+            
+            cur.close()
+            conn.close()
+            print(f"✅ Connected to Supabase! Found {recipe_count} recipes")
+            
+        except Exception as e:
+            print(f"❌ Connection failed: {e}")
+            raise
         
-        initial_state = AgentState(
-            user_id=user_id,
-            user_profile={},
-            dietary_filters={},
-            sql_filters=[],
-            candidate_recipes=[],
-            safety_verified_recipes=[],
-            final_recommendations=[],
-            safety_reports=[],
-            messages=[]
+    def _setup_llm(self, provider: str = None):
+        """Setup LLM based on provider choice"""
+        # Determine provider
+        if provider is None:
+            # Check which API key is available
+            if os.getenv('OPENAI_API_KEY'):
+                provider = 'openai'
+            elif os.getenv('GOOGLE_API_KEY'):
+                provider = 'gemini'
+            else:
+                raise ValueError(
+                    "No LLM API key found!\n"
+                    "Please add to your .env:\n"
+                    "  OPENAI_API_KEY=sk-...\n"
+                    "OR\n"
+                    "  GOOGLE_API_KEY=..."
+                )
+        
+        if provider.lower() == 'gemini':
+            api_key = os.getenv('GOOGLE_API_KEY')
+            if not api_key:
+                raise ValueError("GOOGLE_API_KEY not found in .env")
+            return ChatGoogleGenerativeAI(
+                model="gemini-pro",
+                google_api_key=api_key,
+                temperature=0.7
+            )
+        else:  # Default to OpenAI
+            api_key = os.getenv('OPENAI_API_KEY')
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY not found in .env")
+            return ChatOpenAI(
+                model="gpt-4o-mini",
+                api_key=api_key,
+                temperature=0.7
+            )
+    
+    def _build_graph(self) -> StateGraph:
+        """Build the LangGraph workflow"""
+        workflow = StateGraph(GraphState)
+        
+        # Add nodes
+        workflow.add_node("load_profile", self.load_user_profile)
+        workflow.add_node("create_filters", self.create_dietary_filters)
+        workflow.add_node("build_query", self.build_sql_query)
+        workflow.add_node("fetch_recipes", self.fetch_candidate_recipes)
+        workflow.add_node("rank_recipes", self.llm_ranking)
+        workflow.add_node("save_events", self.save_recommendation_events)
+        workflow.add_node("handle_error", self.handle_error)
+        
+        # Add edges
+        workflow.add_edge("load_profile", "create_filters")
+        workflow.add_edge("create_filters", "build_query")
+        workflow.add_edge("build_query", "fetch_recipes")
+        workflow.add_edge("fetch_recipes", "rank_recipes")
+        workflow.add_edge("rank_recipes", "save_events")
+        workflow.add_edge("save_events", END)
+        
+        # Add conditional edges for error handling
+        workflow.add_conditional_edges(
+            "load_profile",
+            lambda x: "handle_error" if x.get("error") else "create_filters"
         )
         
-        final_state = self.graph.invoke(initial_state)
+        # Set entry point
+        workflow.set_entry_point("load_profile")
         
-        # Add real ratings from database
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        for recipe in final_state['final_recommendations']:
-            cur.execute("""
-                SELECT AVG(rating) as avg_rating, COUNT(*) as total_ratings
-                FROM recipe_ratings
-                WHERE recipe_id = %s
-            """, (recipe['id'],))
+        return workflow.compile()
+    
+    def load_user_profile(self, state: GraphState) -> GraphState:
+        """Load user health profile from Supabase"""
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             
-            rating_data = cur.fetchone()
-            if rating_data and rating_data['avg_rating']:
-                recipe['rating'] = round(rating_data['avg_rating'], 1)
-                recipe['total_ratings'] = rating_data['total_ratings']
-            else:
-                recipe['rating'] = None
-                recipe['total_ratings'] = 0
+            # Query matching your exact schema
+            cur.execute("""
+                SELECT 
+                    up.user_id,
+                    up.full_name,
+                    up.email,
+                    uhp.age,
+                    uhp.gender,
+                    uhp.weight_kg,
+                    uhp.height_cm,
+                    uhp.activity_level,
+                    uhp.cooking_skill,
+                    uhp.diet_style,
+                    uhp.allergies,
+                    uhp.medical_conditions,
+                    uhp.health_goals,
+                    uhp.target_weight_kg,
+                    uhp.timeline,
+                    uhp.bmi,
+                    uhp.daily_calorie_goal
+                FROM user_profiles up
+                LEFT JOIN user_health_profiles uhp ON up.user_id = uhp.user_id
+                WHERE up.user_id = %s
+                LIMIT 1
+            """, (state['user_id'],))
+            
+            profile = cur.fetchone()
+            
+            if not profile:
+                state['error'] = f"User {state['user_id']} not found in user_profiles"
+                cur.close()
+                conn.close()
+                return state
+            
+            # If no health profile, use defaults
+            if not profile.get('cooking_skill'):
+                profile['cooking_skill'] = 'beginner'
+                profile['diet_style'] = 'balanced'
+                profile['allergies'] = []
+                profile['medical_conditions'] = []
+                profile['health_goals'] = ['maintain']
+                profile['daily_calorie_goal'] = 2000
+            
+            state['user_profile'] = dict(profile)
+            state['messages'].append(f"✅ Loaded profile for {profile.get('full_name', profile.get('email'))}")
+            
+            cur.close()
+            conn.close()
+            
+        except Exception as e:
+            state['error'] = f"Failed to load profile: {str(e)}"
+            
+        return state
+    
+    def create_dietary_filters(self, state: GraphState) -> GraphState:
+        """Create filters based on user profile"""
+        profile = state['user_profile']
         
-        cur.close()
-        conn.close()
+        # Handle PostgreSQL arrays properly
+        allergies = profile.get('allergies', []) or []
+        medical_conditions = profile.get('medical_conditions', []) or []
+        health_goals = profile.get('health_goals', ['maintain']) or ['maintain']
+        
+        # Determine meal period
+        current_hour = datetime.now().hour
+        if 5 <= current_hour < 11:
+            meal_period = "breakfast"
+        elif 11 <= current_hour < 16:
+            meal_period = "lunch"
+        elif 16 <= current_hour < 21:
+            meal_period = "dinner"
+        else:
+            meal_period = "snack"
+        
+        filters = {
+            'cooking_skill': profile.get('cooking_skill', 'beginner'),
+            'diet_style': profile.get('diet_style', 'balanced'),
+            'allergies': allergies,
+            'medical_conditions': medical_conditions,
+            'health_goal': health_goals[0] if health_goals else 'maintain',
+            'daily_calories': profile.get('daily_calorie_goal', 2000),
+            'meal_period': meal_period,
+            'bmi': profile.get('bmi'),
+            'activity_level': profile.get('activity_level', 'moderate')
+        }
+        
+        state['dietary_filters'] = filters
+        state['messages'].append(f"📋 Applied filters: {filters['diet_style']} diet, {len(allergies)} allergies")
+        
+        return state
+    
+    def build_sql_query(self, state: GraphState) -> GraphState:
+        """Build SQL query matching your exact schema"""
+        filters = state['dietary_filters']
+        
+        # Base query - simplified to avoid parameter issues
+        query = """
+            SELECT 
+                r.id,
+                r.title,
+                r.category,
+                r.area as cuisine,
+                r.instructions,
+                r.image_url,
+                r.servings,
+                r.tags,
+                COALESCE(rn.per_serving->>'kcal', rn.per_serving->>'calories', '0') as calories,
+                rn.per_serving->>'protein_g' as protein,
+                rn.per_serving->>'carbs_g' as carbs,
+                rn.per_serving->>'fat_g' as fat,
+                rn.per_serving->>'fiber_g' as fiber,
+                rn.per_serving->>'sugar_g' as sugar,
+                rn.per_serving->>'sodium_mg' as sodium,
+                COUNT(DISTINCT ri.id) as ingredient_count,
+                LENGTH(r.instructions) - LENGTH(REPLACE(r.instructions, E'\n', '')) + 1 as instruction_steps
+            FROM recipes r
+            LEFT JOIN recipe_nutrients rn ON r.id = rn.recipe_id
+            LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+            WHERE r.instructions IS NOT NULL
+            AND r.instructions != ''
+        """
+        
+        conditions = []
+        
+        # Apply allergen filters using proper SQL escaping
+        if filters['allergies']:
+            for allergen in filters['allergies']:
+                if allergen:
+                    allergen_lower = allergen.lower().replace("'", "''")  # Escape single quotes
+                    
+                    # Map allergen to search terms
+                    allergen_patterns = {
+                        'milk/dairy': ['milk', 'cream', 'cheese', 'butter', 'yogurt', 'dairy'],
+                        'wheat/gluten': ['wheat', 'flour', 'bread', 'pasta', 'gluten'],
+                        'nuts': ['nut', 'almond', 'walnut', 'pecan', 'cashew', 'pistachio'],
+                        'eggs': ['egg'],
+                        'shellfish': ['shrimp', 'lobster', 'crab', 'oyster', 'clam'],
+                        'fish': ['fish', 'salmon', 'tuna', 'cod'],
+                        'soy': ['soy', 'tofu'],
+                        'peanuts': ['peanut'],
+                        'sesame': ['sesame', 'tahini']
+                    }
+                    
+                    # Get the correct search terms
+                    terms = allergen_patterns.get(allergen_lower, [allergen_lower.split('/')[0]])
+                    
+                    # Build exclusion conditions
+                    exclusion_conditions = []
+                    for term in terms:
+                        term_escaped = term.replace("'", "''")
+                        exclusion_conditions.append(
+                            f"LOWER(ri2.ingredient_name) LIKE '%{term_escaped}%'"
+                        )
+                    
+                    if exclusion_conditions:
+                        conditions.append(f"""
+                            NOT EXISTS (
+                                SELECT 1 FROM recipe_ingredients ri2 
+                                WHERE ri2.recipe_id = r.id 
+                                AND ({' OR '.join(exclusion_conditions)})
+                            )
+                        """)
+        
+        # Medical condition filters
+        if 'High Blood Pressure' in filters['medical_conditions'] or 'Hypertension' in filters['medical_conditions']:
+            conditions.append("CAST(COALESCE(rn.per_serving->>'sodium_mg', '0') AS FLOAT) < 600")
+        
+        if 'Diabetes' in filters['medical_conditions']:
+            conditions.append("CAST(COALESCE(rn.per_serving->>'sugar_g', '0') AS FLOAT) < 10")
+        
+        # Apply conditions
+        if conditions:
+            query += " AND " + " AND ".join(conditions)
+        
+        # Complete query
+        query += """
+            GROUP BY r.id, r.title, r.category, r.area, r.instructions, 
+                     r.image_url, r.servings, r.tags, rn.per_serving
+            ORDER BY RANDOM()
+            LIMIT 50
+        """
+        
+        state['sql_query'] = query
+        state['messages'].append("🔍 Built safety-first query")
+        
+        return state
+    
+    def fetch_candidate_recipes(self, state: GraphState) -> GraphState:
+        """Fetch recipes matching filters with better error handling"""
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Debug: Print the query
+            print("\n📝 SQL Query being executed:")
+            print(state['sql_query'][:500] + "..." if len(state['sql_query']) > 500 else state['sql_query'])
+            
+            # Execute the query without parameters since we're not using placeholders
+            cur.execute(state['sql_query'])
+            recipes = cur.fetchall()
+            
+            state['candidate_recipes'] = [dict(r) for r in recipes] if recipes else []
+            state['messages'].append(f"📚 Found {len(state['candidate_recipes'])} safe recipes")
+            
+            # Debug: Show sample recipe if found
+            if state['candidate_recipes']:
+                print(f"\n✅ Sample recipe found: {state['candidate_recipes'][0]['title']}")
+            else:
+                print("\n⚠️ No recipes found matching criteria")
+            
+            cur.close()
+            conn.close()
+            
+        except psycopg2.Error as e:
+            error_msg = f"Database error: {e.pgerror if hasattr(e, 'pgerror') else str(e)}"
+            state['error'] = error_msg
+            state['candidate_recipes'] = []
+            print(f"\n❌ SQL Error: {error_msg}")
+            
+        except Exception as e:
+            error_msg = f"Failed to fetch recipes: {str(e)}"
+            state['error'] = error_msg
+            state['candidate_recipes'] = []
+            print(f"\n❌ Error: {error_msg}")
+            print(f"Traceback: {traceback.format_exc()}")
+            
+        return state
+    
+    def llm_ranking(self, state: GraphState) -> GraphState:
+        """Use LLM to rank and select best recipes"""
+        if not state['candidate_recipes']:
+            # If no recipes due to strict filters, try to get some without filters
+            try:
+                conn = psycopg2.connect(**DB_CONFIG)
+                cur = conn.cursor(cursor_factory=RealDictCursor)
+                
+                # Get ANY recipes as fallback
+                cur.execute("""
+                    SELECT 
+                        r.id, r.title, r.category, r.area as cuisine,
+                        r.image_url, r.instructions,
+                        COALESCE(rn.per_serving->>'kcal', '0') as calories,
+                        rn.per_serving->>'protein_g' as protein
+                    FROM recipes r
+                    LEFT JOIN recipe_nutrients rn ON r.id = rn.recipe_id
+                    WHERE r.instructions IS NOT NULL
+                    ORDER BY RANDOM()
+                    LIMIT 5
+                """)
+                
+                fallback_recipes = cur.fetchall()
+                if fallback_recipes:
+                    state['recommended_recipes'] = [dict(r) for r in fallback_recipes]
+                    for rec in state['recommended_recipes']:
+                        rec['recommendation_reason'] = "General recommendation (filters were too restrictive)"
+                    state['messages'].append("📋 Using general recipes (filters too restrictive)")
+                else:
+                    state['recommended_recipes'] = []
+                    state['messages'].append("⚠️ No recipes available")
+                
+                cur.close()
+                conn.close()
+            except:
+                state['recommended_recipes'] = []
+                state['messages'].append("⚠️ No recipes found")
+            
+            return state
+        
+        # Normal LLM ranking for found recipes
+        prompt_template = """
+        You are a nutritionist recommending meals.
+        
+        User Profile:
+        - Health Goal: {health_goal}
+        - Cooking Skill: {cooking_skill}
+        - Diet Style: {diet_style}
+        - Allergies: {allergies}
+        - Medical Conditions: {medical_conditions}
+        - Meal Period: {meal_period}
+        
+        Select TOP 5 recipes from candidates.
+        Return JSON array:
+        [{{"id": "recipe_id", "reason": "brief reason"}}]
+        
+        Candidates:
+        {candidates}
+        """
+        
+        candidates_str = json.dumps([{
+            "id": str(r['id']),
+            "title": r['title'],
+            "calories": r.get('calories', 'N/A'),
+            "category": r.get('category', 'N/A')
+        } for r in state['candidate_recipes'][:20]], indent=2)
+        
+        messages = [
+            SystemMessage(content="You are a helpful nutritionist."),
+            HumanMessage(content=prompt_template.format(
+                health_goal=state['dietary_filters'].get('health_goal', 'maintain'),
+                cooking_skill=state['dietary_filters'].get('cooking_skill', 'beginner'),
+                diet_style=state['dietary_filters'].get('diet_style', 'balanced'),
+                allergies=state['dietary_filters'].get('allergies', []),
+                medical_conditions=state['dietary_filters'].get('medical_conditions', []),
+                meal_period=state['dietary_filters'].get('meal_period', 'any'),
+                candidates=candidates_str
+            ))
+        ]
+        
+        try:
+            response = self.llm.invoke(messages)
+            
+            # Parse response
+            json_match = re.search(r'\[.*?\]', response.content, re.DOTALL)
+            if json_match:
+                recommendations = json.loads(json_match.group())
+                
+                recommended_recipes = []
+                for rec in recommendations[:5]:
+                    recipe = next((r for r in state['candidate_recipes'] 
+                                 if str(r['id']) == str(rec['id'])), None)
+                    if recipe:
+                        recipe['recommendation_reason'] = rec.get('reason', 'Matches preferences')
+                        recommended_recipes.append(recipe)
+                
+                state['recommended_recipes'] = recommended_recipes
+                state['messages'].append(f"✨ LLM selected {len(recommended_recipes)} recipes")
+            else:
+                # Fallback: just use top 5
+                state['recommended_recipes'] = state['candidate_recipes'][:5]
+                for rec in state['recommended_recipes']:
+                    rec['recommendation_reason'] = "Matches dietary preferences"
+                state['messages'].append("📋 Using top 5 recipes")
+                
+        except Exception as e:
+            # Fallback on error
+            state['recommended_recipes'] = state['candidate_recipes'][:5]
+            for rec in state['recommended_recipes']:
+                rec['recommendation_reason'] = "Selected based on filters"
+            state['messages'].append(f"⚠️ LLM ranking skipped: {str(e)}")
+            
+        return state
+    
+    def save_recommendation_events(self, state: GraphState) -> GraphState:
+        """Save recommendation events"""
+        if not state['recommended_recipes']:
+            return state
+            
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor()
+            
+            for recipe in state['recommended_recipes']:
+                cur.execute("""
+                    INSERT INTO recipe_events (user_id, recipe_id, event, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT DO NOTHING
+                """, (state['user_id'], recipe['id'], 'view'))
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            state['messages'].append("💾 Saved events")
+            
+        except Exception as e:
+            state['messages'].append(f"⚠️ Failed to save events: {str(e)}")
+            
+        return state
+    
+    def handle_error(self, state: GraphState) -> GraphState:
+        """Handle errors"""
+        print(f"❌ Error: {state['error']}")
+        return state
+    
+    def get_recommendations(self, user_id: str) -> Dict:
+        """Get recommendations for a user"""
+        initial_state = {
+            "user_id": user_id,
+            "user_profile": None,
+            "dietary_filters": {},
+            "sql_query": None,
+            "candidate_recipes": [],
+            "recommended_recipes": [],
+            "error": None,
+            "messages": []
+        }
+        
+        try:
+            final_state = self.graph.invoke(initial_state)
+        except Exception as e:
+            print(f"❌ Graph execution error: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
+            final_state = initial_state
+            final_state['error'] = str(e)
         
         return {
             "user_id": user_id,
-            "recommendations": final_state['final_recommendations'],
-            "safety_verified": True,
-            "safety_reports": final_state['safety_reports'][:5],
-            "messages": final_state['messages']
+            "recommendations": [
+                {
+                    "id": str(r['id']),
+                    "title": r['title'],
+                    "image_url": r.get('image_url'),
+                    "category": r.get('category'),
+                    "cuisine": r.get('cuisine'),
+                    "calories": r.get('calories'),
+                    "protein": r.get('protein'),
+                    "recommendation_reason": r.get('recommendation_reason', 'Matches your preferences')
+                }
+                for r in final_state.get('recommended_recipes', [])
+            ],
+            "filters_applied": final_state.get('dietary_filters', {}),
+            "messages": final_state.get('messages', []),
+            "error": final_state.get('error')
         }
     
-    def record_feedback(self, user_id: str, recipe_id: str, event_type: str) -> Dict:
+    def record_feedback(self, user_id: str, recipe_id: str, event_type: str) -> bool:
         """Record user feedback"""
-        if event_type not in ['view', 'like', 'save', 'hide', 'cooked']:
-            return {"status": "error", "message": "Invalid event type"}
-        
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
+        valid_events = {'view', 'like', 'save', 'hide'}
+        if event_type not in valid_events:
+            print(f"Invalid event: {event_type}")
+            return False
+            
         try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor()
+            
             cur.execute("""
                 INSERT INTO recipe_events (user_id, recipe_id, event, created_at)
                 VALUES (%s, %s, %s, NOW())
             """, (user_id, recipe_id, event_type))
             
             conn.commit()
-            return {"status": "success"}
-            
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-        finally:
             cur.close()
             conn.close()
+            return True
+            
+        except Exception as e:
+            print(f"Failed to record: {e}")
+            return False
 
-# ============================
-# Testing
-# ============================
 
 if __name__ == "__main__":
-    print("🤖 Safe Recipe Recommendation Agent")
-    print("=" * 40)
+    print("🤖 Safe Recommendation Agent (Debug Version)")
+    print("=" * 50)
     
-    user_id = input("Enter user ID: ").strip()
-    
-    if not user_id:
-        print("User ID required")
-        exit()
-    
-    agent = SafeRecommendationAgent()
-    
-    print("\n🔄 Generating safe recommendations...")
-    result = agent.get_recommendations(user_id)
-    
-    print(f"\n✅ Found {len(result['recommendations'])} safe recommendations:")
-    print("-" * 40)
-    
-    for i, recipe in enumerate(result['recommendations'], 1):
-        print(f"\n{i}. {recipe['title']}")
-        print(f"   Safety: {recipe['safety_level']}")
-        print(f"   Tags: {', '.join(recipe['tags'])}")
-        print(f"   Calories: {recipe['nutrition']['calories']}")
+    try:
+        agent = SafeRecommendationAgent()
         
-        if recipe['safety_warnings']:
-            print(f"   ⚠️ Warnings: {', '.join(recipe['safety_warnings'])}")
-        if recipe['adaptations']:
-            print(f"   🔄 Adaptations needed: {', '.join(recipe['adaptations'])}")
-    
-    print("\n" + "=" * 40)
+        test_user_id = input("\nEnter user ID (UUID) to test: ").strip()
+        
+        if test_user_id:
+            print(f"\n📋 Getting recommendations for: {test_user_id}")
+            
+            result = agent.get_recommendations(test_user_id)
+            
+            if result['error']:
+                print(f"\n❌ Error: {result['error']}")
+            else:
+                print(f"\n✅ Process:")
+                for msg in result['messages']:
+                    print(f"   {msg}")
+                
+                if result['recommendations']:
+                    print(f"\n🍽️ Recommendations ({len(result['recommendations'])} recipes):")
+                    for i, rec in enumerate(result['recommendations'], 1):
+                        print(f"\n{i}. {rec['title']}")
+                        if rec.get('calories'):
+                            print(f"   📊 {rec['calories']} cal | {rec.get('protein', 'N/A')}g protein")
+                        print(f"   💡 {rec['recommendation_reason']}")
+                else:
+                    print("\n⚠️ No recipes recommended")
+    except Exception as e:
+        print(f"\n❌ Failed: {e}")
