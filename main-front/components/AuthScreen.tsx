@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native'
 import { useAuth } from '../src/context/supabase-provider'
+import { CountryCityPicker } from '../src/components/CountryCityPicker'
 
 interface AuthScreenProps {
   onAuthenticated: () => void
@@ -18,13 +19,25 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
   const [postalCode, setPostalCode] = useState('')
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = async () => {
     if (mode === 'signup') {
-      if (!email || !password || !fullName || !country || !city || !postalCode) {
-        Alert.alert('Error', 'Please fill in all fields')
+      const newErrors: Record<string, string> = {}
+      
+      if (!email) newErrors.email = 'Email is required'
+      if (!password) newErrors.password = 'Password is required'
+      if (!fullName) newErrors.fullName = 'Full name is required'
+      if (!country) newErrors.country = 'Country is required'
+      if (!city) newErrors.city = 'City is required'
+      if (!postalCode) newErrors.postalCode = 'Postal code is required'
+      
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors)
         return
       }
+      
+      setErrors({})
       
       setLoading(true)
       try {
@@ -147,58 +160,87 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
         </Text>
 
         {mode === 'signup' && (
-          <TextInput
-            style={styles.input}
-            placeholder="Full Name"
-            value={fullName}
-            onChangeText={setFullName}
-            autoCapitalize="words"
-          />
+          <>
+            <TextInput
+              style={[styles.input, errors.fullName && styles.inputError]}
+              placeholder="Full Name"
+              value={fullName}
+              onChangeText={(text) => {
+                setFullName(text)
+                if (errors.fullName) {
+                  setErrors(prev => ({ ...prev, fullName: '' }))
+                }
+              }}
+              autoCapitalize="words"
+            />
+            {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
+          </>
         )}
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, errors.email && styles.inputError]}
           placeholder="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setEmail(text)
+            if (errors.email) {
+              setErrors(prev => ({ ...prev, email: '' }))
+            }
+          }}
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
         />
+        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, errors.password && styles.inputError]}
           placeholder="Password"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text)
+            if (errors.password) {
+              setErrors(prev => ({ ...prev, password: '' }))
+            }
+          }}
           secureTextEntry
         />
+        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
         {mode === 'signup' && (
           <>
-            <TextInput
-              style={styles.input}
-              placeholder="Country"
-              value={country}
-              onChangeText={setCountry}
-              autoCapitalize="words"
+            <CountryCityPicker
+              selectedCountry={country}
+              selectedCity={city}
+              onCountryChange={(selectedCountry) => {
+                setCountry(selectedCountry)
+                if (errors.country) {
+                  setErrors(prev => ({ ...prev, country: '' }))
+                }
+              }}
+              onCityChange={(selectedCity) => {
+                setCity(selectedCity)
+                if (errors.city) {
+                  setErrors(prev => ({ ...prev, city: '' }))
+                }
+              }}
+              countryError={errors.country}
+              cityError={errors.city}
             />
 
             <TextInput
-              style={styles.input}
-              placeholder="City"
-              value={city}
-              onChangeText={setCity}
-              autoCapitalize="words"
-            />
-
-            <TextInput
-              style={styles.input}
+              style={[styles.input, errors.postalCode && styles.inputError]}
               placeholder="Postal Code"
               value={postalCode}
-              onChangeText={setPostalCode}
+              onChangeText={(text) => {
+                setPostalCode(text)
+                if (errors.postalCode) {
+                  setErrors(prev => ({ ...prev, postalCode: '' }))
+                }
+              }}
               autoCapitalize="characters"
             />
+            {errors.postalCode && <Text style={styles.errorText}>{errors.postalCode}</Text>}
           </>
         )}
 
@@ -325,5 +367,15 @@ const styles = StyleSheet.create({
   switchButtonText: {
     color: '#4A4A4A',
     fontSize: 14,
+  },
+  inputError: {
+    borderColor: '#FF6B6B',
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    marginTop: -12,
+    marginBottom: 16,
+    marginLeft: 4,
   },
 })
