@@ -83,7 +83,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
         {/* Header with Logo */}
         <View style={styles.header}>
           <Image
-            source={require('../assets/logoNew.jpg')}
+            source={require('../assets/SLnew.jpg')}
             style={styles.logo}
             contentFit="contain"
           />

@@ -336,7 +336,8 @@ class RecipeAdaptationAgent:
         
         # Target 25-30% of daily calories per meal
         target_meal_calories = daily_calorie_goal * 0.275
-        calories_per_serving = current_calories / current_servings if current_servings > 0 else current_calories
+        # Convert to float to handle Decimal types from PostgreSQL
+        calories_per_serving = current_calories / float(current_servings) if current_servings > 0 else current_calories
         
         if calories_per_serving > target_meal_calories * 1.2:  # 20% over target
             # Reduce portion size
@@ -1259,39 +1260,298 @@ class SafeRecommendationAgent:
         return {
             "user_id": user_id,
             "recommendations": [
-                {
-                    "id": str(r['id']),
-                    "title": r['title'],
-                    "image_url": r.get('image_url'),
-                    "category": r.get('category'),
-                    "cuisine": r.get('cuisine'),
-                    "instructions": r.get('instructions'),
-                    "structured_instructions": r.get('structured_instructions', []),
-                    "servings": r.get('servings'),
-                    "tags": r.get('tags') if r.get('tags') is not None else [],
-                    "calories": r.get('calories'),
-                    "protein": r.get('protein'),
-                    "carbs": r.get('carbs'),
-                    "fat": r.get('fat'),
-                    "fiber": r.get('fiber'),
-                    "sugar": r.get('sugar'),
-                    "sodium": r.get('sodium'),
-                    "ingredients": r.get('ingredients', []),
-                    "recommendation_reason": r.get('recommendation_reason', 'Matches your preferences'),
-                    "safety_validated": r.get('safety_validated', False),
-                    "safety_score": r.get('safety_score', 100),
-                    "safety_warnings": r.get('safety_warnings', []),
-                    "safety_modifications": r.get('safety_modifications', []),
-                    "adaptation_notes": r.get('adaptation_notes', []),
-                    "portion_adapted": r.get('portion_adapted', False),
-                    "cooking_adapted": r.get('cooking_adapted', False),
-                    "ingredients_adapted": r.get('ingredients_adapted', False)
-                }
+                self._build_recipe_with_nutrition(r)
                 for r in final_state.get('recommended_recipes', [])
             ],
             "filters_applied": final_state.get('dietary_filters', {}),
             "messages": final_state.get('messages', []),
             "error": final_state.get('error')
+        }
+    
+    def _safe_extract_nutrition(self, value, value_type: str = 'float', default=0):
+        """Safely extract and convert nutrition values"""
+        if value is None or value == '' or value == 'N/A':
+            return default
+            
+        # Handle numeric types directly
+        if isinstance(value, (int, float)):
+            if value_type == 'int':
+                return int(value)
+            return float(value)
+        
+        # Handle Decimal type
+        try:
+            from decimal import Decimal
+            if isinstance(value, Decimal):
+                if value_type == 'int':
+                    return int(float(value))
+                return float(value)
+        except ImportError:
+            pass
+        
+        # Handle string values
+        try:
+            # Remove any non-numeric characters except decimal point
+            import re
+            clean_value = re.sub(r'[^\d.]', '', str(value))
+            if not clean_value:
+                return default
+                
+            numeric_value = float(clean_value)
+            if value_type == 'int':
+                return int(numeric_value)
+            return numeric_value
+        except (ValueError, TypeError):
+            return default
+    
+    def _calculate_estimated_nutrition(self, recipe: Dict) -> Dict:
+        """Calculate estimated nutrition when data is missing or unrealistic"""
+        # Try ingredient-based calculation first
+        ingredient_nutrition = self._calculate_from_ingredients(recipe)
+        if ingredient_nutrition:
+            return ingredient_nutrition
+        
+        # Fallback to category-based estimates
+        return self._calculate_from_category(recipe)
+    
+    def _calculate_from_ingredients(self, recipe: Dict) -> Dict:
+        """Calculate nutrition based on actual ingredients and their portions"""
+        ingredients = recipe.get('ingredients', [])
+        if not ingredients:
+            return None
+            
+        # Handle string format ingredients (comma-separated)
+        if isinstance(ingredients, str):
+            ingredient_parts = [part.strip() for part in ingredients.split(',')]
+            ingredients = []
+            for part in ingredient_parts:
+                # Simple parsing: assume format "ingredient amount"
+                words = part.split()
+                if len(words) >= 2:
+                    amount = words[-1]  # Last word is usually amount
+                    name = ' '.join(words[:-1])  # Everything else is name
+                    ingredients.append({'name': name, 'amount': amount})
+                elif len(words) == 1:
+                    ingredients.append({'name': words[0], 'amount': '100g'})  # Default amount
+        
+        # Ingredient nutrition database (calories per 100g, protein, carbs, fat)
+        ingredient_db = {
+            # Proteins
+            'chicken': {'cal': 239, 'protein': 27.3, 'carbs': 0, 'fat': 13.6},
+            'beef': {'cal': 250, 'protein': 26, 'carbs': 0, 'fat': 15},
+            'pork': {'cal': 242, 'protein': 27.3, 'carbs': 0, 'fat': 13.9},
+            'salmon': {'cal': 208, 'protein': 20.4, 'carbs': 0, 'fat': 13.4},
+            'fish': {'cal': 206, 'protein': 22.1, 'carbs': 0, 'fat': 12.4},
+            'egg': {'cal': 155, 'protein': 13.3, 'carbs': 1.1, 'fat': 10.6},
+            'tofu': {'cal': 76, 'protein': 8.1, 'carbs': 1.9, 'fat': 4.8},
+            
+            # Carbohydrates
+            'rice': {'cal': 130, 'protein': 2.7, 'carbs': 28, 'fat': 0.3},
+            'pasta': {'cal': 131, 'protein': 5, 'carbs': 25, 'fat': 1.1},
+            'bread': {'cal': 265, 'protein': 9, 'carbs': 49, 'fat': 3.2},
+            'potato': {'cal': 77, 'protein': 2, 'carbs': 17, 'fat': 0.1},
+            'quinoa': {'cal': 120, 'protein': 4.4, 'carbs': 22, 'fat': 1.9},
+            'flour': {'cal': 364, 'protein': 10.3, 'carbs': 76, 'fat': 1},
+            
+            # Vegetables
+            'tomato': {'cal': 18, 'protein': 0.9, 'carbs': 3.9, 'fat': 0.2},
+            'onion': {'cal': 40, 'protein': 1.1, 'carbs': 9.3, 'fat': 0.1},
+            'garlic': {'cal': 149, 'protein': 6.4, 'carbs': 33, 'fat': 0.5},
+            'bell pepper': {'cal': 31, 'protein': 1, 'carbs': 7, 'fat': 0.3},
+            'carrot': {'cal': 41, 'protein': 0.9, 'carbs': 10, 'fat': 0.2},
+            'broccoli': {'cal': 34, 'protein': 2.8, 'carbs': 7, 'fat': 0.4},
+            
+            # Fats & Dairy
+            'olive oil': {'cal': 884, 'protein': 0, 'carbs': 0, 'fat': 100},
+            'oil': {'cal': 884, 'protein': 0, 'carbs': 0, 'fat': 100},
+            'butter': {'cal': 717, 'protein': 0.9, 'carbs': 0.1, 'fat': 81.1},
+            'cheese': {'cal': 402, 'protein': 25, 'carbs': 1.3, 'fat': 33},
+            'milk': {'cal': 42, 'protein': 3.4, 'carbs': 5, 'fat': 1},
+            
+            # Common seasonings (minimal calories)
+            'salt': {'cal': 0, 'protein': 0, 'carbs': 0, 'fat': 0},
+            'pepper': {'cal': 251, 'protein': 10.4, 'carbs': 64, 'fat': 3.3},
+            'herbs': {'cal': 25, 'protein': 2, 'carbs': 5, 'fat': 0.5},
+            'spice': {'cal': 25, 'protein': 2, 'carbs': 5, 'fat': 0.5},
+        }
+        
+        total_nutrition = {'calories': 0, 'protein': 0, 'carbs': 0, 'fat': 0}
+        servings = max(recipe.get('servings', 2), 1)
+        
+        for ingredient in ingredients:
+            name = ingredient.get('name', '').lower()
+            amount_text = ingredient.get('amount', '1')
+            
+            # Find matching ingredient in database
+            nutrition_data = None
+            for key, data in ingredient_db.items():
+                if key in name or name in key:
+                    nutrition_data = data
+                    break
+            
+            if not nutrition_data:
+                continue  # Skip unknown ingredients
+            
+            # Extract portion size (rough estimates)
+            portion_grams = self._estimate_portion_grams(amount_text, name)
+            
+            # Calculate nutrition for this ingredient
+            multiplier = portion_grams / 100  # Database is per 100g
+            total_nutrition['calories'] += nutrition_data['cal'] * multiplier
+            total_nutrition['protein'] += nutrition_data['protein'] * multiplier
+            total_nutrition['carbs'] += nutrition_data['carbs'] * multiplier
+            total_nutrition['fat'] += nutrition_data['fat'] * multiplier
+        
+        # If we got meaningful data, return per-serving values
+        if total_nutrition['calories'] > 50:  # Minimum threshold
+            # Convert servings to float to handle Decimal types from PostgreSQL
+            servings_float = float(servings) if servings else 1.0
+            return {
+                'calories': int(total_nutrition['calories'] / servings_float),
+                'protein': round(total_nutrition['protein'] / servings_float, 1),
+                'carbs': round(total_nutrition['carbs'] / servings_float, 1),
+                'fat': round(total_nutrition['fat'] / servings_float, 1),
+                'fiber': round(total_nutrition['carbs'] / servings_float * 0.12, 1),
+                'sugar': round(total_nutrition['carbs'] / servings_float * 0.15, 1),
+                'sodium': round(total_nutrition['calories'] / servings_float * 1.2, 0)
+            }
+        
+        return None  # Fall back to category-based estimation
+    
+    def _estimate_portion_grams(self, amount_text: str, ingredient_name: str) -> float:
+        """Estimate ingredient portion in grams"""
+        import re
+        
+        # Extract numbers from amount text
+        numbers = re.findall(r'\d+(?:\.\d+)?', amount_text)
+        if not numbers:
+            return 100  # Default assumption
+        
+        quantity = float(numbers[0])
+        amount_lower = amount_text.lower()
+        
+        # Convert common measurements to grams
+        if 'cup' in amount_lower:
+            # Different ingredients have different cup weights
+            if any(grain in ingredient_name for grain in ['rice', 'quinoa', 'pasta']):
+                return quantity * 200  # ~200g per cup of grains
+            elif 'flour' in ingredient_name:
+                return quantity * 125  # ~125g per cup of flour
+            elif any(liquid in ingredient_name for liquid in ['milk', 'water', 'oil']):
+                return quantity * 240  # ~240g per cup of liquid
+            else:
+                return quantity * 150  # General assumption
+        
+        elif any(unit in amount_lower for unit in ['tbsp', 'tablespoon']):
+            return quantity * 15  # ~15g per tablespoon
+        
+        elif any(unit in amount_lower for unit in ['tsp', 'teaspoon']):
+            return quantity * 5   # ~5g per teaspoon
+        
+        elif any(unit in amount_lower for unit in ['lb', 'pound']):
+            return quantity * 454  # 454g per pound
+        
+        elif any(unit in amount_lower for unit in ['oz', 'ounce']):
+            return quantity * 28   # ~28g per ounce
+        
+        elif 'g' in amount_lower:
+            return quantity  # Already in grams
+        
+        elif 'kg' in amount_lower:
+            return quantity * 1000  # Convert kg to grams
+        
+        elif 'ml' in amount_lower:
+            return quantity  # Assume 1ml = 1g for liquids
+        
+        elif 'whole' in amount_lower or 'piece' in amount_lower:
+            # Estimate whole item weights
+            if any(item in ingredient_name for item in ['chicken', 'beef', 'pork']):
+                return quantity * 200  # ~200g per serving of meat
+            elif 'egg' in ingredient_name:
+                return quantity * 50   # ~50g per egg
+            elif any(veg in ingredient_name for veg in ['onion', 'tomato']):
+                return quantity * 150  # ~150g per medium vegetable
+            else:
+                return quantity * 100  # General assumption
+        
+        else:
+            # If no unit specified, assume it's a reasonable portion
+            return quantity * 50
+    
+    def _calculate_from_category(self, recipe: Dict) -> Dict:
+        """Fallback nutrition estimates based on recipe category"""
+        category = recipe.get('category', '').lower()
+        cuisine = recipe.get('cuisine', '').lower()
+        
+        # Base estimates per serving
+        base_estimates = {
+            'breakfast': {'calories': 320, 'protein': 12, 'carbs': 45, 'fat': 10},
+            'lunch': {'calories': 450, 'protein': 18, 'carbs': 55, 'fat': 15},
+            'dinner': {'calories': 520, 'protein': 25, 'carbs': 60, 'fat': 18},
+            'snack': {'calories': 180, 'protein': 6, 'carbs': 25, 'fat': 7},
+            'dessert': {'calories': 280, 'protein': 4, 'carbs': 45, 'fat': 12},
+        }
+        
+        estimates = base_estimates.get(category, base_estimates['dinner'])
+        
+        # Cuisine adjustments
+        cuisine_multipliers = {
+            'italian': 1.1, 'indian': 1.0, 'chinese': 0.95, 'mexican': 1.05,
+            'american': 1.15, 'french': 1.2, 'mediterranean': 0.9, 
+            'japanese': 0.85, 'thai': 0.95
+        }
+        
+        multiplier = cuisine_multipliers.get(cuisine, 1.0)
+        
+        return {
+            'calories': int(estimates['calories'] * multiplier),
+            'protein': round(estimates['protein'] * multiplier, 1),
+            'carbs': round(estimates['carbs'] * multiplier, 1),
+            'fat': round(estimates['fat'] * multiplier, 1),
+            'fiber': round(estimates['carbs'] * multiplier * 0.12, 1),
+            'sugar': round(estimates['carbs'] * multiplier * 0.15, 1),
+            'sodium': round(estimates['calories'] * multiplier * 1.2, 0)
+        }
+    
+    def _build_recipe_with_nutrition(self, r: Dict) -> Dict:
+        """Build recipe dict with accurate nutrition data"""
+        # Always use agent's intelligent nutrition estimation instead of table data
+        estimated = self._calculate_estimated_nutrition(r)
+        calories = estimated['calories']
+        protein = estimated['protein']
+        carbs = estimated['carbs']
+        fat = estimated['fat']
+        fiber = estimated['fiber']
+        sugar = estimated['sugar']
+        sodium = estimated['sodium']
+        
+        return {
+            "id": str(r['id']),
+            "title": r['title'],
+            "image_url": r.get('image_url'),
+            "category": r.get('category'),
+            "cuisine": r.get('cuisine'),
+            "instructions": r.get('instructions'),
+            "structured_instructions": r.get('structured_instructions', []),
+            "servings": r.get('servings'),
+            "tags": r.get('tags') if r.get('tags') is not None else [],
+            "calories": str(calories),
+            "protein": str(protein),
+            "carbs": str(carbs),
+            "fat": str(fat),
+            "fiber": str(fiber),
+            "sugar": str(sugar),
+            "sodium": str(sodium),
+            "ingredients": r.get('ingredients', []),
+            "recommendation_reason": r.get('recommendation_reason', 'Matches your preferences'),
+            "safety_validated": r.get('safety_validated', False),
+            "safety_score": r.get('safety_score', 100),
+            "safety_warnings": r.get('safety_warnings', []),
+            "safety_modifications": r.get('safety_modifications', []),
+            "adaptation_notes": r.get('adaptation_notes', []),
+            "portion_adapted": r.get('portion_adapted', False),
+            "cooking_adapted": r.get('cooking_adapted', False),
+            "ingredients_adapted": r.get('ingredients_adapted', False)
         }
     
     def record_feedback(self, user_id: str, recipe_id: str, event_type: str) -> bool:

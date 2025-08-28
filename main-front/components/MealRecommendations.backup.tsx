@@ -573,7 +573,7 @@ export function MealRecommendations({
         </View>
         
         <View style={styles.headerCenter}>
-          <Image source={require('../assets/logoNew.jpg')} style={styles.logo} />
+          <Image source={require('../assets/SLnew.jpg')} style={styles.logo} />
           <Text style={styles.headerTitle}>WellNoosh</Text>
           
           {/* Recipe Counter */}

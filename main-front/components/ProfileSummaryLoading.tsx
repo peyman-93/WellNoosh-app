@@ -150,7 +150,7 @@ export function ProfileSummaryLoading({ userData, onComplete }: ProfileSummaryLo
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Image 
-              source={require('../assets/logoNew.jpg')} 
+              source={require('../assets/SLnew.jpg')} 
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -261,10 +261,10 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   logoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#6B8E23', // Match dashboard primary green
+    width: 124,
+    height: 124,
+    borderRadius: 62,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -273,6 +273,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    overflow: 'hidden',
   },
   logoText: {
     color: 'white',
@@ -281,8 +282,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
   },
   logoImage: {
-    width: 32,
-    height: 32,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
   title: {
     fontSize: 24,

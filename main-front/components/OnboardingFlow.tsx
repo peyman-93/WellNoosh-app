@@ -700,7 +700,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
         <View style={styles.centerHeader}>
           <View style={styles.logo}>
             <Image 
-              source={require('../assets/logoNew.jpg')} 
+              source={require('../assets/SLnew.jpg')} 
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -797,13 +797,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#6B8E23',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    overflow: 'hidden',
   },
   logoText: {
     color: 'white',
@@ -811,8 +812,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   logoImage: {
-    width: 24,
-    height: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   progressContainer: {
     flexDirection: 'row',
