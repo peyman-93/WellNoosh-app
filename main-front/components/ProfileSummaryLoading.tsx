@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 
 interface UserData {
   fullName: string;
@@ -149,7 +149,11 @@ export function ProfileSummaryLoading({ userData, onComplete }: ProfileSummaryLo
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>W</Text>
+            <Image 
+              source={require('../assets/logoNew.jpg')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.title}>Setting Up Your Kitchen</Text>
           <Text style={styles.subtitle}>
@@ -275,6 +279,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     fontFamily: 'Inter',
+  },
+  logoImage: {
+    width: 32,
+    height: 32,
   },
   title: {
     fontSize: 24,

@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeveloperDashboard from '../screens/DeveloperDashboard';
 import { OnboardingTest } from './OnboardingTest';
+import { RecipeRecommendationDemo } from '../screens/RecipeRecommendationDemo';
 import { debugSupabase, isSupabaseConfigured } from '../src/utils/supabase-debug';
 
 interface LandingPageProps {
@@ -15,6 +16,7 @@ interface LandingPageProps {
 export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
   const [showDeveloperModal, setShowDeveloperModal] = useState(false);
   const [showOnboardingTest, setShowOnboardingTest] = useState(false);
+  const [showRecipeDemo, setShowRecipeDemo] = useState(false);
   const clearAllData = async () => {
     try {
       await AsyncStorage.removeItem('wellnoosh_session');
@@ -58,6 +60,20 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
     await debugSupabase();
   };
 
+  if (showRecipeDemo) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => setShowRecipeDemo(false)}
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <RecipeRecommendationDemo />
+      </View>
+    );
+  }
+
   return (
     <LinearGradient
       colors={['#f0fdf4', '#dbeafe', '#faf5ff']}
@@ -67,7 +83,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
         {/* Header with Logo */}
         <View style={styles.header}>
           <Image
-            source={require('../assets/logo.jpeg')}
+            source={require('../assets/logoNew.jpg')}
             style={styles.logo}
             contentFit="contain"
           />
@@ -121,6 +137,14 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
           
           <TouchableOpacity style={styles.secondaryButton} onPress={onSignIn}>
             <Text style={styles.secondaryButtonText}>Already have an account? Sign In</Text>
+          </TouchableOpacity>
+          
+          {/* Debug Recipe Demo Button */}
+          <TouchableOpacity 
+            style={[styles.secondaryButton, { backgroundColor: '#ff6b6b', marginTop: 10 }]} 
+            onPress={() => setShowRecipeDemo(true)}
+          >
+            <Text style={[styles.secondaryButtonText, { color: 'white' }]}>Test Recipe Card Demo</Text>
           </TouchableOpacity>
           
           {/* Development buttons */}
@@ -312,6 +336,20 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: '#92400e',
     fontSize: 12,
+    fontWeight: '500',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#333',
     fontWeight: '500',
   },
 });

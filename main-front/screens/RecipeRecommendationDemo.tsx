@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   StyleSheet,
 } from 'react-native';
-import { RecommendationCard } from './RecommendationCard';
+import { RecommendationCard } from '../components/RecommendationCard';
 
 interface Recipe {
   id: string;
@@ -28,15 +28,6 @@ interface Recipe {
     fat: number;
   };
 }
-
-interface MealRecommendationsProps {
-  onComplete: (userData: any) => void;
-  onSkip: () => void;
-  userData: any;
-  onUpdateUserData: (userData: any) => void;
-  onShareWithFamily?: (recipe: Recipe) => void;
-}
-
 
 const demoRecipes: Recipe[] = [
   {
@@ -188,27 +179,13 @@ const demoRecipes: Recipe[] = [
   }
 ];
 
-export function MealRecommendations({ onComplete }: MealRecommendationsProps) {
-  const [currentRecipeIndex, setCurrentRecipeIndex] = useState(0);
-
+export function RecipeRecommendationDemo() {
   const handleReject = () => {
-    // Go to next recipe
-    if (currentRecipeIndex < demoRecipes.length - 1) {
-      setCurrentRecipeIndex(prev => prev + 1);
-    } else {
-      // Completed all recipes
-      onComplete({});
-    }
+    console.log('Recipe rejected!');
   };
 
   const handleLike = () => {
-    // Go to next recipe
-    if (currentRecipeIndex < demoRecipes.length - 1) {
-      setCurrentRecipeIndex(prev => prev + 1);
-    } else {
-      // Completed all recipes
-      onComplete({});
-    }
+    console.log('Recipe liked!');
   };
 
   const handleRefresh = () => {
@@ -218,7 +195,7 @@ export function MealRecommendations({ onComplete }: MealRecommendationsProps) {
   return (
     <View style={styles.container}>
       <RecommendationCard
-        recipe={demoRecipes[currentRecipeIndex]}
+        recipe={demoRecipes[0]} // Show the Mediterranean Quinoa Bowl
         onReject={handleReject}
         onLike={handleLike}
         onRefresh={handleRefresh}

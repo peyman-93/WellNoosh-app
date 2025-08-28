@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, SafeAreaView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, SafeAreaView, Alert, Image } from 'react-native';
 
 interface UserData {
   fullName: string;
@@ -699,7 +699,11 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
         
         <View style={styles.centerHeader}>
           <View style={styles.logo}>
-            <Text style={styles.logoText}>W</Text>
+            <Image 
+              source={require('../assets/logoNew.jpg')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <View style={styles.progressContainer}>
             {Array.from({ length: totalSteps }).map((_, index) => (
@@ -805,6 +809,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  logoImage: {
+    width: 24,
+    height: 24,
   },
   progressContainer: {
     flexDirection: 'row',

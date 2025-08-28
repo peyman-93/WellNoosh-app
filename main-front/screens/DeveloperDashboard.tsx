@@ -10,10 +10,19 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { OnboardingTest } from '../components/OnboardingTest';
+import { RecipeRecommendationDemo } from './RecipeRecommendationDemo';
 
-type DeveloperView = 'dashboard' | 'onboarding-test';
+type DeveloperView = 'dashboard' | 'onboarding-test' | 'recipe-demo';
 
 const screens = [
+  {
+    id: 'recipe-demo',
+    name: 'recipe-demo',
+    title: 'Recipe Card Demo',
+    description: 'Test the recipe recommendation card',
+    category: 'Testing',
+    color: ['#FF6B6B', '#FF8E53'],
+  },
   {
     id: 'onboarding-test',
     name: 'onboarding-test',
@@ -53,6 +62,8 @@ export default function DeveloperDashboard() {
   const handleScreenPress = (screenId: string) => {
     if (screenId === 'onboarding-test') {
       setCurrentView('onboarding-test');
+    } else if (screenId === 'recipe-demo') {
+      setCurrentView('recipe-demo');
     } else {
       console.log(`Navigation to ${screenId} requires app restart`);
     }
@@ -61,6 +72,20 @@ export default function DeveloperDashboard() {
   if (currentView === 'onboarding-test') {
     return (
       <OnboardingTest onBack={() => setCurrentView('dashboard')} />
+    );
+  }
+
+  if (currentView === 'recipe-demo') {
+    return (
+      <View style={styles.demoContainer}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => setCurrentView('dashboard')}
+        >
+          <Text style={styles.backButtonText}>← Back to Dashboard</Text>
+        </TouchableOpacity>
+        <RecipeRecommendationDemo />
+      </View>
     );
   }
 
@@ -278,5 +303,23 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 13,
     color: '#4A4A4A',
+  },
+  demoContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#6B8E23',
+    fontWeight: '500',
   },
 });

@@ -344,14 +344,16 @@ function AppContent() {
   if (appState === 'recipeSwipe') {
     console.log('🍽️ Rendering RecipeSwipeScreen state')
     return (
-      <SafeAreaProvider>
-        <View style={styles.container}>
-          <StatusBar style="dark" />
-          <RecipeSwipeScreen 
-            onNavigateBack={handleRecipeSwipeComplete}
-          />
-        </View>
-      </SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <View style={styles.container}>
+            <StatusBar style="dark" />
+            <RecipeSwipeScreen 
+              onNavigateBack={handleRecipeSwipeComplete}
+            />
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     )
   }
 
