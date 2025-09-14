@@ -1,144 +1,174 @@
-import React, { useState } from 'react'
-import { 
-  View, 
-  Text, 
-  SafeAreaView, 
-  ScrollView, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Modal,
+import React, { useState, useEffect } from 'react'
+import {
+  View,
+  Text,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
   TextInput,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '@/context/supabase-provider'
 import { useUserData } from '@/context/user-data-provider'
 import { useNavigation } from '@react-navigation/native'
+import { supabase } from '../main-front/src/services/supabase'
 
-interface Achievement {
-  id: string
-  title: string
-  description: string
-  emoji: string
-  earned: boolean
-  date?: string
+// Types matching database structure
+interface UserProfile {
+  id?: string
+  user_id: string
+  full_name?: string
+  email: string
+  postal_code?: string
+  country?: string
+  created_at?: string
+  updated_at?: string
 }
 
-interface ProfileMetric {
-  label: string
-  value: string
-  emoji: string
-  color: string
+interface UserHealthProfile {
+  id?: string
+  user_id: string
+  age?: number
+  gender?: string
+  weight_kg?: number
+  height_cm?: number
+  activity_level?: string
+  cooking_skill?: string
+  diet_style?: string
+  allergies?: string[]
+  medical_conditions?: string[]
+  health_goals?: string[]
+  target_weight_kg?: number
+  timeline?: string
+  bmi?: number
+  daily_calorie_goal?: number
+  created_at?: string
+  updated_at?: string
 }
 
 export default function ProfileScreen() {
   const { session, signOut } = useAuth()
   const { userData } = useUserData()
   const navigation = useNavigation()
-  const [showEditProfile, setShowEditProfile] = useState(false)
 
-  const profileMetrics: ProfileMetric[] = [
-    {
-      label: 'Meals Logged',
-      value: '127',
-      emoji: '🍽️',
-      color: '#3B82F6'
-    },
-    {
-      label: 'Streak Days', 
-      value: '12',
-      emoji: '🔥',
-      color: '#10B981'
-    },
-    {
-      label: 'Achievements',
-      value: '8',
-      emoji: '🏆', 
-      color: '#8B5CF6'
-    },
-    {
-      label: 'Health Score',
-      value: '4.9',
-      emoji: '⭐',
-      color: '#F59E0B'
-    }
-  ]
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const achievements: Achievement[] = [
-    {
-      id: 'week-streak',
-      title: '7-Day Streak',
-      description: 'Logged meals for 7 consecutive days',
-      emoji: '🔥',
-      earned: true,
-      date: '2 days ago'
-    },
-    {
-      id: 'healthy-choices',
-      title: 'Healthy Choice Master',
-      description: 'Made 50 healthy meal choices',
-      emoji: '🥗',
-      earned: true,
-      date: '1 week ago'
-    },
-    {
-      id: 'chef-assistant',
-      title: 'AI Chef Pal',
-      description: 'Used AI Chef for 25 recipes',
-      emoji: '👨‍🍳',
-      earned: true,
-      date: '2 weeks ago'
-    },
-    {
-      id: 'zero-waste',
-      title: 'Zero Waste Hero',
-      description: 'Prevented 10kg of food waste',
-      emoji: '🌱',
-      earned: false
-    },
-    {
-      id: 'budget-master',
-      title: 'Budget Master',
-      description: 'Saved €500 on groceries',
-      emoji: '💰',
-      earned: false
-    },
-    {
-      id: 'meal-planner',
-      title: 'Meal Planning Pro',
-      description: 'Planned 30 weekly meal schedules',
-      emoji: '📅',
-      earned: false
-    }
-  ]
+  // User Profile State (Section 1)
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    user_id: session?.user?.id || '',
+    full_name: '',
+    email: session?.user?.email || '',
+    postal_code: '',
+    country: ''
+  })
 
-  const menuSections = [
-    {
-      title: 'Account',
-      items: [
-        { emoji: '✏️', label: 'Edit Profile', action: () => setShowEditProfile(true) },
-        { emoji: '🔔', label: 'Notifications', action: () => Alert.alert('Notifications', 'Coming soon!') },
-        { emoji: '🔒', label: 'Privacy & Security', action: () => Alert.alert('Privacy', 'Coming soon!') }
-      ]
-    },
-    {
-      title: 'Preferences', 
-      items: [
-        { emoji: '🥗', label: 'Edit Diet Style', action: () => Alert.alert('Diet Style', 'Tap to edit your dietary preferences and cooking style.') },
-        { emoji: '⚠️', label: 'Edit Allergies', action: () => Alert.alert('Allergies', 'Tap to update your allergies and dietary restrictions.') },
-        { emoji: '🎯', label: 'Edit Health Goals', action: () => Alert.alert('Health Goals', 'Tap to modify your health and wellness goals.') },
-        { emoji: '🏃‍♂️', label: 'Edit Activity Level', action: () => Alert.alert('Activity Level', 'Tap to update your activity and exercise information.') },
-        { emoji: '📱', label: 'App Settings', action: () => Alert.alert('App Settings', 'Coming soon!') }
-      ]
-    },
-    {
-      title: 'Support',
-      items: [
-        { emoji: '❓', label: 'Help & Support', action: () => Alert.alert('Help & Support', 'Coming soon!') },
-        { emoji: '⚙️', label: 'Advanced Settings', action: () => Alert.alert('Advanced Settings', 'Coming soon!') }
-      ]
+  // Health Profile State (Section 2)
+  const [healthProfile, setHealthProfile] = useState<UserHealthProfile>({
+    user_id: session?.user?.id || '',
+    age: undefined,
+    gender: '',
+    weight_kg: undefined,
+    height_cm: undefined,
+    activity_level: '',
+    cooking_skill: '',
+    diet_style: '',
+    allergies: [],
+    medical_conditions: [],
+    health_goals: [],
+    target_weight_kg: undefined,
+    timeline: ''
+  })
+
+  // Load user data on mount
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadUserProfiles()
     }
-  ]
+  }, [session])
+
+  const loadUserProfiles = async () => {
+    setLoading(true)
+    try {
+      const userId = session?.user?.id
+      if (!userId) return
+
+      // Load user_profiles
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (profileData && !profileError) {
+        setUserProfile(profileData)
+      }
+
+      // Load user_health_profiles
+      const { data: healthData, error: healthError } = await supabase
+        .from('user_health_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (healthData && !healthError) {
+        setHealthProfile(healthData)
+      }
+    } catch (error) {
+      console.error('Error loading profiles:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const userId = session?.user?.id
+      if (!userId) return
+
+      // Update user_profiles
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .upsert({
+          ...userProfile,
+          user_id: userId,
+          updated_at: new Date().toISOString()
+        })
+
+      if (profileError) throw profileError
+
+      // Calculate BMI if weight and height are present
+      let bmi = undefined
+      if (healthProfile.weight_kg && healthProfile.height_cm) {
+        bmi = healthProfile.weight_kg / Math.pow(healthProfile.height_cm / 100, 2)
+      }
+
+      // Update user_health_profiles
+      const { error: healthError } = await supabase
+        .from('user_health_profiles')
+        .upsert({
+          ...healthProfile,
+          user_id: userId,
+          bmi: bmi,
+          updated_at: new Date().toISOString()
+        })
+
+      if (healthError) throw healthError
+
+      Alert.alert('Success', 'Profile updated successfully!')
+      setIsEditMode(false)
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update profile. Please try again.')
+      console.error('Error updating profile:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -148,317 +178,544 @@ export default function ProfileScreen() {
     }
   }
 
-  const userName = session?.user?.email?.split('@')[0] || 'Guest User'
-  const userEmail = session?.user?.email || 'guest@wellnoosh.com'
+  const userName = userProfile.full_name || session?.user?.email?.split('@')[0] || 'User'
+  const userInitial = userName.charAt(0).toUpperCase()
+
+  // Options for select inputs
+  const genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say']
+  const activityLevels = [
+    'Sedentary (little/no exercise)',
+    'Lightly Active (1-3 days/week)',
+    'Moderately Active (3-5 days/week)',
+    'Very Active (5-7 days/week)',
+    'Extremely Active (physical job)'
+  ]
+  const cookingSkills = [
+    'Beginner',
+    'Intermediate',
+    'Advanced',
+    'Expert'
+  ]
+  const dietStyles = [
+    'Balanced',
+    'Omnivore',
+    'Vegetarian',
+    'Vegan',
+    'Pescatarian',
+    'Keto',
+    'Paleo',
+    'Mediterranean',
+    'Low Carb'
+  ]
+  const healthGoals = [
+    'Lose Weight',
+    'Gain Weight',
+    'Maintain Weight',
+    'Build Muscle',
+    'Improve Energy'
+  ]
+  const timelines = [
+    '1-3 months',
+    '3-6 months',
+    '6-12 months',
+    '1+ years'
+  ]
+  const commonAllergies = [
+    'Nuts',
+    'Peanuts',
+    'Shellfish',
+    'Fish',
+    'Eggs',
+    'Milk/Dairy',
+    'Soy',
+    'Wheat/Gluten',
+    'Sesame'
+  ]
+  const medicalConditions = [
+    'Diabetes',
+    'High Blood Pressure',
+    'High Cholesterol',
+    'Heart Disease',
+    'Kidney Disease',
+    'Liver Disease',
+    'Thyroid Issues',
+    'Digestive Issues'
+  ]
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#10B981" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#10B981', '#3B82F6']}
-        style={styles.header}
-      >
-        <TouchableOpacity 
+      {/* Compact Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        
-        <View style={styles.profileInfo}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {userName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+
+        <View style={styles.headerContent}>
+          <View style={styles.avatarSmall}>
+            <Text style={styles.avatarTextSmall}>{userInitial}</Text>
           </View>
-          
-          <Text style={styles.userName}>{userName}</Text>
-          <Text style={styles.userEmail}>{userEmail}</Text>
-          
-          <View style={styles.healthScore}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Text key={star} style={styles.star}>⭐</Text>
-            ))}
-            <Text style={styles.healthScoreText}>4.9 Health Score</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerName}>{userName}</Text>
+            <Text style={styles.headerEmail}>{userProfile.email}</Text>
           </View>
         </View>
-      </LinearGradient>
+
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => isEditMode ? handleSave() : setIsEditMode(true)}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="#10B981" />
+          ) : (
+            <Text style={styles.editButtonText}>
+              {isEditMode ? 'Save' : 'Edit'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          {/* Quick Stats */}
-          <View style={styles.statsCard}>
-            <View style={styles.statsGrid}>
-              {profileMetrics.map((metric) => (
-                <View key={metric.label} style={styles.statItem}>
-                  <Text style={styles.statEmoji}>{metric.emoji}</Text>
-                  <Text style={[styles.statValue, { color: metric.color }]}>
-                    {metric.value}
-                  </Text>
-                  <Text style={styles.statLabel}>{metric.label}</Text>
-                </View>
-              ))}
+
+          {/* Section 1: User Information */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>User Information</Text>
+            <View style={styles.sectionContent}>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                {isEditMode ? (
+                  <TextInput
+                    style={styles.textInput}
+                    value={userProfile.full_name}
+                    onChangeText={(text) => setUserProfile({...userProfile, full_name: text})}
+                    placeholder="Enter your name"
+                  />
+                ) : (
+                  <Text style={styles.displayText}>{userProfile.full_name || 'Not specified'}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <Text style={[styles.displayText, styles.readOnlyText]}>{userProfile.email}</Text>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Postal Code</Text>
+                {isEditMode ? (
+                  <TextInput
+                    style={styles.textInput}
+                    value={userProfile.postal_code}
+                    onChangeText={(text) => setUserProfile({...userProfile, postal_code: text})}
+                    placeholder="Enter postal code"
+                  />
+                ) : (
+                  <Text style={styles.displayText}>{userProfile.postal_code || 'Not specified'}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Country</Text>
+                {isEditMode ? (
+                  <TextInput
+                    style={styles.textInput}
+                    value={userProfile.country}
+                    onChangeText={(text) => setUserProfile({...userProfile, country: text})}
+                    placeholder="Enter country"
+                  />
+                ) : (
+                  <Text style={styles.displayText}>{userProfile.country || 'Not specified'}</Text>
+                )}
+              </View>
+
             </View>
           </View>
 
-          {/* Personal Information */}
+          {/* Section 2: Health Profile */}
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>👤</Text>
-              <Text style={styles.sectionTitle}>Personal Information</Text>
-            </View>
-            
-            <View style={styles.infoCard}>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>📧</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>{userEmail}</Text>
-                  <Text style={styles.infoLabel}>Email Address</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>📍</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>Barcelona, Spain</Text>
-                  <Text style={styles.infoLabel}>Location</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>📅</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>Member since Dec 2024</Text>
-                  <Text style={styles.infoLabel}>Join Date</Text>
-                </View>
-              </View>
-            </View>
-          </View>
+            <Text style={styles.sectionTitle}>Health Profile</Text>
+            <View style={styles.sectionContent}>
 
-          {/* Diet & Preferences */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>🥗</Text>
-              <Text style={styles.sectionTitle}>Diet & Preferences</Text>
-            </View>
-            
-            <View style={styles.infoCard}>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>🌱</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.dietStyle?.join(', ') || 'Not specified'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Diet Style</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>⚠️</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.allergies?.length ? userData.allergies.join(', ') : 'None reported'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Allergies & Restrictions</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>👨‍🍳</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.cookingSkill || 'Not specified'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Cooking Skill Level</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>⏱️</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.mealPreferences?.join(', ') || 'Not specified'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Meal Preferences</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Health & Wellness */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>💪</Text>
-              <Text style={styles.sectionTitle}>Health & Wellness</Text>
-            </View>
-            
-            <View style={styles.infoCard}>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>🎯</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.healthGoals?.join(', ') || 'Not specified'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Health Goals</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>🏃‍♂️</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.activityLevel || 'Not specified'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Activity Level</Text>
-                </View>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Text style={styles.infoEmoji}>🏥</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoValue}>
-                    {userData?.medicalConditions?.length ? userData.medicalConditions.join(', ') : 'None reported'}
-                  </Text>
-                  <Text style={styles.infoLabel}>Medical Conditions</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Achievements */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>🏆</Text>
-              <Text style={styles.sectionTitle}>Achievements</Text>
-            </View>
-            
-            <View style={styles.achievementsGrid}>
-              {achievements.map((achievement) => (
-                <View 
-                  key={achievement.id} 
-                  style={[
-                    styles.achievementItem,
-                    achievement.earned ? styles.achievementEarned : styles.achievementLocked
-                  ]}
-                >
-                  <Text style={styles.achievementEmoji}>{achievement.emoji}</Text>
-                  <Text style={styles.achievementTitle}>{achievement.title}</Text>
-                  {achievement.earned && achievement.date && (
-                    <Text style={styles.achievementDate}>{achievement.date}</Text>
+              <View style={styles.rowGroup}>
+                <View style={[styles.inputGroup, {flex: 1}]}>
+                  <Text style={styles.inputLabel}>Age</Text>
+                  {isEditMode ? (
+                    <TextInput
+                      style={styles.textInput}
+                      value={healthProfile.age?.toString()}
+                      onChangeText={(text) => setHealthProfile({...healthProfile, age: parseInt(text) || undefined})}
+                      placeholder="Age"
+                      keyboardType="numeric"
+                    />
+                  ) : (
+                    <Text style={styles.displayText}>{healthProfile.age || 'Not set'}</Text>
                   )}
                 </View>
-              ))}
+
+                <View style={[styles.inputGroup, {flex: 1}]}>
+                  <Text style={styles.inputLabel}>Gender</Text>
+                  {isEditMode ? (
+                    <View style={styles.selectContainer}>
+                      {genderOptions.map((option) => (
+                        <TouchableOpacity
+                          key={option}
+                          style={[
+                            styles.selectOption,
+                            healthProfile.gender === option && styles.selectOptionActive
+                          ]}
+                          onPress={() => setHealthProfile({...healthProfile, gender: option})}
+                        >
+                          <Text style={[
+                            styles.selectOptionText,
+                            healthProfile.gender === option && styles.selectOptionTextActive
+                          ]}>
+                            {option}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.displayText}>{healthProfile.gender || 'Not set'}</Text>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.rowGroup}>
+                <View style={[styles.inputGroup, {flex: 1}]}>
+                  <Text style={styles.inputLabel}>Weight (kg)</Text>
+                  {isEditMode ? (
+                    <TextInput
+                      style={styles.textInput}
+                      value={healthProfile.weight_kg?.toString()}
+                      onChangeText={(text) => setHealthProfile({...healthProfile, weight_kg: parseFloat(text) || undefined})}
+                      placeholder="Weight"
+                      keyboardType="numeric"
+                    />
+                  ) : (
+                    <Text style={styles.displayText}>
+                      {healthProfile.weight_kg ? `${healthProfile.weight_kg} kg` : 'Not set'}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={[styles.inputGroup, {flex: 1}]}>
+                  <Text style={styles.inputLabel}>Height (cm)</Text>
+                  {isEditMode ? (
+                    <TextInput
+                      style={styles.textInput}
+                      value={healthProfile.height_cm?.toString()}
+                      onChangeText={(text) => setHealthProfile({...healthProfile, height_cm: parseFloat(text) || undefined})}
+                      placeholder="Height"
+                      keyboardType="numeric"
+                    />
+                  ) : (
+                    <Text style={styles.displayText}>
+                      {healthProfile.height_cm ? `${healthProfile.height_cm} cm` : 'Not set'}
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Activity Level</Text>
+                {isEditMode ? (
+                  <View style={styles.selectContainer}>
+                    {activityLevels.map((level) => (
+                      <TouchableOpacity
+                        key={level}
+                        style={[
+                          styles.selectOption,
+                          healthProfile.activity_level === level && styles.selectOptionActive
+                        ]}
+                        onPress={() => setHealthProfile({...healthProfile, activity_level: level})}
+                      >
+                        <Text style={[
+                          styles.selectOptionText,
+                          healthProfile.activity_level === level && styles.selectOptionTextActive
+                        ]}>
+                          {level}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.displayText}>{healthProfile.activity_level || 'Not specified'}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Cooking Skill</Text>
+                {isEditMode ? (
+                  <View style={styles.selectContainer}>
+                    {cookingSkills.map((skill) => (
+                      <TouchableOpacity
+                        key={skill}
+                        style={[
+                          styles.selectOption,
+                          healthProfile.cooking_skill === skill && styles.selectOptionActive
+                        ]}
+                        onPress={() => setHealthProfile({...healthProfile, cooking_skill: skill})}
+                      >
+                        <Text style={[
+                          styles.selectOptionText,
+                          healthProfile.cooking_skill === skill && styles.selectOptionTextActive
+                        ]}>
+                          {skill}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.displayText}>{healthProfile.cooking_skill || 'Not specified'}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Diet Style</Text>
+                {isEditMode ? (
+                  <View style={styles.selectContainer}>
+                    {dietStyles.map((diet) => (
+                      <TouchableOpacity
+                        key={diet}
+                        style={[
+                          styles.selectOption,
+                          healthProfile.diet_style === diet && styles.selectOptionActive
+                        ]}
+                        onPress={() => setHealthProfile({...healthProfile, diet_style: diet})}
+                      >
+                        <Text style={[
+                          styles.selectOptionText,
+                          healthProfile.diet_style === diet && styles.selectOptionTextActive
+                        ]}>
+                          {diet}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.displayText}>{healthProfile.diet_style || 'Not specified'}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Allergies</Text>
+                {isEditMode ? (
+                  <View style={styles.selectContainer}>
+                    {commonAllergies.map((allergy) => (
+                      <TouchableOpacity
+                        key={allergy}
+                        style={[
+                          styles.selectOption,
+                          healthProfile.allergies?.includes(allergy) && styles.selectOptionActive
+                        ]}
+                        onPress={() => {
+                          const current = healthProfile.allergies || []
+                          if (current.includes(allergy)) {
+                            setHealthProfile({
+                              ...healthProfile,
+                              allergies: current.filter(a => a !== allergy)
+                            })
+                          } else {
+                            setHealthProfile({
+                              ...healthProfile,
+                              allergies: [...current, allergy]
+                            })
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.selectOptionText,
+                          healthProfile.allergies?.includes(allergy) && styles.selectOptionTextActive
+                        ]}>
+                          {allergy}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.displayText}>
+                    {healthProfile.allergies?.length ? healthProfile.allergies.join(', ') : 'None'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Medical Conditions</Text>
+                {isEditMode ? (
+                  <View style={styles.selectContainer}>
+                    {medicalConditions.map((condition) => (
+                      <TouchableOpacity
+                        key={condition}
+                        style={[
+                          styles.selectOption,
+                          healthProfile.medical_conditions?.includes(condition) && styles.selectOptionActive
+                        ]}
+                        onPress={() => {
+                          const current = healthProfile.medical_conditions || []
+                          if (current.includes(condition)) {
+                            setHealthProfile({
+                              ...healthProfile,
+                              medical_conditions: current.filter(c => c !== condition)
+                            })
+                          } else {
+                            setHealthProfile({
+                              ...healthProfile,
+                              medical_conditions: [...current, condition]
+                            })
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.selectOptionText,
+                          healthProfile.medical_conditions?.includes(condition) && styles.selectOptionTextActive
+                        ]}>
+                          {condition}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.displayText}>
+                    {healthProfile.medical_conditions?.length ? healthProfile.medical_conditions.join(', ') : 'None'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Health Goals</Text>
+                {isEditMode ? (
+                  <View style={styles.selectContainer}>
+                    {healthGoals.map((goal) => (
+                      <TouchableOpacity
+                        key={goal}
+                        style={[
+                          styles.selectOption,
+                          healthProfile.health_goals?.includes(goal) && styles.selectOptionActive
+                        ]}
+                        onPress={() => {
+                          const current = healthProfile.health_goals || []
+                          if (current.includes(goal)) {
+                            setHealthProfile({
+                              ...healthProfile,
+                              health_goals: current.filter(g => g !== goal)
+                            })
+                          } else {
+                            setHealthProfile({
+                              ...healthProfile,
+                              health_goals: [...current, goal]
+                            })
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.selectOptionText,
+                          healthProfile.health_goals?.includes(goal) && styles.selectOptionTextActive
+                        ]}>
+                          {goal}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.displayText}>
+                    {healthProfile.health_goals?.length ? healthProfile.health_goals.join(', ') : 'Not specified'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.rowGroup}>
+                <View style={[styles.inputGroup, {flex: 1}]}>
+                  <Text style={styles.inputLabel}>Target Weight (kg)</Text>
+                  {isEditMode ? (
+                    <TextInput
+                      style={styles.textInput}
+                      value={healthProfile.target_weight_kg?.toString()}
+                      onChangeText={(text) => setHealthProfile({...healthProfile, target_weight_kg: parseFloat(text) || undefined})}
+                      placeholder="Target"
+                      keyboardType="numeric"
+                    />
+                  ) : (
+                    <Text style={styles.displayText}>
+                      {healthProfile.target_weight_kg ? `${healthProfile.target_weight_kg} kg` : 'Not set'}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={[styles.inputGroup, {flex: 1}]}>
+                  <Text style={styles.inputLabel}>Timeline</Text>
+                  {isEditMode ? (
+                    <View style={styles.selectContainer}>
+                      {timelines.map((timeline) => (
+                        <TouchableOpacity
+                          key={timeline}
+                          style={[
+                            styles.selectOption,
+                            healthProfile.timeline === timeline && styles.selectOptionActive
+                          ]}
+                          onPress={() => setHealthProfile({...healthProfile, timeline: timeline})}
+                        >
+                          <Text style={[
+                            styles.selectOptionText,
+                            healthProfile.timeline === timeline && styles.selectOptionTextActive
+                          ]}>
+                            {timeline}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.displayText}>{healthProfile.timeline || 'Not set'}</Text>
+                  )}
+                </View>
+              </View>
+
+              {healthProfile.bmi && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>BMI</Text>
+                  <Text style={styles.displayText}>{healthProfile.bmi.toFixed(1)}</Text>
+                </View>
+              )}
+
             </View>
           </View>
 
-          {/* Menu Sections */}
-          {menuSections.map((section) => (
-            <View key={section.title} style={styles.section}>
-              <Text style={styles.menuSectionTitle}>{section.title}</Text>
-              <View style={styles.menuCard}>
-                {section.items.map((item, index) => (
-                  <TouchableOpacity
-                    key={item.label}
-                    style={[
-                      styles.menuItem,
-                      index !== section.items.length - 1 && styles.menuItemBorder
-                    ]}
-                    onPress={item.action}
-                  >
-                    <Text style={styles.menuEmoji}>{item.emoji}</Text>
-                    <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Text style={styles.menuArrow}>›</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          ))}
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            {isEditMode && (
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setIsEditMode(false)
+                  loadUserProfiles() // Reload to discard changes
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            )}
 
-          {/* Sign Out */}
-          <View style={styles.section}>
             <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
               <Text style={styles.signOutText}>Sign Out</Text>
             </TouchableOpacity>
           </View>
 
-          {/* App Version */}
-          <View style={styles.versionInfo}>
-            <Text style={styles.versionText}>WellNoosh v1.0.0</Text>
-            <Text style={styles.versionSubtext}>Your Personal AI Chef Nutritionist</Text>
-          </View>
         </View>
       </ScrollView>
-
-      {/* Edit Profile Modal */}
-      {showEditProfile && (
-        <Modal
-          visible={showEditProfile}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowEditProfile(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Profile</Text>
-                <TouchableOpacity onPress={() => setShowEditProfile(false)}>
-                  <Text style={styles.modalCloseButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.modalContent}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Full Name</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    defaultValue={userName}
-                    placeholder="Enter your name"
-                  />
-                </View>
-                
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    defaultValue={userEmail}
-                    placeholder="Enter your email"
-                    keyboardType="email-address"
-                  />
-                </View>
-                
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Location</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    defaultValue="Barcelona, Spain"
-                    placeholder="Enter your location"
-                  />
-                </View>
-                
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity 
-                    style={styles.cancelButton}
-                    onPress={() => setShowEditProfile(false)}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.saveButton}
-                    onPress={() => {
-                      Alert.alert('Success', 'Profile updated successfully!')
-                      setShowEditProfile(false)
-                    }}
-                  >
-                    <Text style={styles.saveButtonText}>Save Changes</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
     </SafeAreaView>
   )
 }
@@ -468,204 +725,87 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6B7280',
+  },
   header: {
-    paddingTop: 20,
-    paddingBottom: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   backButton: {
     padding: 8,
-    alignSelf: 'flex-start',
   },
   backButtonText: {
-    color: 'white',
+    color: '#10B981',
     fontSize: 16,
     fontWeight: '600',
   },
-  profileInfo: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'white',
-  },
-  avatarText: {
-    fontSize: 32,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 16,
-  },
-  healthScore: {
+  headerContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    marginLeft: 12,
   },
-  star: {
+  avatarSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarTextSmall: {
+    fontSize: 18,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  headerInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  headerName: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
   },
-  healthScoreText: {
-    color: 'rgba(255, 255, 255, 0.9)',
+  headerEmail: {
     fontSize: 14,
-    marginLeft: 8,
+    color: '#6B7280',
+  },
+  editButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#10B981',
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
-    marginTop: -20,
   },
   content: {
     padding: 20,
     gap: 20,
   },
-  statsCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  statItem: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-  },
-  statEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
   section: {
-    gap: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sectionEmoji: {
-    fontSize: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  infoCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-  },
-  infoEmoji: {
-    fontSize: 20,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  achievementsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  achievementItem: {
-    flex: 1,
-    minWidth: '30%',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-  },
-  achievementEarned: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
-  },
-  achievementLocked: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#E5E7EB',
-    opacity: 0.6,
-  },
-  achievementEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  achievementTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  achievementDate: {
-    fontSize: 10,
-    color: '#F59E0B',
-    fontWeight: '500',
-  },
-  menuSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  menuCard: {
     backgroundColor: 'white',
     borderRadius: 16,
     overflow: 'hidden',
@@ -675,28 +815,86 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
     padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sectionContent: {
+    padding: 16,
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  rowGroup: {
+    flexDirection: 'row',
     gap: 12,
   },
-  menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
   },
-  menuEmoji: {
-    fontSize: 20,
-  },
-  menuLabel: {
-    flex: 1,
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
+    backgroundColor: '#F9FAFB',
   },
-  menuArrow: {
-    fontSize: 20,
-    color: '#9CA3AF',
+  displayText: {
+    fontSize: 16,
+    color: '#1F2937',
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+  },
+  readOnlyText: {
+    color: '#6B7280',
+  },
+  selectContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  selectOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: 'white',
+  },
+  selectOptionActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  selectOptionText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  selectOptionTextActive: {
+    color: 'white',
+  },
+  actionButtons: {
+    gap: 12,
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   signOutButton: {
     backgroundColor: '#EF4444',
@@ -708,99 +906,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  versionInfo: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  versionText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  versionSubtext: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 4,
-  },
-  
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  modalCloseButton: {
-    fontSize: 20,
-    color: '#6B7280',
-    padding: 4,
-  },
-  modalContent: {
-    padding: 20,
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#F9FAFB',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
   },
 })
