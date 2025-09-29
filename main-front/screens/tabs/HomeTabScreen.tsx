@@ -131,8 +131,8 @@ export default function DashboardScreen() {
   // State
   const [showDailyCheckIn, setShowDailyCheckIn] = useState(false)
   const [showAddMeal, setShowAddMeal] = useState(false)
-  // Fixed nutrition wheels (no longer customizable)
-  const selectedWheels = ['calories', 'protein', 'fiber']
+  // Customizable nutrition wheels
+  const [selectedWheels, setSelectedWheels] = useState(['calories', 'protein', 'fiber'])
   const [showNutritionModal, setShowNutritionModal] = useState(false)
   const [showAllMeals, setShowAllMeals] = useState(false)
   
@@ -1015,7 +1015,7 @@ export default function DashboardScreen() {
                     )
                   })}
                 </View>
-                
+
                 <Text style={styles.sectionTitle}>AVAILABLE METRICS</Text>
                 <View style={styles.modalWheelsGrid}>
                   {Object.keys(nutritionData)
@@ -1035,6 +1035,7 @@ export default function DashboardScreen() {
                               setSelectedWheels(prev => [...prev, wheelId])
                             }
                           }}
+                          disabled={selectedWheels.length >= 3}
                         >
                           <View style={styles.modalWheelWrapper}>
                             <CircularProgress
@@ -1057,7 +1058,7 @@ export default function DashboardScreen() {
                       )
                     })}
                 </View>
-                
+
                 <View style={styles.modalTip}>
                   <Text style={styles.tipText}>
                     You can display up to 3 nutrition metrics. Remove one to add a different metric. The more meals you log, the more accurate your tracking becomes!
