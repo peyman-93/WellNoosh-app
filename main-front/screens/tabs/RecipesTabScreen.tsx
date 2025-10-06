@@ -1,164 +1,247 @@
-import React, { useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native'
 import { Colors } from '../../src/constants/DesignTokens'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
+import { supabase } from '../../src/services/supabase'
+import { useAuth } from '../../src/context/supabase-provider'
 
 interface Recipe {
   id: string
-  name: string
-  description: string
-  cookTime: string
-  difficulty: 'Easy' | 'Medium' | 'Hard'
-  calories: number
-  rating: number
-  tags?: string[]
+  title: string
+  image_url?: string
+  category?: string
+  area?: string
+  calories?: string
+  protein?: string
+  servings?: number
+  instructions?: string
+  liked_at?: string
 }
 
-const SAFE_RECIPES: Recipe[] = [
-  {
-    id: '1',
-    name: 'Mediterranean Quinoa Bowl',
-    description: 'Fresh quinoa bowl with roasted vegetables',
-    cookTime: '25 min',
-    difficulty: 'Easy',
-    calories: 456,
-    rating: 4.8,
-    tags: ['Healthy', 'Mediterranean', 'Vegetarian']
-  },
-  {
-    id: '2',
-    name: 'Spicy Thai Coconut Curry',
-    description: 'Aromatic curry with coconut milk',
-    cookTime: '35 min',
-    difficulty: 'Medium',
-    calories: 523,
-    rating: 4.6,
-    tags: ['Thai', 'Spicy', 'Coconut']
-  }
-]
+export default function RecipesTabScreen({ route, navigation }: { route: any, navigation: any }) {
+  const { session } = useAuth()
+  const [likedRecipes, setLikedRecipes] = useState<Recipe[]>([])
+  const [cookedRecipes, setCookedRecipes] = useState<Recipe[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'liked' | 'cooked'>('liked')
 
-export default function InspirationScreen({ route, navigation }: { route: any, navigation: any }) {
-  const [activeFilters, setActiveFilters] = useState<string[]>([])
-  const [favoriteRecipes, setFavoriteRecipes] = useState<string[]>([])
-
-  // Ensure all arrays are safely initialized
-  const safeActiveFilters = activeFilters || []
-  const safeFavoriteRecipes = favoriteRecipes || []
-  const safeRecipes = SAFE_RECIPES || []
-
-  // Safe filtering with null checks
-  const filteredRecipes = safeRecipes.filter(recipe => {
-    if (!recipe) return false
-    
-    // Safe tags check
-    const recipeTags = recipe.tags || []
-    
-    if (safeActiveFilters.length === 0) {
-      return true
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadRecipes()
     }
+  }, [session?.user?.id])
 
-    return safeActiveFilters.some(filter => {
-      if (filter === 'favourites') {
-        return safeFavoriteRecipes.includes(recipe.id)
-      }
-      if (filter === 'healthy') {
-        return recipeTags.includes('Healthy') || recipe.calories < 400
-      }
-      return false
-    })
-  })
+  const loadRecipes = async () => {
+    try {
+      setLoading(true)
 
-  const toggleFilter = (filter: string) => {
-    setActiveFilters(prev => {
-      const safePrev = prev || []
-      return safePrev.includes(filter) 
-        ? safePrev.filter(f => f !== filter)
-        : [...safePrev, filter]
-    })
+      // Fetch liked recipes from recipe_events
+      const { data: likedData, error: likedError } = await supabase
+        .from('recipe_events')
+        .select('recipe_id, created_at')
+        .eq('user_id', session?.user?.id)
+        .eq('event', 'like')
+        .order('created_at', { ascending: false })
+
+      console.log('📋 Liked recipes query result:', { likedData, likedError, userId: session?.user?.id })
+
+      if (likedError) {
+        console.error('❌ Error loading liked recipes:', likedError)
+      }
+
+      // Fetch cooked recipes from recipe_events
+      const { data: cookedData, error: cookedError } = await supabase
+        .from('recipe_events')
+        .select('recipe_id, created_at')
+        .eq('user_id', session?.user?.id)
+        .eq('event', 'cook_now')
+        .order('created_at', { ascending: false })
+
+      console.log('🍳 Cooked recipes query result:', { cookedData, cookedError, userId: session?.user?.id })
+
+      if (cookedError) {
+        console.error('❌ Error loading cooked recipes:', cookedError)
+      }
+
+      // Get unique recipe IDs
+      const likedRecipeIds = [...new Set(likedData?.map(item => item.recipe_id) || [])]
+      const cookedRecipeIds = [...new Set(cookedData?.map(item => item.recipe_id) || [])]
+
+      console.log('🔍 Unique recipe IDs:', { likedRecipeIds, cookedRecipeIds })
+
+      // Fetch recipe details for liked recipes
+      if (likedRecipeIds.length > 0) {
+        console.log('🔍 Searching for recipes with IDs:', likedRecipeIds)
+        console.log('🔍 ID type check:', typeof likedRecipeIds[0], likedRecipeIds[0])
+
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('id, title, image_url, category, area, servings, instructions')
+          .in('id', likedRecipeIds)
+
+        console.log('📝 Liked recipes details:', { recipesData, recipesError })
+
+        if (recipesError) {
+          console.error('❌ Error fetching recipe details:', recipesError)
+        }
+
+        if (recipesData) {
+          console.log('✅ Found', recipesData.length, 'recipes out of', likedRecipeIds.length, 'requested')
+          if (recipesData.length === 0) {
+            console.error('❌ Recipe IDs exist in recipe_events but NOT found in recipes table!')
+            console.error('❌ This likely means recipe IDs don\'t match - check data types')
+
+            // Try to fetch a sample recipe to see what IDs look like
+            const { data: sampleRecipes } = await supabase
+              .from('recipes')
+              .select('id, title')
+              .limit(3)
+            console.log('📋 Sample recipes in database:', sampleRecipes)
+          }
+          setLikedRecipes(recipesData)
+        }
+      } else {
+        setLikedRecipes([])
+      }
+
+      // Fetch recipe details for cooked recipes
+      if (cookedRecipeIds.length > 0) {
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('id, title, image_url, category, area, servings, instructions')
+          .in('id', cookedRecipeIds)
+
+        console.log('📝 Cooked recipes details:', { recipesData, recipesError })
+
+        if (!recipesError && recipesData) {
+          setCookedRecipes(recipesData)
+        }
+      } else {
+        setCookedRecipes([])
+      }
+    } catch (error) {
+      console.error('Error loading recipes:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const toggleFavorite = (recipeId: string) => {
-    setFavoriteRecipes(prev => {
-      const safePrev = prev || []
-      return safePrev.includes(recipeId)
-        ? safePrev.filter(id => id !== recipeId)
-        : [...safePrev, recipeId]
-    })
+  const displayedRecipes = activeTab === 'liked' ? likedRecipes : cookedRecipes
+
+  if (loading) {
+    return (
+      <ScreenWrapper>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading your favorite recipes...</Text>
+        </View>
+      </ScreenWrapper>
+    )
   }
 
   return (
     <ScreenWrapper>
       <ScrollView style={styles.content}>
-        <Text style={styles.title}>Cooking Inspiration</Text>
+        <Text style={styles.title}>My Recipes</Text>
 
-        {/* Filters */}
-        <View style={styles.filterContainer}>
-          <TouchableOpacity 
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
             style={[
-              styles.filterButton,
-              safeActiveFilters.includes('healthy') && styles.activeFilter
+              styles.tabButton,
+              activeTab === 'liked' && styles.activeTab
             ]}
-            onPress={() => toggleFilter('healthy')}
+            onPress={() => setActiveTab('liked')}
           >
-            <Text style={styles.filterText}>🥗 Healthy</Text>
+            <Text style={[
+              styles.tabText,
+              activeTab === 'liked' && styles.activeTabText
+            ]}>
+              💚 Liked ({likedRecipes.length})
+            </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[
-              styles.filterButton,
-              safeActiveFilters.includes('favourites') && styles.activeFilter
+              styles.tabButton,
+              activeTab === 'cooked' && styles.activeTab
             ]}
-            onPress={() => toggleFilter('favourites')}
+            onPress={() => setActiveTab('cooked')}
           >
-            <Text style={styles.filterText}>❤️ Favorites</Text>
+            <Text style={[
+              styles.tabText,
+              activeTab === 'cooked' && styles.activeTabText
+            ]}>
+              🍳 Cooked ({cookedRecipes.length})
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Recipes */}
-        <View style={styles.recipesContainer}>
-          {(filteredRecipes || []).map((recipe) => {
-            if (!recipe) return null
-            
-            const isFavorite = safeFavoriteRecipes.includes(recipe.id)
-            const recipeTags = recipe.tags || []
-            
-            return (
-              <View key={recipe.id} style={styles.recipeCard}>
-                <View style={styles.recipeHeader}>
-                  <Text style={styles.recipeName}>{recipe.name}</Text>
-                  <TouchableOpacity onPress={() => toggleFavorite(recipe.id)}>
-                    <Text style={styles.favoriteIcon}>
-                      {isFavorite ? '❤️' : '🤍'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                
-                <Text style={styles.recipeDescription}>{recipe.description}</Text>
-                
-                <View style={styles.recipeStats}>
-                  <Text style={styles.statText}>⏱️ {recipe.cookTime}</Text>
-                  <Text style={styles.statText}>🔥 {recipe.calories} cal</Text>
-                  <Text style={styles.statText}>⭐ {recipe.rating}</Text>
-                </View>
-
-                {recipeTags.length > 0 && (
-                  <View style={styles.tagsContainer}>
-                    {recipeTags.slice(0, 3).map((tag, index) => (
-                      <View key={`${recipe.id}-tag-${index}`} style={styles.tag}>
-                        <Text style={styles.tagText}>{tag}</Text>
-                      </View>
-                    ))}
+        {/* Recipe List */}
+        {displayedRecipes.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>{activeTab === 'liked' ? '💚' : '🍳'}</Text>
+            <Text style={styles.emptyTitle}>
+              {activeTab === 'liked' ? 'No liked recipes yet' : 'No cooked recipes yet'}
+            </Text>
+            <Text style={styles.emptyText}>
+              {activeTab === 'liked'
+                ? 'Start swiping on recipes to build your collection!'
+                : 'Click "Cook This Now" on recipes you want to try!'}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.recipeList}>
+            {displayedRecipes.map((recipe) => (
+              <TouchableOpacity
+                key={recipe.id}
+                style={styles.recipeCard}
+                onPress={() => {
+                  // TODO: Navigate to recipe detail screen
+                  console.log('View recipe:', recipe.title)
+                }}
+              >
+                {recipe.image_url ? (
+                  <Image
+                    source={{ uri: recipe.image_url }}
+                    style={styles.recipeImage}
+                  />
+                ) : (
+                  <View style={[styles.recipeImage, styles.placeholderImage]}>
+                    <Text style={styles.placeholderText}>🍽️</Text>
                   </View>
                 )}
-              </View>
-            )
-          })}
-        </View>
 
-        {filteredRecipes.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No recipes found</Text>
-            <Text style={styles.emptySubtext}>Try adjusting your filters</Text>
+                <View style={styles.recipeInfo}>
+                  <Text style={styles.recipeName} numberOfLines={2}>
+                    {recipe.title}
+                  </Text>
+
+                  <View style={styles.recipeMetaContainer}>
+                    {recipe.category && (
+                      <View style={styles.metaTag}>
+                        <Text style={styles.metaText}>{recipe.category}</Text>
+                      </View>
+                    )}
+                    {recipe.area && (
+                      <View style={styles.metaTag}>
+                        <Text style={styles.metaText}>{recipe.area}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {recipe.servings && (
+                    <Text style={styles.servingsText}>
+                      🍽️ {recipe.servings} servings
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.likedBadge}>
+                  <Text style={styles.likedIcon}>💚</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -169,101 +252,150 @@ export default function InspirationScreen({ route, navigation }: { route: any, n
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: Colors.textSecondary,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: Colors.text,
-    marginBottom: 16,
+    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
-  filterContainer: {
+  tabContainer: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    gap: 12,
   },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
     backgroundColor: Colors.surface,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: Colors.border,
+    alignItems: 'center',
   },
-  activeFilter: {
+  activeTab: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  filterText: {
-    fontSize: 14,
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: Colors.text,
   },
-  recipesContainer: {
+  activeTabText: {
+    color: 'white',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  recipeList: {
+    paddingHorizontal: 20,
     gap: 16,
+    paddingBottom: 100,
   },
   recipeCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  recipeHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 16,
+  },
+  recipeImage: {
+    width: 120,
+    height: 120,
+    backgroundColor: Colors.surface,
+  },
+  placeholderImage: {
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+  },
+  placeholderText: {
+    fontSize: 40,
+  },
+  recipeInfo: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'space-between',
   },
   recipeName: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text,
-    flex: 1,
+    marginBottom: 8,
   },
-  favoriteIcon: {
-    fontSize: 20,
-  },
-  recipeDescription: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 12,
-  },
-  recipeStats: {
+  recipeMetaContainer: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
   },
-  statText: {
+  metaTag: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  metaText: {
     fontSize: 12,
     color: Colors.textSecondary,
+    fontWeight: '500',
   },
-  tagsContainer: {
-    flexDirection: 'row',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  tag: {
-    backgroundColor: Colors.muted,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  tagText: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  emptySubtext: {
+  servingsText: {
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+  likedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  likedIcon: {
+    fontSize: 20,
   },
 })

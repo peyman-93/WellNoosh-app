@@ -191,58 +191,59 @@ class RecommendationService {
     }
   }
 
-  async recordFeedback(userId: string, recipeId: string, eventType: 'like' | 'dislike' | 'save' | 'pass'): Promise<boolean> {
+  async recordFeedback(userId: string, recipeId: string, eventType: 'like' | 'dislike' | 'save' | 'pass' | 'cook_now' | 'share_family'): Promise<boolean> {
     try {
-      // Send feedback to recommendation API
-      const response = await fetch(`${this.apiUrl}/api/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
+      const mappedEvent = eventType === 'dislike' ? 'hide' : eventType
+
+      console.log('💾 Attempting to save to Supabase:', { userId, recipeId, event: mappedEvent })
+
+      // ALWAYS save to Supabase recipe_events table first (primary source of truth)
+      const { data, error: supabaseError } = await supabase
+        .from('recipe_events')
+        .insert({
           user_id: userId,
           recipe_id: recipeId,
-          event_type: eventType
+          event: mappedEvent,
+          created_at: new Date().toISOString()
         })
-      })
+        .select()
 
-      if (!response.ok) {
-        throw new Error(`Failed to record feedback: ${response.status}`)
+      if (supabaseError) {
+        console.error('❌ FAILED to save to Supabase:', supabaseError)
+        console.error('❌ Error details:', JSON.stringify(supabaseError, null, 2))
+        return false
       }
 
-      // Also record in Supabase for persistence
-      if (eventType === 'like' || eventType === 'save') {
-        await supabase
-          .from('user_favorite_recipes')
-          .upsert({
+      console.log('✅ SUCCESS - Saved to Supabase:', data)
+
+      // Try to send to recommendation API (optional, for ML training)
+      try {
+        const response = await fetch(`${this.apiUrl}/api/feedback`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
             user_id: userId,
             recipe_id: recipeId,
-            added_at: new Date().toISOString()
+            event_type: eventType
           })
+        })
+
+        if (!response.ok) {
+          console.warn('⚠️ API feedback failed, but Supabase saved successfully')
+        } else {
+          console.log('✅ Also sent to recommendation API')
+        }
+      } catch (apiError) {
+        console.warn('⚠️ API not available, but Supabase saved successfully')
       }
 
-      console.log('✅ Feedback recorded:', { userId, recipeId, eventType })
       return true
     } catch (error) {
       console.error('❌ Error recording feedback:', error)
-      
-      // Try to at least save to Supabase if API fails
-      try {
-        if (eventType === 'like' || eventType === 'save') {
-          await supabase
-            .from('user_favorite_recipes')
-            .upsert({
-              user_id: userId,
-              recipe_id: recipeId,
-              added_at: new Date().toISOString()
-            })
-        }
-        return true
-      } catch (supabaseError) {
-        console.error('❌ Supabase fallback also failed:', supabaseError)
-        return false
-      }
+      return false
     }
   }
 

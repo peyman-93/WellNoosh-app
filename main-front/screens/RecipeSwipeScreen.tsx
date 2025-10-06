@@ -368,15 +368,57 @@ export default function RecipeSwipeScreen({ onNavigateBack }: RecipeSwipeScreenP
     const currentRecipe = recipes[currentRecipeIndex];
     if (currentRecipe && session?.user?.id) {
       await recommendationService.recordFeedback(session.user.id, currentRecipe.id, 'like');
+      console.log('💚 Liked recipe:', currentRecipe.name);
+
+      // Advance to next recipe
+      if (currentRecipeIndex < recipes.length - 1) {
+        setCurrentRecipeIndex(prev => prev + 1);
+      } else {
+        onNavigateBack?.();
+      }
     }
-    
-    // Go to next recipe or complete
-    if (currentRecipeIndex < recipes.length - 1) {
-      setCurrentRecipeIndex(prev => prev + 1);
-    } else {
-      // Completed all recipes, go back
-      if (onNavigateBack) {
-        onNavigateBack();
+  };
+
+  const handleCookNow = async () => {
+    const currentRecipe = recipes[currentRecipeIndex];
+    if (currentRecipe && session?.user?.id) {
+      await recommendationService.recordFeedback(session.user.id, currentRecipe.id, 'cook_now');
+      console.log('🍳 Starting cooking mode for:', currentRecipe.name);
+      // TODO: Navigate to cooking mode or add to cooking queue
+      // For now, just advance to next recipe
+      if (currentRecipeIndex < recipes.length - 1) {
+        setCurrentRecipeIndex(prev => prev + 1);
+      } else {
+        onNavigateBack?.();
+      }
+    }
+  };
+
+  const handleShareFamily = async () => {
+    const currentRecipe = recipes[currentRecipeIndex];
+    if (currentRecipe && session?.user?.id) {
+      await recommendationService.recordFeedback(session.user.id, currentRecipe.id, 'share_family');
+      console.log('👥 Sharing with family:', currentRecipe.name);
+      // TODO: Open family share dialog
+      // For now, just advance to next recipe
+      if (currentRecipeIndex < recipes.length - 1) {
+        setCurrentRecipeIndex(prev => prev + 1);
+      } else {
+        onNavigateBack?.();
+      }
+    }
+  };
+
+  const handleSaveToFavorite = async () => {
+    const currentRecipe = recipes[currentRecipeIndex];
+    if (currentRecipe && session?.user?.id) {
+      await recommendationService.recordFeedback(session.user.id, currentRecipe.id, 'save');
+      console.log('⭐ Saved to favorites:', currentRecipe.name);
+      // Advance to next recipe
+      if (currentRecipeIndex < recipes.length - 1) {
+        setCurrentRecipeIndex(prev => prev + 1);
+      } else {
+        onNavigateBack?.();
       }
     }
   };
@@ -413,6 +455,9 @@ export default function RecipeSwipeScreen({ onNavigateBack }: RecipeSwipeScreenP
         onReject={handleReject}
         onLike={handleLike}
         onRefresh={handleRefresh}
+        onCookNow={handleCookNow}
+        onShareFamily={handleShareFamily}
+        onSaveToFavorite={handleSaveToFavorite}
       />
     </View>
   );

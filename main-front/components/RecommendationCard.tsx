@@ -41,17 +41,23 @@ interface RecommendationCardProps {
   onReject?: () => void;
   onLike?: () => void;
   onRefresh?: () => void;
+  onCookNow?: () => void;
+  onShareFamily?: () => void;
+  onSaveToFavorite?: () => void;
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.95;
 const CARD_HEIGHT = screenHeight * 0.8;
 
-export function RecommendationCard({ 
-  recipe, 
-  onReject, 
-  onLike, 
-  onRefresh 
+export function RecommendationCard({
+  recipe,
+  onReject,
+  onLike,
+  onRefresh,
+  onCookNow,
+  onShareFamily,
+  onSaveToFavorite
 }: RecommendationCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [ingredientChecklist, setIngredientChecklist] = useState<{[index: number]: boolean}>({});
@@ -353,7 +359,46 @@ export function RecommendationCard({
             </View>
           </View>
         </View>
-        
+
+        {/* Action Buttons Section - Always shown on back */}
+        <View style={styles.likedActionsSection}>
+          <Text style={styles.likedActionsTitle}>Quick Actions</Text>
+          <View style={styles.likedActionsButtons}>
+            <TouchableOpacity
+              style={styles.cookNowButton}
+              onPress={() => {
+                onCookNow?.();
+                setIsFlipped(false);
+              }}
+            >
+              <Text style={styles.cookNowIcon}>🍳</Text>
+              <Text style={styles.cookNowText}>Cook This Now</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.shareFamilyButton}
+              onPress={() => {
+                onShareFamily?.();
+                setIsFlipped(false);
+              }}
+            >
+              <Text style={styles.shareFamilyIcon}>👥</Text>
+              <Text style={styles.shareFamilyText}>Share with Family</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.saveToFavoriteButton}
+              onPress={() => {
+                onSaveToFavorite?.();
+                setIsFlipped(false);
+              }}
+            >
+              <Text style={styles.saveToFavoriteIcon}>⭐</Text>
+              <Text style={styles.saveToFavoriteText}>Save to Favorite</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Add some bottom padding */}
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -403,8 +448,8 @@ export function RecommendationCard({
           <Text style={styles.refreshIcon}>↻</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.likeButton]} 
+        <TouchableOpacity
+          style={[styles.actionButton, styles.likeButton]}
           onPress={onLike}
         >
           <Text style={styles.likeIcon}>💚</Text>
@@ -793,5 +838,92 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     lineHeight: 14,
+  },
+
+  // Liked Actions Section
+  likedActionsSection: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#f8f9fa',
+    marginHorizontal: 24,
+    marginTop: 16,
+    borderRadius: 16,
+  },
+  likedActionsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  likedActionsButtons: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  cookNowButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  cookNowIcon: {
+    fontSize: 24,
+  },
+  cookNowText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+  },
+  shareFamilyButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  shareFamilyIcon: {
+    fontSize: 24,
+  },
+  shareFamilyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+  },
+  saveToFavoriteButton: {
+    backgroundColor: '#FF9800',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  saveToFavoriteIcon: {
+    fontSize: 24,
+  },
+  saveToFavoriteText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });
