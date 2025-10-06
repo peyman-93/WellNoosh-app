@@ -12,7 +12,7 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 
-from safe_recommendation_agent import SafeRecommendationAgent
+from safe_recommendation_agent import DSPyRecipeAgent
 
 load_dotenv()
 
@@ -33,8 +33,8 @@ app.add_middleware(
 
 # Initialize the recommendation agent
 try:
-    agent = SafeRecommendationAgent()
-    print("Enhanced recommendation agent initialized successfully")
+    agent = DSPyRecipeAgent()
+    print("DSPy recommendation agent initialized successfully")
 except Exception as e:
     print(f"Failed to initialize recommendation agent: {e}")
     agent = None
@@ -267,13 +267,15 @@ async def record_feedback(request: FeedbackRequest):
         'dislike': 'hide',
         'save': 'save',
         'pass': 'view',
-        'view': 'view'
+        'view': 'view',
+        'cook_now': 'cook_now',
+        'share_family': 'share_family'
     }
-    
+
     event_type = event_mapping.get(request.event_type, request.event_type)
-    
+
     # Validate event type
-    valid_events = {'like', 'hide', 'save', 'view'}
+    valid_events = {'like', 'hide', 'save', 'view', 'cook_now', 'share_family'}
     if event_type not in valid_events:
         raise HTTPException(status_code=400, detail=f"Invalid event type. Must be one of: {valid_events}")
     

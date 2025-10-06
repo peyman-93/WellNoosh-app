@@ -18,3 +18,5 @@ langgraph
 langchain
 langchain-openai
 langchain_google_genai
+
+dspy-ai
