@@ -12,14 +12,14 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 
-from safe_recommendation_agent import DSPyRecipeAgent
+from langgraph_recommendation_agent import LangGraphRecipeAgent
 
 load_dotenv()
 
 app = FastAPI(
     title="WellNoosh Enhanced Recommendation API",
-    description="AI-powered recipe recommendations with safety validation and adaptation",
-    version="2.0.0"
+    description="AI-powered recipe recommendations with LangGraph workflow orchestration",
+    version="3.0.0"
 )
 
 # Configure CORS
@@ -33,8 +33,8 @@ app.add_middleware(
 
 # Initialize the recommendation agent
 try:
-    agent = DSPyRecipeAgent()
-    print("DSPy recommendation agent initialized successfully")
+    agent = LangGraphRecipeAgent()
+    print("LangGraph recommendation agent initialized successfully")
 except Exception as e:
     print(f"Failed to initialize recommendation agent: {e}")
     agent = None
@@ -404,12 +404,13 @@ async def root():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
-    
-    print(f"Starting Enhanced Recommendation API server on {host}:{port}")
-    print("New features:")
-    print("  - Safety validation with scoring")
-    print("  - Recipe adaptation for user constraints")  
+
+    print(f"Starting LangGraph Recommendation API server on {host}:{port}")
+    print("LangGraph workflow features:")
+    print("  - State-based recipe processing pipeline")
+    print("  - Conditional routing for safety validation")
+    print("  - LLM-powered recipe adaptation")
     print("  - Structured instruction parsing")
     print("  - Enhanced allergen and medical condition handling")
-    
+
     uvicorn.run(app, host=host, port=port)

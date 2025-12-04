@@ -257,3 +257,182 @@
 
   Keep the backend running and let's connect your frontend to start using the new API. This will give you immediate satisfaction
    seeing your frontend and backend working together!
+
+
+
+
+     ---
+  2 & 3. Supabase Table for Grocery List
+
+  Yes, you need to create a grocery list table. Here's the SQL:
+
+  -- Grocery list items table
+  CREATE TABLE grocery_items (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+      recipe_id TEXT,  -- Optional: which recipe this came from
+      ingredient_name TEXT NOT NULL,
+      amount TEXT,
+      unit TEXT,
+      is_purchased BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+
+  -- Index for fast user queries
+  CREATE INDEX idx_grocery_items_user_id ON grocery_items(user_id);
+
+  -- Enable RLS
+  ALTER TABLE grocery_items ENABLE ROW LEVEL SECURITY;
+
+  -- RLS policies
+  CREATE POLICY "Users can view their own grocery items"
+      ON grocery_items FOR SELECT
+      USING (auth.uid() = user_id);
+
+  CREATE POLICY "Users can insert their own grocery items"
+      ON grocery_items FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+
+  CREATE POLICY "Users can update their own grocery items"
+      ON grocery_items FOR UPDATE
+      USING (auth.uid() = user_id);
+
+  CREATE POLICY "Users can delete their own grocery items"
+      ON grocery_items FOR DELETE
+      USING (auth.uid() = user_id);
+
+  ---
+  4. Prompt for Replit Agent
+
+  Here's a comprehensive prompt you can give to Replit:
+
+  ---
+  PROMPT FOR REPLIT:
+
+  I need you to implement the following features in my WellNoosh React Native/Expo app:
+
+  ## Project Context
+  - Frontend: React Native with Expo (main-front folder)
+  - Backend: Python FastAPI (main-brain folder)
+  - Database: Supabase (PostgreSQL)
+  - State management: React Query (@tanstack/react-query)
+
+  ## Feature 1: Recipe Card Flip with Ingredient Selection
+
+  **Location:** Recipe swipe/recommendation screen
+
+  **Requirements:**
+  1. When user flips a recipe card, show the back side with:
+     - List of ingredients with checkboxes
+     - Step-by-step cooking instructions
+     - Nutrition info
+
+  2. Each ingredient should have a checkbox. When user taps an ingredient:
+     - Mark it as "missing" (visually highlight it)
+     - Show a floating "Add to Grocery List" button at bottom
+     - Display count of selected items
+
+  3. When user taps "Add to Grocery List":
+     - Save selected ingredients to Supabase `grocery_items` table
+     - Show success toast/notification
+     - Clear selection
+
+  **Supabase table `grocery_items`:**
+  - id (UUID, primary key)
+  - user_id (UUID, references auth.users)
+  - recipe_id (TEXT, optional)
+  - ingredient_name (TEXT)
+  - amount (TEXT)
+  - unit (TEXT)
+  - is_purchased (BOOLEAN, default false)
+  - created_at (TIMESTAMP)
+
+  ## Feature 2: Grocery List Screen
+
+  **Requirements:**
+  1. Create a new screen accessible from bottom tab navigation
+  2. Display all grocery items grouped by:
+     - Pending items (is_purchased = false)
+     - Purchased items (is_purchased = true, collapsed by default)
+
+  3. Each item shows:
+     - Checkbox to mark as purchased
+     - Ingredient name and amount
+     - Swipe to delete
+
+  4. Header actions:
+     - "Clear Purchased" button
+     - "Clear All" button
+
+  ## Feature 3: Saved/Favorite Recipes Screen
+
+  **Location:** Main dashboard when user clicks on "Recipes" or favorites section
+
+  **Requirements:**
+  1. Query `recipe_events` table for user's liked/saved recipes:
+     - WHERE user_id = current_user AND event IN ('like', 'save')
+
+  2. Display recipes in a grid or list view with:
+     - Recipe image
+     - Recipe title
+     - Category/cuisine tag
+
+  3. When user taps a recipe card:
+     - Open a modal or navigate to detail screen
+     - Show full recipe card with:
+       - Image
+       - Title and description
+       - Ingredients list (with "add to grocery" option)
+       - Step-by-step instructions
+       - Nutrition information
+       - "Cook Now" button
+       - "Remove from Favorites" button
+
+  ## Feature 4: Cooked Recipes History
+
+  **Requirements:**
+  1. Query `recipe_events` table:
+     - WHERE user_id = current_user AND event = 'cook_now'
+
+  2. Display in a separate tab or section showing:
+     - Recipe image and title
+     - Date cooked
+     - Option to "Cook Again" or view details
+
+  ## Technical Notes
+
+  1. Use existing Supabase client from `src/lib/supabase.ts`
+  2. Follow existing code patterns in the codebase
+  3. Use React Query for data fetching and caching
+  4. Use existing UI components and styling (Tailwind/NativeWind)
+  5. Ensure proper TypeScript types for all new code
+  6. Add proper loading and error states
+
+  ## File Structure Suggestions
+
+  main-front/src/
+  ├── screens/
+  │   ├── GroceryListScreen.tsx (new)
+  │   ├── SavedRecipesScreen.tsx (new)
+  │   └── RecipeDetailModal.tsx (new)
+  ├── components/
+  │   ├── recipe/
+  │   │   ├── RecipeCardBack.tsx (update)
+  │   │   ├── IngredientCheckbox.tsx (new)
+  │   │   └── RecipeDetailCard.tsx (new)
+  │   └── grocery/
+  │       ├── GroceryItem.tsx (new)
+  │       └── GroceryList.tsx (new)
+  ├── services/
+  │   ├── groceryService.ts (new)
+  │   └── recipeService.ts (update)
+  └── hooks/
+      ├── useGroceryList.ts (new)
+      └── useSavedRecipes.ts (new)
+
+  Please implement these features following React Native best practices and the existing code style in the project.
+
+  ---
+  This prompt gives Replit clear requirements, database schema, and file structure to work with. Run the SQL first in Supabase before asking Replit to implement
+  the features.
