@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { RecommendationCard } from '../components/RecommendationCard';
 import { recommendationService } from '../src/services/recommendationService';
+import { recipeCacheService } from '../src/services/recipeCacheService';
 import { useAuth } from '../src/context/supabase-provider';
 
 interface Recipe {
@@ -370,7 +371,26 @@ export default function RecipeSwipeScreen({ onNavigateBack }: RecipeSwipeScreenP
       await recommendationService.recordFeedback(session.user.id, currentRecipe.id, 'like');
       console.log('💚 Liked recipe:', currentRecipe.name);
 
-      // Advance to next recipe
+      await recipeCacheService.saveLikedRecipe({
+        id: currentRecipe.id,
+        title: currentRecipe.name,
+        image_url: currentRecipe.image,
+        category: currentRecipe.tags?.[0],
+        area: currentRecipe.tags?.[1],
+        calories: currentRecipe.nutrition.calories,
+        protein: currentRecipe.nutrition.protein,
+        carbs: currentRecipe.nutrition.carbs,
+        fat: currentRecipe.nutrition.fat,
+        servings: currentRecipe.servings,
+        instructions: currentRecipe.instructions,
+        ingredients: currentRecipe.ingredients,
+        tags: currentRecipe.tags,
+        description: currentRecipe.description,
+        difficulty: currentRecipe.difficulty,
+        cookTime: currentRecipe.cookTime,
+        rating: currentRecipe.rating,
+      });
+
       if (currentRecipeIndex < recipes.length - 1) {
         setCurrentRecipeIndex(prev => prev + 1);
       } else {
@@ -384,8 +404,27 @@ export default function RecipeSwipeScreen({ onNavigateBack }: RecipeSwipeScreenP
     if (currentRecipe && session?.user?.id) {
       await recommendationService.recordFeedback(session.user.id, currentRecipe.id, 'cook_now');
       console.log('🍳 Starting cooking mode for:', currentRecipe.name);
-      // TODO: Navigate to cooking mode or add to cooking queue
-      // For now, just advance to next recipe
+
+      await recipeCacheService.saveCookedRecipe({
+        id: currentRecipe.id,
+        title: currentRecipe.name,
+        image_url: currentRecipe.image,
+        category: currentRecipe.tags?.[0],
+        area: currentRecipe.tags?.[1],
+        calories: currentRecipe.nutrition.calories,
+        protein: currentRecipe.nutrition.protein,
+        carbs: currentRecipe.nutrition.carbs,
+        fat: currentRecipe.nutrition.fat,
+        servings: currentRecipe.servings,
+        instructions: currentRecipe.instructions,
+        ingredients: currentRecipe.ingredients,
+        tags: currentRecipe.tags,
+        description: currentRecipe.description,
+        difficulty: currentRecipe.difficulty,
+        cookTime: currentRecipe.cookTime,
+        rating: currentRecipe.rating,
+      });
+
       if (currentRecipeIndex < recipes.length - 1) {
         setCurrentRecipeIndex(prev => prev + 1);
       } else {
