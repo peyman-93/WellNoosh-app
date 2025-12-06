@@ -24,32 +24,14 @@ interface ItemPrices {
 export default function GroceryListScreen() {
   const [groceryList, setGroceryList] = useState<GroceryItem[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All')
   const [newItemName, setNewItemName] = useState('')
   const [newItemAmount, setNewItemAmount] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [showPriceComparison, setShowPriceComparison] = useState(true)
-  const [showSuggestions, setShowSuggestions] = useState(true)
   const [selectedStore, setSelectedStore] = useState('All Stores')
   const [isRecording, setIsRecording] = useState(false)
   const [recordedAudio, setRecordedAudio] = useState<string | null>(null)
   const [recordingDuration, setRecordingDuration] = useState(0)
-
-  // Smart shopping suggestions
-  const shoppingSuggestions = [
-    { name: 'Bananas', category: 'Fruits', reason: 'Great source of potassium' },
-    { name: 'Greek Yogurt', category: 'Dairy', reason: 'High protein breakfast' },
-    { name: 'Spinach', category: 'Vegetables', reason: 'Iron and vitamins' },
-    { name: 'Salmon', category: 'Protein', reason: 'Omega-3 fatty acids' },
-    { name: 'Quinoa', category: 'Grains', reason: 'Complete protein grain' },
-    { name: 'Avocados', category: 'Fruits', reason: 'Healthy fats' },
-    { name: 'Sweet Potatoes', category: 'Vegetables', reason: 'Complex carbohydrates' },
-    { name: 'Almonds', category: 'Nuts', reason: 'Healthy snack option' },
-    { name: 'Olive Oil', category: 'Pantry', reason: 'Healthy cooking oil' },
-    { name: 'Blueberries', category: 'Fruits', reason: 'Antioxidants' },
-    { name: 'Oats', category: 'Grains', reason: 'Fiber-rich breakfast' },
-    { name: 'Broccoli', category: 'Vegetables', reason: 'Vitamin C and fiber' },
-  ]
 
   // Enhanced mock price data for common grocery items
   const mockPriceData: ItemPrices[] = [
@@ -175,7 +157,6 @@ export default function GroceryListScreen() {
     },
   ]
 
-  const categories = ['All', 'Vegetables', 'Fruits', 'Protein', 'Dairy', 'Grains', 'Pantry', 'Spices', 'Fresh', 'Bakery', 'Nuts']
   const stores = ['All Stores', 'Lidl', 'Jumbo', 'Albert Heijn']
 
   const [isLoading, setIsLoading] = useState(true)
@@ -205,8 +186,7 @@ export default function GroceryListScreen() {
 
   const filteredItems = groceryList.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory
-    return matchesSearch && matchesCategory
+    return matchesSearch
   })
 
   const pendingItems = filteredItems.filter(item => !item.completed)
@@ -340,19 +320,6 @@ export default function GroceryListScreen() {
     )
   }
 
-  const addSuggestionToList = async (suggestion: { name: string; category: string; reason: string }) => {
-    try {
-      const newItem = await groceryListService.addItem({
-        name: suggestion.name,
-        amount: '1',
-        category: suggestion.category
-      })
-      setGroceryList([newItem, ...groceryList])
-    } catch (error) {
-      console.error('Error adding suggestion:', error)
-    }
-  }
-
   // Calculate savings and store analysis
   const calculateSavings = () => {
     const itemsWithPrices = groceryList
@@ -429,27 +396,6 @@ export default function GroceryListScreen() {
             />
           </View>
 
-          {/* Category Filter */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryContainer}>
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category}
-                onPress={() => setSelectedCategory(category)}
-                style={[
-                  styles.categoryButton,
-                  selectedCategory === category && styles.categoryButtonActive
-                ]}
-              >
-                <Text style={[
-                  styles.categoryText,
-                  selectedCategory === category && styles.categoryTextActive
-                ]}>
-                  {category}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
           {/* Enhanced Stats */}
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
@@ -475,45 +421,6 @@ export default function GroceryListScreen() {
               <Text style={styles.recommendationText}>
                 Shop here for {itemCount} items and save €{savings.toFixed(2)}
               </Text>
-            </View>
-          )}
-
-          {/* Smart Suggestions */}
-          {showSuggestions && groceryList.length < 5 && (
-            <View style={styles.suggestionsContainer}>
-              <View style={styles.suggestionsHeader}>
-                <Text style={styles.suggestionsTitle}>💡 Smart Suggestions</Text>
-                <TouchableOpacity onPress={() => setShowSuggestions(false)}>
-                  <Text style={styles.hideSuggestions}>Hide</Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsScroll}>
-                {shoppingSuggestions
-                  .filter(suggestion => !groceryList.some(item => item.name.toLowerCase() === suggestion.name.toLowerCase()))
-                  .slice(0, 6)
-                  .map((suggestion, index) => {
-                    const priceData = findPriceData(suggestion.name)
-                    const bestPrice = priceData ? Math.min(...priceData.prices.map(p => p.price)) : null
-                    
-                    return (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.suggestionCard}
-                        onPress={() => addSuggestionToList(suggestion)}
-                      >
-                        <Text style={styles.suggestionName}>{suggestion.name}</Text>
-                        <Text style={styles.suggestionReason}>{suggestion.reason}</Text>
-                        {bestPrice && (
-                          <Text style={styles.suggestionPrice}>From €{bestPrice.toFixed(2)}</Text>
-                        )}
-                        <View style={styles.suggestionAddButton}>
-                          <Text style={styles.suggestionAddText}>+ Add</Text>
-                        </View>
-                      </TouchableOpacity>
-                    )
-                  })
-                }
-              </ScrollView>
             </View>
           )}
 
@@ -805,11 +712,11 @@ export default function GroceryListScreen() {
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>🛒</Text>
               <Text style={styles.emptyStateTitle}>
-                {searchTerm || selectedCategory !== 'All' ? 'No items found' : 'Your grocery list is empty'}
+                {searchTerm ? 'No items found' : 'Your grocery list is empty'}
               </Text>
               <Text style={styles.emptyStateText}>
-                {searchTerm || selectedCategory !== 'All' 
-                  ? 'Try adjusting your search or filter criteria'
+                {searchTerm 
+                  ? 'Try adjusting your search'
                   : 'Add items from recipes or create your own shopping list'
                 }
               </Text>
