@@ -19,11 +19,12 @@ This project is organized as a monorepo with three main components:
 
 ### 2. Backend API (`main-backend/`)
 - **Technology**: Node.js with TypeScript and Express
-- **Port**: 3333
+- **Port**: 3000
 - **Purpose**: Backend-for-Frontend (BFF) API layer
-- **Features**: User management, recipes, meal plans, nutrition data
+- **Features**: User management, recipes, meal plans, nutrition data, AI meal planning
 - **Security**: Helmet, CORS, rate limiting
 - **Database**: Supabase (PostgreSQL)
+- **AI Integration**: OpenAI GPT-4o for meal plan generation
 
 ### 3. AI Recommendation Service (`main-brain/`)
 - **Technology**: Python with FastAPI
@@ -152,9 +153,41 @@ The exported static files can be deployed to any static hosting service.
 
 None documented yet.
 
+## AI Meal Planner Feature
+
+The app includes an AI-powered meal planning chatbot that helps users create personalized weekly meal plans based on their health profile, dietary restrictions, and preferences.
+
+### How It Works
+
+1. **Chat with AI**: Users can have a conversation with the AI assistant about their meal preferences
+2. **Generate Plan**: Based on the conversation, the AI generates a structured 7-day meal plan
+3. **Apply to Calendar**: The generated meals are automatically added to the meal planner calendar
+
+### Backend API Endpoints
+
+- `POST /api/meal-plans/ai-chat` - Chat with the AI assistant
+- `POST /api/meal-plans/ai-generate` - Generate a structured meal plan from the conversation
+
+### Using Your Own OpenAI API Key
+
+By default, the app uses Replit's OpenAI integration. To use your own OpenAI API key:
+
+1. Add your OpenAI API key as a secret named `OPENAI_API_KEY`
+2. Modify `main-backend/src/controllers/mealPlanController.ts`:
+   ```typescript
+   const openai = new OpenAI({
+     apiKey: process.env.OPENAI_API_KEY,
+     // Remove baseURL to use OpenAI directly
+   });
+   ```
+
 ## Recent Changes
 
 ### December 2024
+- Added AI meal planner chatbot feature with OpenAI GPT-4o integration
+- Created secure backend API endpoints for AI chat and meal plan generation
+- Fixed meal planner week selection to correctly use the selected week
+- Corrected backend port to 3000
 - Initial project import completed
 - Configured Metro bundler for Replit proxy compatibility
 - Set up environment variables and Supabase integration

@@ -172,14 +172,25 @@ class MealPlanController {
       throw createError('startDate is required', 400);
     }
 
+    // Validate startDate format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(startDate)) {
+      throw createError('startDate must be in YYYY-MM-DD format', 400);
+    }
+
+    const start = new Date(startDate);
+    if (isNaN(start.getTime())) {
+      throw createError('startDate is not a valid date', 400);
+    }
+
     const systemPrompt = buildSystemPrompt(healthContext || {});
 
     const dates: string[] = [];
-    const start = new Date(startDate);
     for (let i = 0; i < numberOfDays; i++) {
       const date = new Date(start);
       date.setDate(start.getDate() + i);
-      dates.push(date.toISOString().split('T')[0]);
+      const dateStr = date.toISOString().split('T')[0] as string;
+      dates.push(dateStr);
     }
 
     const generationPrompt = `
