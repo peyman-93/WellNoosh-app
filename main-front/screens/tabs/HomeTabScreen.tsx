@@ -2158,35 +2158,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A1A1A', // Soft black - primary text
-    fontFamily: 'Inter',
-  },
-  closeButton: {
-    fontSize: 24,
-    color: '#4A4A4A', // Warm charcoal - secondary text
-    fontWeight: '600',
-  },
   metricsScrollView: {
     flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A', // Soft black - primary text
-    marginBottom: 12,
-    marginTop: 8,
-    fontFamily: 'Inter',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   modalWheelsGrid: {
     flexDirection: 'row',
