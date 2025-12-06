@@ -1,5 +1,6 @@
 -- WellNoosh Database Schema for Supabase
 -- Run these SQL commands in your Supabase SQL Editor
+-- Safe to run multiple times - will not overwrite existing tables or data
 
 -- 1. User Health Profiles Table
 -- Stores user health goals, dietary preferences, and lifestyle information
@@ -22,7 +23,11 @@ CREATE TABLE IF NOT EXISTS user_health_profiles (
 -- Enable RLS for user_health_profiles
 ALTER TABLE user_health_profiles ENABLE ROW LEVEL SECURITY;
 
--- Policy: Users can only access their own health profile
+-- Policies for user_health_profiles (drop first if exists)
+DROP POLICY IF EXISTS "Users can view own health profile" ON user_health_profiles;
+DROP POLICY IF EXISTS "Users can insert own health profile" ON user_health_profiles;
+DROP POLICY IF EXISTS "Users can update own health profile" ON user_health_profiles;
+
 CREATE POLICY "Users can view own health profile" ON user_health_profiles
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -54,7 +59,12 @@ CREATE TABLE IF NOT EXISTS daily_check_ins (
 -- Enable RLS for daily_check_ins
 ALTER TABLE daily_check_ins ENABLE ROW LEVEL SECURITY;
 
--- Policies for daily_check_ins
+-- Policies for daily_check_ins (drop first if exists)
+DROP POLICY IF EXISTS "Users can view own check-ins" ON daily_check_ins;
+DROP POLICY IF EXISTS "Users can insert own check-ins" ON daily_check_ins;
+DROP POLICY IF EXISTS "Users can update own check-ins" ON daily_check_ins;
+DROP POLICY IF EXISTS "Users can delete own check-ins" ON daily_check_ins;
+
 CREATE POLICY "Users can view own check-ins" ON daily_check_ins
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -79,7 +89,10 @@ CREATE TABLE IF NOT EXISTS weight_logs (
 -- Enable RLS for weight_logs
 ALTER TABLE weight_logs ENABLE ROW LEVEL SECURITY;
 
--- Policies for weight_logs
+-- Policies for weight_logs (drop first if exists)
+DROP POLICY IF EXISTS "Users can view own weight logs" ON weight_logs;
+DROP POLICY IF EXISTS "Users can insert own weight logs" ON weight_logs;
+
 CREATE POLICY "Users can view own weight logs" ON weight_logs
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -109,7 +122,12 @@ CREATE TABLE IF NOT EXISTS meal_plans (
 -- Enable RLS for meal_plans
 ALTER TABLE meal_plans ENABLE ROW LEVEL SECURITY;
 
--- Policies for meal_plans
+-- Policies for meal_plans (drop first if exists)
+DROP POLICY IF EXISTS "Users can view own meal plans" ON meal_plans;
+DROP POLICY IF EXISTS "Users can insert own meal plans" ON meal_plans;
+DROP POLICY IF EXISTS "Users can update own meal plans" ON meal_plans;
+DROP POLICY IF EXISTS "Users can delete own meal plans" ON meal_plans;
+
 CREATE POLICY "Users can view own meal plans" ON meal_plans
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -137,7 +155,12 @@ CREATE TABLE IF NOT EXISTS grocery_items (
 -- Enable RLS for grocery_items
 ALTER TABLE grocery_items ENABLE ROW LEVEL SECURITY;
 
--- Policies for grocery_items
+-- Policies for grocery_items (drop first if exists)
+DROP POLICY IF EXISTS "Users can view own grocery items" ON grocery_items;
+DROP POLICY IF EXISTS "Users can insert own grocery items" ON grocery_items;
+DROP POLICY IF EXISTS "Users can update own grocery items" ON grocery_items;
+DROP POLICY IF EXISTS "Users can delete own grocery items" ON grocery_items;
+
 CREATE POLICY "Users can view own grocery items" ON grocery_items
   FOR SELECT USING (auth.uid() = user_id);
 
