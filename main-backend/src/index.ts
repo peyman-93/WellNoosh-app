@@ -17,7 +17,7 @@ import { nutritionRoutes } from './routes/nutrition';
 dotenv.config({ path: require('path').resolve(__dirname, '../../.env') });
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3333', 10);
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 // Security middleware
 app.use(helmet());

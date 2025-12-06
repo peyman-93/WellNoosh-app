@@ -10,6 +10,7 @@ import { useAuth } from '../../src/context/supabase-provider'
 import { WaterTracker } from '../../src/components/features/WaterTracker'
 import { BreathingExercises } from '../../src/components/features/BreathingExercises'
 import { AddMealModal } from '../../src/components/modals/AddMealModal'
+import { MealPlanChatModal } from '../../src/components/modals/MealPlanChatModal'
 import DailyCheckInScreen from '../DailyCheckInScreen'
 import { HealthyPlateIcon } from '../../src/components/Icons/HealthyPlateIcon'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
@@ -131,6 +132,7 @@ export default function DashboardScreen() {
   // State
   const [showDailyCheckIn, setShowDailyCheckIn] = useState(false)
   const [showAddMeal, setShowAddMeal] = useState(false)
+  const [showMealPlanChat, setShowMealPlanChat] = useState(false)
   // Customizable nutrition wheels
   const [selectedWheels, setSelectedWheels] = useState(['calories', 'protein', 'fiber'])
   const [showNutritionModal, setShowNutritionModal] = useState(false)
@@ -207,52 +209,22 @@ export default function DashboardScreen() {
     loadTodaysMealPlan()
   }, [session?.user?.id])
 
-  // Generate meal plan for today
-  const handleGenerateMealPlan = async () => {
-    if (!session?.user?.id || generatingMealPlan) return
+  // Generate meal plan for today - opens AI chatbot
+  const handleGenerateMealPlan = () => {
+    if (!session?.user?.id) return
+    setShowMealPlanChat(true)
+  }
 
+  // Callback when meal plan is generated from chatbot
+  const handleMealPlanGenerated = async () => {
+    if (!session?.user?.id) return
+    
     try {
-      setGeneratingMealPlan(true)
-      console.log('🤖 Generating meal plan for today...')
-
-      const [targetCalories, dietaryRestrictions] = await Promise.all([
-        getUserCalorieTarget(session.user.id),
-        getUserDietaryRestrictions(session.user.id)
-      ])
-
-      const planDate = new Date()
-      console.log('🗓️ Generating meal plan for date:', planDate)
-      console.log('🗓️ Plan date ISO:', planDate.toISOString().split('T')[0])
-      
-      await generateAndSaveMealPlan({
-        userId: session.user.id,
-        planDate,
-        targetCalories,
-        dietaryRestrictions,
-        mealsPerDay: 3,
-        includeSnacks: true
-      })
-
-      // Reload meal plan with a small delay to ensure database has propagated
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
       const newMealPlan = await getTodaysMealPlan(session.user.id)
-      console.log('🔄 Reloaded meal plan after generation:', newMealPlan)
       setDashboardMealPlan(newMealPlan)
-      
-      if (newMealPlan) {
-        console.log('✅ Generated and loaded meal plan successfully')
-        Alert.alert('Success', 'Generated your meal plan for today!')
-      } else {
-        console.log('⚠️ Meal plan was generated but not loaded properly')
-        Alert.alert('Success', 'Meal plan generated! Pull down to refresh.')
-      }
-
+      console.log('✅ Reloaded meal plan after AI generation')
     } catch (error) {
-      console.error('❌ Error generating meal plan:', error)
-      Alert.alert('Error', 'Failed to generate meal plan. Please try again.')
-    } finally {
-      setGeneratingMealPlan(false)
+      console.error('Error reloading meal plan:', error)
     }
   }
 
@@ -959,6 +931,19 @@ export default function DashboardScreen() {
         visible={showAddMeal}
         onClose={() => setShowAddMeal(false)}
         onSave={handleSaveMealFromModal}
+      />
+
+      {/* AI Meal Plan Chat Modal */}
+      <MealPlanChatModal
+        visible={showMealPlanChat}
+        onClose={() => setShowMealPlanChat(false)}
+        onPlanGenerated={handleMealPlanGenerated}
+        weekStartDate={(() => {
+          const today = new Date()
+          today.setDate(today.getDate() - today.getDay())
+          today.setHours(0, 0, 0, 0)
+          return today
+        })()}
       />
       
       {/* Nutrition Metrics Modal */}

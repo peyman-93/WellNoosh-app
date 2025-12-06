@@ -8,6 +8,10 @@ const router = Router();
 // All meal plan routes require authentication
 router.use(requireAuth);
 
+// AI-powered meal planning (NEW)
+router.post('/ai-chat', mealPlanController.aiChat);
+router.post('/ai-generate', mealPlanController.aiGeneratePlan);
+
 // Meal plan CRUD operations
 router.get('/', mealPlanController.getMealPlans);
 router.post('/', validateMealPlan, mealPlanController.createMealPlan);
