@@ -13,6 +13,12 @@ export interface MealPlanEntry {
   custom_title?: string;
   notes?: string;
   servings: number;
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  fiber_g?: number;
+  is_completed?: boolean;
   created_at: string;
   updated_at: string;
 }

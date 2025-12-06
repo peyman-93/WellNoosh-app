@@ -16,9 +16,8 @@ import { HealthyPlateIcon } from '../../src/components/Icons/HealthyPlateIcon'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 // Services
-import { getTodaysMealPlan, completePlannedMeal, uncompletePlannedMeal, addPlannedMeal } from '../../src/services/mealPlanService'
-import { generateAndSaveMealPlan, getUserCalorieTarget, getUserDietaryRestrictions } from '../../src/services/mealPlanGenerator'
-import type { DashboardMealPlan, DashboardMeal } from '../../src/types/mealPlan'
+import { getNutritionDashboard, markMealCompleted, type NutritionDashboard } from '../../src/services/nutritionService'
+import { mealPlannerService, type MealPlanEntry } from '../../src/services/mealPlannerService'
 
 const { width: screenWidth } = Dimensions.get('window')
 
@@ -138,10 +137,10 @@ export default function DashboardScreen() {
   const [showNutritionModal, setShowNutritionModal] = useState(false)
   const [showAllMeals, setShowAllMeals] = useState(false)
   
-  // Meal plan state
-  const [dashboardMealPlan, setDashboardMealPlan] = useState<DashboardMealPlan | null>(null)
+  // Meal plan and nutrition state
+  const [todaysMeals, setTodaysMeals] = useState<MealPlanEntry[]>([])
+  const [nutritionDashboard, setNutritionDashboard] = useState<NutritionDashboard | null>(null)
   const [loadingMealPlan, setLoadingMealPlan] = useState(true)
-  const [generatingMealPlan, setGeneratingMealPlan] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   
   // Greeting state
@@ -176,38 +175,36 @@ export default function DashboardScreen() {
     updateGreeting() // Set initial greeting
   }, [])
 
-  // Load today's meal plan on component mount
-  useEffect(() => {
-    const loadTodaysMealPlan = async () => {
-      if (!session?.user?.id) return
+  // Load today's meals and nutrition data
+  const loadTodaysData = useCallback(async () => {
+    if (!session?.user?.id) return
 
-      try {
-        setLoadingMealPlan(true)
-        const today = new Date().toISOString().split('T')[0]
-        console.log('🔄 Loading meal plan for today:', today, 'User:', session.user.id)
-        console.log('🌍 Current timezone offset:', new Date().getTimezoneOffset())
-        console.log('📅 Current date object:', new Date())
-        
-        const mealPlan = await getTodaysMealPlan(session.user.id)
-        
-        if (mealPlan) {
-          console.log('✅ Loaded meal plan:', mealPlan)
-          setDashboardMealPlan(mealPlan)
-        } else {
-          console.log('ℹ️ No meal plan found for today:', today)
-          setDashboardMealPlan(null)
-        }
-      } catch (error) {
-        console.error('❌ Error loading meal plan (expected due to simplified database):', error)
-        // Gracefully handle missing meal plan services - show no meal plan state
-        setDashboardMealPlan(null)
-      } finally {
-        setLoadingMealPlan(false)
-      }
+    try {
+      setLoadingMealPlan(true)
+      const today = new Date()
+      console.log('🔄 Loading meals and nutrition for today')
+      
+      // Load meals and nutrition in parallel
+      const [meals, nutrition] = await Promise.all([
+        mealPlannerService.getMealPlanForDate(today),
+        getNutritionDashboard(session.user.id)
+      ])
+      
+      console.log('✅ Loaded meals:', meals.length, 'Nutrition:', nutrition)
+      setTodaysMeals(meals)
+      setNutritionDashboard(nutrition)
+    } catch (error) {
+      console.error('❌ Error loading data:', error)
+      setTodaysMeals([])
+      setNutritionDashboard(null)
+    } finally {
+      setLoadingMealPlan(false)
     }
-
-    loadTodaysMealPlan()
   }, [session?.user?.id])
+
+  useEffect(() => {
+    loadTodaysData()
+  }, [loadTodaysData])
 
   // Generate meal plan for today - opens AI chatbot
   const handleGenerateMealPlan = () => {
@@ -218,14 +215,8 @@ export default function DashboardScreen() {
   // Callback when meal plan is generated from chatbot
   const handleMealPlanGenerated = async () => {
     if (!session?.user?.id) return
-    
-    try {
-      const newMealPlan = await getTodaysMealPlan(session.user.id)
-      setDashboardMealPlan(newMealPlan)
-      console.log('✅ Reloaded meal plan after AI generation')
-    } catch (error) {
-      console.error('Error reloading meal plan:', error)
-    }
+    await loadTodaysData()
+    console.log('✅ Reloaded data after AI generation')
   }
 
   // Refresh meal plan data
@@ -234,20 +225,14 @@ export default function DashboardScreen() {
 
     try {
       setRefreshing(true)
-      console.log('🔄 Refreshing meal plan data...')
-      
-      const today = new Date().toISOString().split('T')[0]
-      const mealPlan = await getTodaysMealPlan(session.user.id)
-      
-      console.log('🔄 Refreshed meal plan:', mealPlan)
-      setDashboardMealPlan(mealPlan)
-      
+      console.log('🔄 Refreshing data...')
+      await loadTodaysData()
     } catch (error) {
-      console.error('❌ Error refreshing meal plan:', error)
+      console.error('❌ Error refreshing:', error)
     } finally {
       setRefreshing(false)
     }
-  }, [session?.user?.id])
+  }, [session?.user?.id, loadTodaysData])
 
   // Utility function to format time from HH:MM:SS to HH:MM
   const formatTime = (timeString: string): string => {
@@ -265,71 +250,55 @@ export default function DashboardScreen() {
     return timeString || '12:00'
   }
 
-  // Calculate nutrition data from completed meals
-  const calculateCompletedCalories = () => {
-    if (dashboardMealPlan) {
-      const calories = dashboardMealPlan.completionStats.caloriesCompleted
-      console.log('🍽️ Dashboard calculated calories:', calories, 'from', dashboardMealPlan.completionStats.completedMeals, 'completed meals')
-      return calories
-    }
-    return 0
-  }
-
-  const calculateCompletedNutrition = () => {
-    if (!dashboardMealPlan) return { protein: 0, carbs: 0, fat: 0, fiber: 0 }
-    
-    const completedMeals = dashboardMealPlan.meals.filter(meal => meal.isCompleted)
-    const totalCalories = completedMeals.reduce((sum, meal) => sum + meal.calories, 0)
-    
-    // Rough estimates based on calories (these would be more accurate with real nutrition data)
-    return {
-      protein: Math.round(totalCalories * 0.05), // ~20% of calories from protein
-      carbs: Math.round(totalCalories * 0.12),   // ~50% of calories from carbs  
-      fat: Math.round(totalCalories * 0.04),     // ~30% of calories from fat
-      fiber: Math.round(totalCalories * 0.01)    // Rough fiber estimate
-    }
-  }
-
-  const completedNutrition = calculateCompletedNutrition()
+  // Nutrition data from dashboard
   const nutritionData = {
-    calories: { completed: calculateCompletedCalories(), goal: dashboardMealPlan?.mealPlan.target_calories || 2000, unit: '' },
-    protein: { completed: completedNutrition.protein, goal: dashboardMealPlan?.mealPlan.target_protein_g || 60, unit: 'g' },
-    fiber: { completed: completedNutrition.fiber, goal: 25, unit: 'g' },
-    carbs: { completed: completedNutrition.carbs, goal: dashboardMealPlan?.mealPlan.target_carbs_g || 250, unit: 'g' },
-    fat: { completed: completedNutrition.fat, goal: dashboardMealPlan?.mealPlan.target_fat_g || 65, unit: 'g' },
-    sugar: { completed: Math.round(calculateCompletedCalories() * 0.03), goal: 50, unit: 'g' },
-    sodium: { completed: Math.round(calculateCompletedCalories() * 1.4), goal: 2300, unit: 'mg' },
+    calories: { 
+      completed: nutritionDashboard?.totals.calories || 0, 
+      goal: nutritionDashboard?.goals.calorie_goal || 2000, 
+      unit: '' 
+    },
+    protein: { 
+      completed: Math.round(nutritionDashboard?.totals.protein_g || 0), 
+      goal: nutritionDashboard?.goals.protein_goal_g || 50, 
+      unit: 'g' 
+    },
+    fiber: { 
+      completed: Math.round(nutritionDashboard?.totals.fiber_g || 0), 
+      goal: nutritionDashboard?.goals.fiber_goal_g || 25, 
+      unit: 'g' 
+    },
+    carbs: { 
+      completed: Math.round(nutritionDashboard?.totals.carbs_g || 0), 
+      goal: nutritionDashboard?.goals.carbs_goal_g || 250, 
+      unit: 'g' 
+    },
+    fat: { 
+      completed: Math.round(nutritionDashboard?.totals.fat_g || 0), 
+      goal: nutritionDashboard?.goals.fat_goal_g || 65, 
+      unit: 'g' 
+    },
+    sugar: { completed: 0, goal: 50, unit: 'g' },
+    sodium: { completed: 0, goal: 2300, unit: 'mg' },
     water: { completed: completedGlasses, goal: 10, unit: '' }
   }
 
   const handleToggleMeal = async (mealId: string) => {
-    if (!dashboardMealPlan) return
-
-    const meal = dashboardMealPlan.meals.find(m => m.id === mealId)
+    const meal = todaysMeals.find(m => m.id === mealId)
     if (!meal) return
 
     try {
-      console.log('🔄 Toggling meal completion:', mealId, 'current state:', meal.isCompleted)
+      const newCompletedState = !meal.is_completed
+      console.log('🔄 Toggling meal completion:', mealId, 'to:', newCompletedState)
 
-      if (meal.isCompleted) {
-        // Uncomplete the meal
-        await uncompletePlannedMeal(mealId)
-      } else {
-        // Complete the meal
-        await completePlannedMeal({ meal_id: mealId })
-      }
-
-      // Reload meal plan to get updated completion status
-      const updatedMealPlan = await getTodaysMealPlan(session!.user!.id)
-      setDashboardMealPlan(updatedMealPlan)
+      const success = await markMealCompleted(mealId, newCompletedState)
       
-      // Give the database trigger time to update daily_nutrition_summary
-      // This ensures Health Tracker will show updated data
-      setTimeout(() => {
-        console.log('📊 Meal completion should now be reflected in nutrition tracking')
-      }, 100)
-
-      console.log('✅ Meal completion toggled successfully')
+      if (success) {
+        // Reload data to get updated nutrition totals
+        await loadTodaysData()
+        console.log('✅ Meal completion toggled successfully')
+      } else {
+        Alert.alert('Error', 'Failed to update meal status. Please try again.')
+      }
 
     } catch (error) {
       console.error('❌ Error toggling meal completion:', error)
@@ -339,17 +308,6 @@ export default function DashboardScreen() {
 
 
   const handleAddMeal = () => {
-    if (!dashboardMealPlan) {
-      Alert.alert(
-        'No Meal Plan',
-        'You need a meal plan to add meals. Would you like to generate one?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Generate Plan', onPress: handleGenerateMealPlan }
-        ]
-      )
-      return
-    }
     setShowAddMeal(true)
   }
 
@@ -388,133 +346,71 @@ export default function DashboardScreen() {
   }
 
   const handleSaveMealFromModal = useCallback(async (mealData: any) => {
-    if (!session?.user?.id || !dashboardMealPlan) {
-      Alert.alert('Error', 'Please generate a meal plan first or try again later.')
+    if (!session?.user?.id) {
+      Alert.alert('Error', 'Please sign in first.')
       return
     }
 
     try {
-      console.log('🔄 Adding manual meal to meal plan:', mealData)
+      console.log('🔄 Adding meal:', mealData)
 
       const getCaloriesForType = () => {
         if (mealData.calories) return parseInt(mealData.calories)
         
-        const calorieMap = {
-          // Meals
+        const calorieMap: { [key: string]: number } = {
           breakfast: 400, lunch: 550, dinner: 650, brunch: 500,
-          // Snacks
           snack: 150, 'light-snack': 80, 'protein-snack': 200,
-          // Beverages
           water: 0, coffee: 5, tea: 2, soda: 150, juice: 110, 
           'energy-drink': 160, smoothie: 250, 'sports-drink': 80,
-          // Alcohol
           beer: 150, wine: 120, cocktail: 200, spirits: 100,
-          // Desserts
           dessert: 350, 'ice-cream': 250, cake: 400, pastry: 300,
-          // Supplements
           supplement: 25, 'protein-shake': 120, vitamins: 5,
-          // Fast Food
           'fast-food': 600, pizza: 285, burger: 540,
-          // Other
           gum: 5, candy: 50
         }
         
-        let baseCalories = calorieMap[mealData.type] || 300
-        
-        // Adjust for drink options
-        if (['coffee', 'tea', 'soda', 'smoothie'].includes(mealData.type)) {
-          const sizeMultiplier = { small: 0.8, medium: 1, large: 1.3 }[mealData.drinkOptions?.size || 'medium']
-          baseCalories *= sizeMultiplier
-          if (mealData.drinkOptions?.withSugar) baseCalories += 20
-          if (mealData.drinkOptions?.withMilk) baseCalories += 30
-        }
-        
-        return Math.round(baseCalories)
+        return calorieMap[mealData.type] || 300
       }
 
       const getTitleForType = () => {
         if (mealData.title) return mealData.title
-        if (mealData.recordedText) return mealData.recordedText.slice(0, 30) + '...'
         
-        const titleMap = {
-          // Meals
+        const titleMap: { [key: string]: string } = {
           breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', brunch: 'Brunch',
-          // Snacks
           snack: 'Snack', 'light-snack': 'Light Snack', 'protein-snack': 'Protein Snack',
-          // Beverages
           water: 'Water', coffee: 'Coffee', tea: 'Tea', soda: 'Soda', juice: 'Juice',
-          'energy-drink': 'Energy Drink', smoothie: 'Smoothie', 'sports-drink': 'Sports Drink',
-          // Alcohol
-          beer: 'Beer', wine: 'Wine', cocktail: 'Cocktail', spirits: 'Spirits',
-          // Desserts
-          dessert: 'Dessert', 'ice-cream': 'Ice Cream', cake: 'Cake', pastry: 'Pastry',
-          // Supplements
-          supplement: 'Supplement', 'protein-shake': 'Protein Shake', vitamins: 'Vitamins',
-          // Fast Food
-          'fast-food': 'Fast Food', pizza: 'Pizza', burger: 'Burger',
-          // Other
-          gum: 'Gum', candy: 'Candy'
+          dessert: 'Dessert', 'fast-food': 'Fast Food', pizza: 'Pizza', burger: 'Burger'
         }
         
-        let title = titleMap[mealData.type] || 'Food Entry'
-        
-        // Add drink modifiers
-        if (['coffee', 'tea', 'soda', 'smoothie'].includes(mealData.type)) {
-          const modifiers = []
-          if (mealData.drinkOptions?.size) {
-            modifiers.push(mealData.drinkOptions.size.charAt(0).toUpperCase() + mealData.drinkOptions.size.slice(1))
-          }
-          if (mealData.drinkOptions?.withMilk) modifiers.push('with Milk')
-          if (mealData.drinkOptions?.withSugar) modifiers.push('with Sugar')
-          if (modifiers.length > 0) title += ` (${modifiers.join(', ')})`
-        }
-        
-        return title
+        return titleMap[mealData.type] || 'Food Entry'
       }
 
-      // Map meal type to our standard meal types
-      const mapMealType = (type: string) => {
-        const mealTypeMap: { [key: string]: string } = {
-          'breakfast': 'breakfast',
-          'lunch': 'lunch', 
-          'dinner': 'dinner',
-          'brunch': 'brunch',
-          'snack': 'snack',
-          'light-snack': 'snack',
-          'protein-snack': 'snack',
-          // All other types default to 'other'
-        }
-        return mealTypeMap[type] || 'other'
+      const mapMealSlot = (type: string): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
+        if (['breakfast', 'brunch'].includes(type)) return 'breakfast'
+        if (type === 'lunch') return 'lunch'
+        if (type === 'dinner') return 'dinner'
+        return 'snack'
       }
 
-      // Add the meal to the current meal plan
-      await addPlannedMeal({
-        meal_plan_id: dashboardMealPlan.mealPlan.id,
-        meal_type: mapMealType(mealData.type) as any,
-        meal_order: 1,
-        scheduled_time: mealData.time,
-        food_name: getTitleForType(),
-        calories: getCaloriesForType(),
-        serving_size: 1,
-        serving_unit: 'serving',
-        food_category: mealData.type,
-        preparation_method: 'Manual entry',
-        difficulty_level: 'easy',
-        notes: mealData.description || mealData.recordedText || null
+      const today = new Date().toISOString().split('T')[0]
+      
+      await mealPlannerService.addMealSlot({
+        plan_date: today,
+        meal_slot: mapMealSlot(mealData.type),
+        custom_title: getTitleForType(),
+        notes: mealData.description || null
       })
 
-      // Reload meal plan to show the new meal
-      const updatedMealPlan = await getTodaysMealPlan(session.user.id)
-      setDashboardMealPlan(updatedMealPlan)
+      await loadTodaysData()
 
-      console.log('✅ Added manual meal to meal plan')
+      console.log('✅ Added meal')
       Alert.alert('Success', 'Added meal to your plan!')
 
     } catch (error) {
-      console.error('❌ Error adding manual meal:', error)
+      console.error('❌ Error adding meal:', error)
       Alert.alert('Error', 'Failed to add meal. Please try again.')
     }
-  }, [session?.user?.id, dashboardMealPlan])
+  }, [session?.user?.id, loadTodaysData])
 
 
 
@@ -551,72 +447,33 @@ export default function DashboardScreen() {
     navigation.navigate('Profile' as never)
   }
 
-  // Get meal statistics from dashboard meal plan
-  const completedMeals = dashboardMealPlan?.completionStats.completedMeals || 0
-  const totalMeals = dashboardMealPlan?.completionStats.totalMeals || 0
+  // Get meal statistics
+  const completedMeals = nutritionDashboard?.totals.completedMeals || 0
+  const totalMeals = nutritionDashboard?.totals.totalMeals || 0
 
-  // Get the 2 meals closest to current time
-  const getContextualMeals = () => {
-    if (!dashboardMealPlan?.meals) return []
-
-    const now = new Date()
-    const currentTime = now.getHours() * 60 + now.getMinutes() // Current time in minutes
-
-    // Calculate time distance for each meal
-    const mealsWithTimeDistance = dashboardMealPlan.meals.map(meal => {
-      const [hours, minutes] = meal.scheduledTime.split(':').map(Number)
-      const mealTimeInMinutes = hours * 60 + minutes
-      
-      // Calculate absolute time difference
-      let timeDiff = Math.abs(currentTime - mealTimeInMinutes)
-      
-      // Handle wrap-around for meals near midnight
-      if (timeDiff > 720) { // More than 12 hours
-        timeDiff = 1440 - timeDiff // 24 hours - difference
-      }
-      
-      return {
-        ...meal,
-        timeDistance: timeDiff,
-        mealTimeInMinutes
-      }
-    })
-
-    // Sort by time distance (closest first)
-    const sortedByDistance = [...mealsWithTimeDistance].sort((a, b) => a.timeDistance - b.timeDistance)
-    
-    // Take the 2 closest meals
-    const closestMeals = sortedByDistance.slice(0, 2)
-    
-    // Sort these 2 meals by actual scheduled time for display
-    const recentMeals = closestMeals.sort((a, b) => a.mealTimeInMinutes - b.mealTimeInMinutes)
-      .map((meal, index) => ({
-        ...meal,
-        contextLabel: meal.isCompleted ? 'Completed' : 
-                     meal.mealTimeInMinutes < currentTime ? 'Recent' : 'Upcoming',
-        isContextual: true
-      }))
-    
-    console.log(`🍽️ Current time: ${Math.floor(currentTime/60)}:${String(currentTime%60).padStart(2, '0')}`)
-    console.log('🍽️ Showing 2 meals closest to current time:')
-    recentMeals.forEach((meal, index) => {
-      console.log(`  ${index + 1}. ${meal.foodName} at ${meal.scheduledTime} - ${meal.contextLabel} (${meal.timeDistance} min away)`)
-    })
-    
-    return recentMeals
+  // Map meal slot to display time
+  const getMealTime = (slot: string) => {
+    const times: { [key: string]: string } = {
+      breakfast: '08:00',
+      lunch: '12:00',
+      dinner: '18:00',
+      snack: '15:00'
+    }
+    return times[slot] || '12:00'
   }
 
-  const contextualMeals = getContextualMeals()
+  // Get display title for a meal
+  const getMealTitle = (meal: MealPlanEntry) => {
+    return meal.custom_title || meal.recipe_title || meal.meal_slot.charAt(0).toUpperCase() + meal.meal_slot.slice(1)
+  }
+
+  // Simplified contextual meals - just show all today's meals
+  const contextualMeals = todaysMeals.slice(0, 4)
 
   // Meal plan progress calculations
   const getMealPlanPercentage = () => {
-    if (!dashboardMealPlan) return 0
-    return dashboardMealPlan.completionStats.percentage
-  }
-
-  const getMealPlanDaysPlanned = () => {
-    // This would come from a separate query in a real app
-    return dashboardMealPlan ? 1 : 0
+    if (totalMeals === 0) return 0
+    return Math.round((completedMeals / totalMeals) * 100)
   }
 
 
@@ -756,7 +613,7 @@ export default function DashboardScreen() {
           <View style={styles.mealPlanningHeader}>
             <View style={styles.mealPlanningTitleSection}>
               <Text style={styles.mealPlanningTitle}>Meal's Plan</Text>
-              {dashboardMealPlan ? (
+              {todaysMeals.length > 0 ? (
                 <Text style={styles.mealPlanningSubtitle}>{greeting}! {completedMeals} of {totalMeals} completed today</Text>
               ) : (
                 <Text style={styles.mealPlanningSubtitle}>{greeting}! Plan your daily nutrition</Text>
@@ -764,79 +621,55 @@ export default function DashboardScreen() {
             </View>
             
             <View style={styles.mealPlanningActions}>
-              {/* Generate/Add Button */}
-              {dashboardMealPlan ? (
-                <TouchableOpacity 
-                  style={styles.addMealButton} 
-                  onPress={handleAddMeal}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.addMealIcon}>+</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity 
-                  style={[styles.generateMealButton, { opacity: generatingMealPlan ? 0.5 : 1 }]}
-                  onPress={handleGenerateMealPlan}
-                  activeOpacity={0.7}
-                  disabled={generatingMealPlan}
-                >
-                  <Text style={styles.generateMealButtonText}>
-                    {generatingMealPlan ? 'Generating...' : 'Generate Plan'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity 
+                style={styles.addMealButton} 
+                onPress={handleAddMeal}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.addMealIcon}>+</Text>
+              </TouchableOpacity>
             </View>
           </View>
           
           
-          {dashboardMealPlan ? (
+          {todaysMeals.length > 0 ? (
             <View style={styles.mealsCompactGrid}>
-              {(showAllMeals ? dashboardMealPlan.meals : contextualMeals).map(meal => (
+              {(showAllMeals ? todaysMeals : contextualMeals).map((meal: MealPlanEntry) => (
                 <TouchableOpacity
                   key={meal.id}
-                  style={[styles.mealCompactCard, meal.isCompleted && styles.mealCompactCardCompleted]}
+                  style={[styles.mealCompactCard, meal.is_completed && styles.mealCompactCardCompleted]}
                   onPress={() => handleToggleMeal(meal.id)}
                   activeOpacity={0.7}
                 >
                   <View style={[
                     styles.mealCompactLeft,
-                    meal.isCompleted ? styles.mealCompactLeftCompleted : styles.mealCompactLeftIncomplete
+                    meal.is_completed ? styles.mealCompactLeftCompleted : styles.mealCompactLeftIncomplete
                   ]}>
                     <Text style={[
                       styles.mealCompactTimeLeft,
-                      !meal.isCompleted && { color: '#4A4A4A' }
-                    ]}>{formatTime(meal.scheduledTime)}</Text>
+                      !meal.is_completed && { color: '#4A4A4A' }
+                    ]}>{getMealTime(meal.meal_slot)}</Text>
                   </View>
                   <View style={styles.mealCompactRight}>
-                    <Text style={styles.mealCompactTitle}>{meal.foodName}</Text>
+                    <Text style={styles.mealCompactTitle}>{getMealTitle(meal)}</Text>
                     <View style={styles.mealCompactBottomRow}>
                       <Text style={styles.mealCompactCalories}>
-                        {meal.calories} cal
+                        {meal.calories || 0} cal
                       </Text>
-                      {!showAllMeals && meal.contextLabel && (
-                        <Text style={[
-                          styles.mealContextLabel,
-                          meal.contextLabel === 'Completed' && styles.mealContextCompleted,
-                          meal.contextLabel === 'Latest' && styles.mealContextCurrent,
-                          meal.contextLabel === 'Recent' && styles.mealContextNext,
-                        ]}>
-                          {meal.contextLabel}
-                        </Text>
-                      )}
                     </View>
                   </View>
                 </TouchableOpacity>
               ))}
               
               {/* Show "more" indicator when there are hidden meals */}
-              {!showAllMeals && dashboardMealPlan.meals.length > contextualMeals.length && (
+              {!showAllMeals && todaysMeals.length > contextualMeals.length && (
                 <TouchableOpacity 
                   style={styles.moreMealsButton}
                   onPress={() => setShowAllMeals(true)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.moreMealsText}>
-                    +{dashboardMealPlan.meals.length - contextualMeals.length} more
+                    +{todaysMeals.length - contextualMeals.length} more
                   </Text>
                 </TouchableOpacity>
               )}
@@ -859,7 +692,7 @@ export default function DashboardScreen() {
           ) : (
             <View style={styles.noMealPlan}>
               <Text style={styles.noMealPlanText}>No meal plan for today</Text>
-              <Text style={styles.noMealPlanSubtext}>Generate a meal plan or manually add meals</Text>
+              <Text style={styles.noMealPlanSubtext}>Add meals to track your nutrition</Text>
             </View>
           )}
         </View>
