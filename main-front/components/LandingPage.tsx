@@ -1,12 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import DeveloperDashboard from '../screens/DeveloperDashboard';
-import { OnboardingTest } from './OnboardingTest';
-import { RecipeRecommendationDemo } from '../screens/RecipeRecommendationDemo';
-import { debugSupabase, isSupabaseConfigured } from '../src/utils/supabase-debug';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -14,66 +9,6 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
-  const [showDeveloperModal, setShowDeveloperModal] = useState(false);
-  const [showOnboardingTest, setShowOnboardingTest] = useState(false);
-  const [showRecipeDemo, setShowRecipeDemo] = useState(false);
-  const clearAllData = async () => {
-    try {
-      await AsyncStorage.removeItem('wellnoosh_session');
-      await AsyncStorage.removeItem('wellnoosh_user_data');
-      await AsyncStorage.removeItem('wellnoosh_onboarding_completed');
-      await AsyncStorage.removeItem('wellnoosh_feature_slides_seen');
-      await AsyncStorage.removeItem('wellnoosh_profile_completion_completed');
-      await AsyncStorage.removeItem('wellnoosh_meal_recommendations_completed');
-      
-      Alert.alert(
-        'Data Cleared',
-        'All cached data has been cleared. You can now sign up fresh.',
-        [{ text: 'OK' }]
-      );
-      
-      console.log('🧹 All cached data cleared successfully');
-    } catch (error) {
-      console.error('Error clearing data:', error);
-      Alert.alert('Error', 'Failed to clear data');
-    }
-  };
-
-  const handleSupabaseDebug = async () => {
-    const isConfigured = isSupabaseConfigured();
-    
-    if (!isConfigured) {
-      Alert.alert(
-        'Supabase Not Configured',
-        'Please add your Supabase credentials to the .env file. Check SUPABASE_SETUP.md for instructions.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    Alert.alert(
-      'Testing Supabase Connection',
-      'Check the development console for detailed results.',
-      [{ text: 'OK' }]
-    );
-
-    await debugSupabase();
-  };
-
-  if (showRecipeDemo) {
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => setShowRecipeDemo(false)}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <RecipeRecommendationDemo />
-      </View>
-    );
-  }
-
   return (
     <LinearGradient
       colors={['#f0fdf4', '#dbeafe', '#faf5ff']}
@@ -138,49 +73,8 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
           <TouchableOpacity style={styles.secondaryButton} onPress={onSignIn}>
             <Text style={styles.secondaryButtonText}>Already have an account? Sign In</Text>
           </TouchableOpacity>
-          
-          {/* Debug Recipe Demo Button */}
-          <TouchableOpacity 
-            style={[styles.secondaryButton, { backgroundColor: '#ff6b6b', marginTop: 10 }]} 
-            onPress={() => setShowRecipeDemo(true)}
-          >
-            <Text style={[styles.secondaryButtonText, { color: 'white' }]}>Test Recipe Card Demo</Text>
-          </TouchableOpacity>
-          
-          {/* Development buttons */}
-          {__DEV__ && (
-            <>
-              <TouchableOpacity 
-                style={styles.developerButton} 
-                onPress={() => setShowOnboardingTest(true)}
-              >
-                <Text style={styles.developerButtonText}>🎯 Test Onboarding Flow</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.supabaseButton}
-                onPress={handleSupabaseDebug}
-              >
-                <Text style={styles.supabaseButtonText}>🔧 Test Supabase Connection</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.clearButton} onPress={clearAllData}>
-                <Text style={styles.clearButtonText}>🧹 Clear Cached Data</Text>
-              </TouchableOpacity>
-            </>
-          )}
         </View>
       </ScrollView>
-
-      {/* Developer Onboarding Test Modal */}
-      <Modal
-        visible={showOnboardingTest}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowOnboardingTest(false)}
-      >
-        <OnboardingTest onBack={() => setShowOnboardingTest(false)} />
-      </Modal>
     </LinearGradient>
   );
 }
@@ -295,61 +189,5 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#6b7280',
     fontSize: 14,
-  },
-  developerButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 16,
-    backgroundColor: '#dcfce7',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#6B8E23',
-  },
-  developerButtonText: {
-    color: '#6B8E23',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  supabaseButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 8,
-    backgroundColor: '#dbeafe',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3b82f6',
-  },
-  supabaseButtonText: {
-    color: '#1d4ed8',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  clearButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 8,
-    backgroundColor: '#fef3c7',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d97706',
-  },
-  clearButtonText: {
-    color: '#92400e',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 10,
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
   },
 });
