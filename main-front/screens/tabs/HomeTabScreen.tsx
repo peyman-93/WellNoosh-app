@@ -621,6 +621,13 @@ export default function DashboardScreen() {
             
             <View style={styles.mealPlanningActions}>
               <TouchableOpacity 
+                style={styles.aiPlanButton} 
+                onPress={handleGenerateMealPlan}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.aiPlanIcon}>🤖</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
                 style={styles.addMealButton} 
                 onPress={handleAddMeal}
                 activeOpacity={0.7}
@@ -1155,6 +1162,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     lineHeight: 19.6,
     letterSpacing: 0.2,
+  },
+  aiPlanButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4A90E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  aiPlanIcon: {
+    fontSize: 18,
+    lineHeight: 22,
   },
   addMealButton: {
     width: 40,
