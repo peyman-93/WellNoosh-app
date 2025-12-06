@@ -42,6 +42,7 @@ CREATE POLICY "Users can update own health profile" ON user_health_profiles
 CREATE TABLE IF NOT EXISTS daily_check_ins (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  check_in_date DATE DEFAULT CURRENT_DATE,
   weight_kg DECIMAL(5,2),
   water_intake INTEGER DEFAULT 0,
   sleep_hours DECIMAL(3,1) DEFAULT 0,
@@ -99,48 +100,10 @@ CREATE POLICY "Users can view own weight logs" ON weight_logs
 CREATE POLICY "Users can insert own weight logs" ON weight_logs
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- 4. Meal Plans Table
--- Stores AI-generated and user meal plans
-CREATE TABLE IF NOT EXISTS meal_plans (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  date DATE NOT NULL,
-  meal_type TEXT NOT NULL CHECK (meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')),
-  meal_name TEXT NOT NULL,
-  description TEXT,
-  calories INTEGER,
-  protein_g DECIMAL(5,1),
-  carbs_g DECIMAL(5,1),
-  fat_g DECIMAL(5,1),
-  recipe_id UUID,
-  is_ai_generated BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, date, meal_type)
-);
+-- NOTE: meal_plans table is SKIPPED - you already have it configured
+-- Your existing meal_plans table uses: plan_date, meal_slot, recipe_id, recipe_title, etc.
 
--- Enable RLS for meal_plans
-ALTER TABLE meal_plans ENABLE ROW LEVEL SECURITY;
-
--- Policies for meal_plans (drop first if exists)
-DROP POLICY IF EXISTS "Users can view own meal plans" ON meal_plans;
-DROP POLICY IF EXISTS "Users can insert own meal plans" ON meal_plans;
-DROP POLICY IF EXISTS "Users can update own meal plans" ON meal_plans;
-DROP POLICY IF EXISTS "Users can delete own meal plans" ON meal_plans;
-
-CREATE POLICY "Users can view own meal plans" ON meal_plans
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own meal plans" ON meal_plans
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own meal plans" ON meal_plans
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own meal plans" ON meal_plans
-  FOR DELETE USING (auth.uid() = user_id);
-
--- 5. Grocery Items Table
+-- 4. Grocery Items Table
 -- Stores user's grocery list items
 CREATE TABLE IF NOT EXISTS grocery_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -174,7 +137,7 @@ CREATE POLICY "Users can delete own grocery items" ON grocery_items
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_daily_check_ins_user_date ON daily_check_ins(user_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_meal_plans_user_date ON meal_plans(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_daily_check_ins_user_date ON daily_check_ins(user_id, check_in_date);
 CREATE INDEX IF NOT EXISTS idx_grocery_items_user ON grocery_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_weight_logs_user_date ON weight_logs(user_id, logged_at);
+-- Note: idx_meal_plans_user_date already exists in your meal_plans table
