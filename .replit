@@ -5,3 +5,40 @@ expertMode = true
 [nix]
 channel = "stable-25_05"
 packages = ["gitFull", "glibcLocales", "libGL", "libGLU", "libxcrypt", "pkg-config", "playwright-driver", "portaudio", "xsimd"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend"
+
+[[workflows.workflow]]
+name = "Frontend"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd main-front && EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 npx expo start --web --port 5000"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 37399
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+EXPO_PUBLIC_API_URL = "https://095094e8-d211-44fe-b1f0-141ae0e01a11-00-15q9kmcblefe8.worf.replit.dev/api"
