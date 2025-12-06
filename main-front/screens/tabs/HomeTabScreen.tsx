@@ -12,7 +12,6 @@ import { BreathingExercises } from '../../src/components/features/BreathingExerc
 import { AddMealModal } from '../../src/components/modals/AddMealModal'
 import { MealPlanChatModal } from '../../src/components/modals/MealPlanChatModal'
 import DailyCheckInScreen from '../DailyCheckInScreen'
-import { HealthyPlateIcon } from '../../src/components/Icons/HealthyPlateIcon'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 
 // Services
@@ -730,18 +729,6 @@ export default function DashboardScreen() {
             </View>
           </TouchableOpacity>
           
-          {/* Healthy Plate Button */}
-          <TouchableOpacity style={styles.healthyPlateButton} onPress={() => navigation.navigate('V3Inspiration' as never)}>
-            <View style={styles.healthyPlateContent}>
-              <View style={styles.healthyPlateIconContainer}>
-                <HealthyPlateIcon width={24} height={24} color="#8BA654" />
-              </View>
-              <View style={styles.healthyPlateTextContainer}>
-                <Text style={styles.healthyPlateLabel}>Healthy New Plates</Text>
-                <Text style={styles.healthyPlateSubtitle}>Discover zesty, guilt-free dishes</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
         </View>
 
       </ScrollView>
@@ -1566,59 +1553,6 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
     fontFamily: 'Inter',
     marginTop: 2,
-  },
-  
-  // Healthy Plate Button
-  healthyPlateButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  healthyPlateContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 16,
-  },
-  healthyPlateIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F8FAF5',
-    borderWidth: 2,
-    borderColor: '#8BA654',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  healthyPlateIcon: {
-    fontSize: 24,
-  },
-  healthyPlateTextContainer: {
-    flex: 1,
-  },
-  healthyPlateLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#8BA654',
-    fontFamily: 'Inter',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  healthyPlateSubtitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#4A4A4A',
-    fontFamily: 'Inter',
-    letterSpacing: 0.2,
   },
   
   // Quick Actions

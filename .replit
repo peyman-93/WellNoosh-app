@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "ruby-3.2", "python-3.11"]
+modules = ["nodejs-20", "web", "ruby-3.2", "python-3.11", "postgresql-16"]
 [agent]
 expertMode = true
 integrations = ["javascript_openai_ai_integrations:1.0.0"]
@@ -56,12 +56,12 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 45917
-externalPort = 3000
+localPort = 43509
+externalPort = 3001
 
 [[ports]]
-localPort = 46637
-externalPort = 3001
+localPort = 45917
+externalPort = 3000
 
 [userenv]
 

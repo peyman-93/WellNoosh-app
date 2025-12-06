@@ -1,12 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useUserData } from '../src/context/user-data-provider'
 import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
+import { AnalyticsDashboard } from '../src/components/features/AnalyticsDashboard'
 
 export default function TrackerScreen() {
   const navigation = useNavigation()
   const { userData } = useUserData()
+  const [showAnalytics, setShowAnalytics] = useState(false)
 
   const handleGoBack = () => {
     navigation.goBack()
@@ -85,38 +87,10 @@ export default function TrackerScreen() {
             </View>
           </View>
 
-          {/* Advanced Tracking Placeholder */}
+          {/* Advanced Tracking - Analytics Dashboard */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Advanced Tracking</Text>
-            
-            <View style={styles.placeholderCard}>
-              <View style={styles.placeholderIconContainer}>
-                <Text style={styles.placeholderIcon}>📊</Text>
-              </View>
-              <Text style={styles.placeholderTitle}>Advanced Health Tracking Coming Soon!</Text>
-              <Text style={styles.placeholderDescription}>
-                We're working on bringing you detailed charts, nutrition tracking, and progress analytics.
-              </Text>
-              
-              <View style={styles.featuresList}>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>📈</Text>
-                  <Text style={styles.featureText}>Weight & BMI Progress Charts</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>🍎</Text>
-                  <Text style={styles.featureText}>Daily Nutrition Tracking</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>🎯</Text>
-                  <Text style={styles.featureText}>Goal Achievement Analytics</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>📅</Text>
-                  <Text style={styles.featureText}>Historical Data & Trends</Text>
-                </View>
-              </View>
-            </View>
+            <AnalyticsDashboard />
           </View>
 
           {/* Health Goals */}
@@ -232,66 +206,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B8E23',
     marginTop: 4,
-    fontFamily: 'Inter',
-  },
-  placeholderCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  placeholderIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#F0F9FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  placeholderIcon: {
-    fontSize: 28,
-  },
-  placeholderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-    textAlign: 'center',
-    fontFamily: 'Inter',
-  },
-  placeholderDescription: {
-    fontSize: 14,
-    color: '#4A4A4A',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-    fontFamily: 'Inter',
-  },
-  featuresList: {
-    alignSelf: 'stretch',
-    gap: 12,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#F8FAF5',
-    borderRadius: 8,
-  },
-  featureIcon: {
-    fontSize: 16,
-    marginRight: 12,
-  },
-  featureText: {
-    fontSize: 14,
-    color: '#1A1A1A',
     fontFamily: 'Inter',
   },
   goalsContainer: {
