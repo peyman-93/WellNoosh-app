@@ -8,9 +8,11 @@ import {
   Image,
   ScrollView,
   Animated,
+  Alert,
 } from 'react-native';
 import { PanGestureHandler, State as GestureState } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
+import { groceryListService } from '../src/services/groceryListService';
 
 interface Recipe {
   id: string;
@@ -191,6 +193,27 @@ export function RecommendationCard({
     }));
   };
 
+  const handleAddToGroceryList = async (ingredient: { name: string; amount: string; category: string }, index: number) => {
+    try {
+      await groceryListService.addItem({
+        name: ingredient.name,
+        amount: scaleIngredientAmount(ingredient.amount),
+        category: ingredient.category,
+        from_recipe: recipe.name
+      });
+      
+      setIngredientChecklist(prev => ({
+        ...prev,
+        [index]: true
+      }));
+      
+      Alert.alert('Added!', `${ingredient.name} added to grocery list`);
+    } catch (error) {
+      console.error('Error adding to grocery list:', error);
+      Alert.alert('Error', 'Failed to add item to grocery list. Please try again.');
+    }
+  };
+
   const renderFrontSide = () => (
     <TouchableOpacity
       style={styles.cardContent}
@@ -317,10 +340,13 @@ export function RecommendationCard({
                 <Text style={styles.ingredientAmount}>{scaleIngredientAmount(ingredient.amount)}</Text>
               </View>
               <TouchableOpacity 
-                style={styles.addButton}
-                onPress={() => handleIngredientToggle(index)}
+                style={[styles.addButton, ingredientChecklist[index] && styles.addButtonAdded]}
+                onPress={() => handleAddToGroceryList(ingredient, index)}
+                disabled={ingredientChecklist[index]}
               >
-                <Text style={styles.addButtonText}>+</Text>
+                <Text style={[styles.addButtonText, ingredientChecklist[index] && styles.addButtonTextAdded]}>
+                  {ingredientChecklist[index] ? '✓' : '+'}
+                </Text>
               </TouchableOpacity>
             </TouchableOpacity>
           ))}
@@ -703,6 +729,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#1976d2',
     fontWeight: 'bold',
+  },
+  addButtonAdded: {
+    backgroundColor: '#4CAF50',
+  },
+  addButtonTextAdded: {
+    color: '#FFFFFF',
+    fontSize: 14,
   },
   
   // Instructions Section
