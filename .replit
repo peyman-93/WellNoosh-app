@@ -1,0 +1,7 @@
+modules = ["nodejs-20", "web", "ruby-3.2", "python-3.11"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+packages = ["gitFull", "glibcLocales", "libGL", "libGLU", "libxcrypt", "pkg-config", "playwright-driver", "portaudio", "xsimd"]
