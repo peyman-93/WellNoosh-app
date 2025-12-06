@@ -1,0 +1,89 @@
+I need you to implement the following features in my WellNoosh React Native/Expo app:
+
+  ## Project Context
+  - Frontend: React Native with Expo (main-front folder)
+  - Backend: Python FastAPI (main-brain folder)
+  - Database: Supabase (PostgreSQL)
+  - State management: React Query (@tanstack/react-query)
+
+  ## Feature 1: Recipe Card Flip with Ingredient Selection
+
+  **Location:** Recipe swipe/recommendation screen
+
+  **Requirements:**
+  1. When user flips a recipe card, show the back side with:
+     - List of ingredients with checkboxes
+     - Step-by-step cooking instructions
+     - Nutrition info
+
+  2. Each ingredient should have a checkbox. When user taps an ingredient:
+     - Mark it as "missing" (visually highlight it)
+     - Show a floating "Add to Grocery List" button at bottom
+     - Display count of selected items
+
+  3. When user taps "Add to Grocery List":
+     - Save selected ingredients to Supabase `grocery_items` table
+     - Show success toast/notification
+     - Clear selection
+
+  **Supabase table `grocery_items`:**
+  - id (UUID, primary key)
+  - user_id (UUID, references auth.users)
+  - recipe_id (TEXT, optional)
+  - ingredient_name (TEXT)
+  - amount (TEXT)
+  - unit (TEXT)
+  - is_purchased (BOOLEAN, default false)
+  - created_at (TIMESTAMP)
+
+  ## Feature 2: Grocery List Screen
+
+  **Requirements:**
+  1. Create a new screen accessible from bottom tab navigation
+  2. Display all grocery items grouped by:
+     - Pending items (is_purchased = false)
+     - Purchased items (is_purchased = true, collapsed by default)
+
+  3. Each item shows:
+     - Checkbox to mark as purchased
+     - Ingredient name and amount
+     - Swipe to delete
+
+  4. Header actions:
+     - "Clear Purchased" button
+     - "Clear All" button
+
+  ## Feature 3: Saved/Favorite Recipes Screen
+
+  **Location:** Main dashboard when user clicks on "Recipes" or favorites section
+
+  **Requirements:**
+  1. Query `recipe_events` table for user's liked/saved recipes:
+     - WHERE user_id = current_user AND event IN ('like', 'save')
+
+  2. Display recipes in a grid or list view with:
+     - Recipe image
+     - Recipe title
+     - Category/cuisine tag
+
+  3. When user taps a recipe card:
+     - Open a modal or navigate to detail screen
+     - Show full recipe card with:
+       - Image
+       - Title and description
+       - Ingredients list (with "add to grocery" option)
+       - Step-by-step instructions
+       - Nutrition information
+       - "Cook Now" button
+       - "Remove from Favorites" button
+
+  ## Feature 4: Cooked Recipes History
+
+  **Requirements:**
+  1. Query `recipe_events` table:
+     - WHERE user_id = current_user AND event = 'cook_now'
+
+  2. Display in a separate tab or section showing:
+     - Recipe image and title
+     - Date cooked
+     - Option to "Cook Again" or view details

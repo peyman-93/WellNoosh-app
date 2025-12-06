@@ -42,3 +42,8 @@ externalPort = 3000
 
 [userenv.shared]
 EXPO_PUBLIC_API_URL = "https://095094e8-d211-44fe-b1f0-141ae0e01a11-00-15q9kmcblefe8.worf.replit.dev/api"
+
+[deployment]
+deploymentTarget = "static"
+build = ["bash", "-c", "cd main-front && npm run build"]
+publicDir = "main-front/dist"
