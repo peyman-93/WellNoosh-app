@@ -15,6 +15,7 @@ import { Colors, Typography, Spacing, BorderRadius } from '../src/constants/Desi
 import StarRating from '../src/components/shared/StarRating'
 import CookingStepsScreen from './CookingStepsScreen'
 import { ScreenWrapper } from '../src/components/layout/ScreenWrapper'
+import { groceryListService } from '../src/services/groceryListService'
 
 interface Recipe {
   id: string
@@ -112,15 +113,28 @@ export default function RecipeDetailScreen({
     onRateRecipe?.(recipe.id, rating)
   }
 
+  const [isAddingToGroceryList, setIsAddingToGroceryList] = useState(false)
+
   // Handle adding ingredient to grocery list
-  const handleAddToGroceryList = (ingredient: any) => {
-    if (onAddToGroceryList) {
-      onAddToGroceryList({
-        ...ingredient,
-        amount: getAdjustedAmount(ingredient.amount),
-        recipeId: recipe.id,
-        recipeName: recipe.name
+  const handleAddToGroceryList = async (ingredient: any) => {
+    try {
+      await groceryListService.addItem({
+        name: ingredient.name,
+        amount: `${getAdjustedAmount(ingredient.amount)} ${ingredient.unit}`,
+        category: ingredient.category || 'Other',
+        from_recipe: recipe.name
       })
+      if (onAddToGroceryList) {
+        onAddToGroceryList({
+          ...ingredient,
+          amount: getAdjustedAmount(ingredient.amount),
+          recipeId: recipe.id,
+          recipeName: recipe.name
+        })
+      }
+    } catch (error) {
+      console.error('Error adding ingredient to grocery list:', error)
+      Alert.alert('Error', 'Failed to add ingredient to grocery list')
     }
   }
 
@@ -138,14 +152,28 @@ export default function RecipeDetailScreen({
   }
 
   // Add all selected ingredients to grocery list
-  const handleAddSelectedToGroceryList = () => {
-    if (onAddToGroceryList && selectedIngredients.size > 0) {
-      recipe.ingredients.forEach(ingredient => {
-        if (selectedIngredients.has(ingredient.name)) {
-          handleAddToGroceryList(ingredient)
-        }
-      })
+  const handleAddSelectedToGroceryList = async () => {
+    if (selectedIngredients.size === 0) return
+    
+    setIsAddingToGroceryList(true)
+    try {
+      const ingredientsToAdd = recipe.ingredients
+        .filter(ingredient => selectedIngredients.has(ingredient.name))
+        .map(ingredient => ({
+          name: ingredient.name,
+          amount: `${getAdjustedAmount(ingredient.amount)} ${ingredient.unit}`,
+          category: ingredient.category || 'Other',
+          from_recipe: recipe.name
+        }))
+      
+      await groceryListService.addMultipleItems(ingredientsToAdd)
+      Alert.alert('Success', `Added ${ingredientsToAdd.length} items to your grocery list!`)
       setSelectedIngredients(new Set())
+    } catch (error) {
+      console.error('Error adding ingredients to grocery list:', error)
+      Alert.alert('Error', 'Failed to add ingredients to grocery list')
+    } finally {
+      setIsAddingToGroceryList(false)
     }
   }
 
@@ -366,13 +394,14 @@ export default function RecipeDetailScreen({
                 )
               })}
               
-              {selectedIngredients.size > 0 && onAddToGroceryList && (
+              {selectedIngredients.size > 0 && (
                 <TouchableOpacity
-                  style={styles.addSelectedButton}
+                  style={[styles.addSelectedButton, isAddingToGroceryList && { opacity: 0.6 }]}
                   onPress={handleAddSelectedToGroceryList}
+                  disabled={isAddingToGroceryList}
                 >
                   <Text style={styles.addSelectedText}>
-                    🛒 Add {selectedIngredients.size} item{selectedIngredients.size > 1 ? 's' : ''} to Grocery List
+                    {isAddingToGroceryList ? '⏳ Adding...' : `🛒 Add ${selectedIngredients.size} item${selectedIngredients.size > 1 ? 's' : ''} to Grocery List`}
                   </Text>
                 </TouchableOpacity>
               )}

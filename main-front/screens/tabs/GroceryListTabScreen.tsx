@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
-
-interface GroceryItem {
-  id: string
-  name: string
-  amount: string
-  category: string
-  addedDate: string
-  fromRecipe?: string
-  completed?: boolean
-}
+import { groceryListService, GroceryItem } from '../../src/services/groceryListService'
 
 interface StorePrice {
   store: string
@@ -188,26 +178,21 @@ export default function GroceryListScreen() {
   const categories = ['All', 'Vegetables', 'Fruits', 'Protein', 'Dairy', 'Grains', 'Pantry', 'Spices', 'Fresh', 'Bakery', 'Nuts']
   const stores = ['All Stores', 'Lidl', 'Jumbo', 'Albert Heijn']
 
+  const [isLoading, setIsLoading] = useState(true)
+
   useEffect(() => {
     loadGroceryList()
   }, [])
 
   const loadGroceryList = async () => {
     try {
-      const stored = await AsyncStorage.getItem('grocery_list')
-      if (stored) {
-        setGroceryList(JSON.parse(stored))
-      }
+      setIsLoading(true)
+      const items = await groceryListService.getGroceryList()
+      setGroceryList(items)
     } catch (error) {
       console.error('Error loading grocery list:', error)
-    }
-  }
-
-  const saveGroceryList = async (list: GroceryItem[]) => {
-    try {
-      await AsyncStorage.setItem('grocery_list', JSON.stringify(list))
-    } catch (error) {
-      console.error('Error saving grocery list:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -288,39 +273,48 @@ export default function GroceryListScreen() {
     setRecordingDuration(0)
   }
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (newItemName.trim() && newItemAmount.trim()) {
-      const newItem: GroceryItem = {
-        id: Date.now().toString(),
-        name: newItemName.trim(),
-        amount: newItemAmount.trim(),
-        category: 'Pantry',
-        addedDate: new Date().toISOString(),
-        completed: false
+      try {
+        const newItem = await groceryListService.addItem({
+          name: newItemName.trim(),
+          amount: newItemAmount.trim(),
+          category: 'Pantry'
+        })
+        setGroceryList([newItem, ...groceryList])
+        setNewItemName('')
+        setNewItemAmount('')
+        setShowAddForm(false)
+      } catch (error) {
+        console.error('Error adding item:', error)
+        Alert.alert('Error', 'Failed to add item. Please try again.')
       }
-
-      const updatedList = [...groceryList, newItem]
-      setGroceryList(updatedList)
-      saveGroceryList(updatedList)
-      
-      setNewItemName('')
-      setNewItemAmount('')
-      setShowAddForm(false)
     }
   }
 
-  const toggleItemCompletion = (itemId: string) => {
-    const updatedList = groceryList.map(item => 
-      item.id === itemId ? { ...item, completed: !item.completed } : item
-    )
-    setGroceryList(updatedList)
-    saveGroceryList(updatedList)
+  const toggleItemCompletion = async (itemId: string) => {
+    const item = groceryList.find(i => i.id === itemId)
+    if (!item) return
+    
+    try {
+      await groceryListService.toggleItemCompletion(itemId, !item.completed)
+      const updatedList = groceryList.map(i => 
+        i.id === itemId ? { ...i, completed: !i.completed } : i
+      )
+      setGroceryList(updatedList)
+    } catch (error) {
+      console.error('Error toggling item:', error)
+    }
   }
 
-  const clearCompletedItems = () => {
-    const updatedList = groceryList.filter(item => !item.completed)
-    setGroceryList(updatedList)
-    saveGroceryList(updatedList)
+  const clearCompletedItems = async () => {
+    try {
+      await groceryListService.clearCompletedItems()
+      const updatedList = groceryList.filter(item => !item.completed)
+      setGroceryList(updatedList)
+    } catch (error) {
+      console.error('Error clearing completed items:', error)
+    }
   }
 
   const removeItem = (itemId: string) => {
@@ -332,29 +326,31 @@ export default function GroceryListScreen() {
         { 
           text: 'Remove', 
           style: 'destructive',
-          onPress: () => {
-            const updatedList = groceryList.filter(item => item.id !== itemId)
-            setGroceryList(updatedList)
-            saveGroceryList(updatedList)
+          onPress: async () => {
+            try {
+              await groceryListService.removeItem(itemId)
+              const updatedList = groceryList.filter(item => item.id !== itemId)
+              setGroceryList(updatedList)
+            } catch (error) {
+              console.error('Error removing item:', error)
+            }
           }
         }
       ]
     )
   }
 
-  const addSuggestionToList = (suggestion: { name: string; category: string; reason: string }) => {
-    const newItem: GroceryItem = {
-      id: Date.now().toString(),
-      name: suggestion.name,
-      amount: '1',
-      category: suggestion.category,
-      addedDate: new Date().toISOString(),
-      completed: false
+  const addSuggestionToList = async (suggestion: { name: string; category: string; reason: string }) => {
+    try {
+      const newItem = await groceryListService.addItem({
+        name: suggestion.name,
+        amount: '1',
+        category: suggestion.category
+      })
+      setGroceryList([newItem, ...groceryList])
+    } catch (error) {
+      console.error('Error adding suggestion:', error)
     }
-
-    const updatedList = [...groceryList, newItem]
-    setGroceryList(updatedList)
-    saveGroceryList(updatedList)
   }
 
   // Calculate savings and store analysis
