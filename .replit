@@ -32,7 +32,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd main-front && EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 npx expo start --web --port 5000"
+args = "cd main-front && EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0 npx expo start --web --port 5000 --host lan"
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -52,12 +52,12 @@ localPort = 3000
 externalPort = 3000
 
 [[ports]]
-localPort = 45917
-externalPort = 3000
+localPort = 39417
+externalPort = 80
 
 [[ports]]
-localPort = 46327
-externalPort = 80
+localPort = 45917
+externalPort = 3000
 
 [userenv]
 
