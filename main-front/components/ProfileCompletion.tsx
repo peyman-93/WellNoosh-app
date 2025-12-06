@@ -34,6 +34,7 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showGenderDropdown, setShowGenderDropdown] = useState(false);
 
   const genderOptions = [
     'Male', 'Female', 'Non-binary', 'Prefer not to say'
@@ -164,26 +165,45 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 
             <View style={styles.halfWidth}>
               <Text style={styles.label}>Gender</Text>
-              <View style={styles.genderOptionsContainer}>
-                {genderOptions.map(option => (
-                  <TouchableOpacity
-                    key={option}
-                    style={[
-                      styles.genderOption,
-                      profileData.gender === option && styles.genderOptionSelected,
-                      errors.gender && !profileData.gender && styles.inputError
-                    ]}
-                    onPress={() => handleInputChange('gender', option)}
-                  >
-                    <Text style={[
-                      styles.genderOptionText,
-                      profileData.gender === option && styles.genderOptionTextSelected
-                    ]}>
-                      {option === 'Prefer not to say' ? 'Other' : option}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity 
+                style={[
+                  styles.dropdownButton,
+                  errors.gender && !profileData.gender && styles.inputError
+                ]}
+                onPress={() => setShowGenderDropdown(!showGenderDropdown)}
+              >
+                <Text style={[
+                  styles.dropdownButtonText,
+                  !profileData.gender && styles.dropdownPlaceholder
+                ]}>
+                  {profileData.gender || 'Select gender'}
+                </Text>
+                <Text style={styles.dropdownArrow}>{showGenderDropdown ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {showGenderDropdown && (
+                <View style={styles.dropdownList}>
+                  {genderOptions.map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.dropdownItem,
+                        profileData.gender === option && styles.dropdownItemSelected
+                      ]}
+                      onPress={() => {
+                        handleInputChange('gender', option);
+                        setShowGenderDropdown(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.dropdownItemText,
+                        profileData.gender === option && styles.dropdownItemTextSelected
+                      ]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               {errors.gender && <Text style={styles.errorText}>{errors.gender}</Text>}
             </View>
           </View>
@@ -393,6 +413,55 @@ const styles = StyleSheet.create({
   },
   genderOptionTextSelected: {
     color: '#ffffff',
+    fontWeight: '600',
+  },
+  dropdownButton: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
+  },
+  dropdownPlaceholder: {
+    color: '#9CA3AF',
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  dropdownList: {
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#f0f9e8',
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
+  },
+  dropdownItemTextSelected: {
+    color: '#6B8E23',
     fontWeight: '600',
   },
   unitToggleContainer: {

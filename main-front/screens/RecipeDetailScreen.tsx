@@ -74,6 +74,7 @@ export default function RecipeDetailScreen({
   const [showNutritionModal, setShowNutritionModal] = useState(false)
   const [currentUserRating, setCurrentUserRating] = useState(userRating)
   const [showCookingSteps, setShowCookingSteps] = useState(false)
+  const [selectedIngredients, setSelectedIngredients] = useState<Set<string>>(new Set())
   
   const servingMultiplier = servings / recipe.baseServings
 
@@ -122,6 +123,36 @@ export default function RecipeDetailScreen({
       })
     }
   }
+
+  // Toggle ingredient selection
+  const toggleIngredientSelection = (ingredientName: string) => {
+    setSelectedIngredients(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(ingredientName)) {
+        newSet.delete(ingredientName)
+      } else {
+        newSet.add(ingredientName)
+      }
+      return newSet
+    })
+  }
+
+  // Add all selected ingredients to grocery list
+  const handleAddSelectedToGroceryList = () => {
+    if (onAddToGroceryList && selectedIngredients.size > 0) {
+      recipe.ingredients.forEach(ingredient => {
+        if (selectedIngredients.has(ingredient.name)) {
+          handleAddToGroceryList(ingredient)
+        }
+      })
+      setSelectedIngredients(new Set())
+    }
+  }
+
+  // Get count of missing (unavailable) ingredients
+  const missingIngredientsCount = recipe.ingredients.filter(
+    ingredient => !checkIngredientAvailability(ingredient.name)
+  ).length
 
   // Calculate nutrition per serving
   const nutritionPerServing = {
@@ -278,28 +309,42 @@ export default function RecipeDetailScreen({
             <View style={styles.ingredientsSection}>
               <View style={styles.ingredientsHeader}>
                 <Text style={styles.sectionTitle}>Ingredients</Text>
-                <TouchableOpacity
-                  style={styles.addAllButton}
-                  onPress={() => {
-                    const missingIngredients = recipe.ingredients.filter(ingredient => 
-                      !checkIngredientAvailability(ingredient.name)
-                    )
-                    if (missingIngredients.length > 0 && onAddToGroceryList) {
-                      missingIngredients.forEach(ingredient => {
-                        handleAddToGroceryList(ingredient)
-                      })
-                    }
-                  }}
-                >
-                  <Text style={styles.addAllText}>+ Add All Needed</Text>
-                </TouchableOpacity>
+                {missingIngredientsCount > 0 && (
+                  <Text style={styles.missingCount}>
+                    {missingIngredientsCount} missing
+                  </Text>
+                )}
               </View>
+              <Text style={styles.ingredientHint}>
+                Tap items you don't have to select them for your grocery list
+              </Text>
               {recipe.ingredients.map((ingredient, index) => {
                 const isAvailable = checkIngredientAvailability(ingredient.name)
                 const adjustedAmount = getAdjustedAmount(ingredient.amount)
+                const isSelected = selectedIngredients.has(ingredient.name)
                 
                 return (
-                  <View key={index} style={styles.ingredientItem}>
+                  <TouchableOpacity 
+                    key={index} 
+                    style={[
+                      styles.ingredientItem,
+                      isSelected && styles.ingredientItemSelected
+                    ]}
+                    onPress={() => !isAvailable && toggleIngredientSelection(ingredient.name)}
+                    disabled={isAvailable}
+                  >
+                    <View style={styles.ingredientCheckbox}>
+                      {isAvailable ? (
+                        <Text style={styles.checkboxAvailable}>✓</Text>
+                      ) : (
+                        <View style={[
+                          styles.checkbox,
+                          isSelected && styles.checkboxSelected
+                        ]}>
+                          {isSelected && <Text style={styles.checkboxCheck}>✓</Text>}
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.ingredientInfo}>
                       <View style={styles.ingredientHeader}>
                         <Text style={[
@@ -308,24 +353,29 @@ export default function RecipeDetailScreen({
                         ]}>
                           {ingredient.name}
                         </Text>
+                        {isAvailable && (
+                          <Text style={styles.inStockBadge}>In Stock</Text>
+                        )}
                       </View>
                       <Text style={styles.ingredientAmount}>
                         {adjustedAmount} {ingredient.unit}
                       </Text>
                       <Text style={styles.ingredientCategory}>{ingredient.category}</Text>
                     </View>
-                    
-                    {!isAvailable && onAddToGroceryList && (
-                      <TouchableOpacity
-                        style={styles.addToListButton}
-                        onPress={() => handleAddToGroceryList(ingredient)}
-                      >
-                        <Text style={styles.addToListText}>+ Add to List</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                  </TouchableOpacity>
                 )
               })}
+              
+              {selectedIngredients.size > 0 && onAddToGroceryList && (
+                <TouchableOpacity
+                  style={styles.addSelectedButton}
+                  onPress={handleAddSelectedToGroceryList}
+                >
+                  <Text style={styles.addSelectedText}>
+                    🛒 Add {selectedIngredients.size} item{selectedIngredients.size > 1 ? 's' : ''} to Grocery List
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Instructions Section */}
@@ -773,6 +823,74 @@ const styles = StyleSheet.create({
   addAllText: {
     fontSize: Typography.sizes.small,
     color: Colors.primaryForeground,
+    fontWeight: Typography.weights.semibold,
+  },
+  missingCount: {
+    fontSize: Typography.sizes.small,
+    color: Colors.destructive,
+    fontWeight: Typography.weights.medium,
+  },
+  ingredientHint: {
+    fontSize: Typography.sizes.small,
+    color: Colors.mutedForeground,
+    marginBottom: Spacing.md,
+    fontStyle: 'italic',
+  },
+  ingredientItemSelected: {
+    backgroundColor: '#e8f5e9',
+    borderColor: Colors.success,
+    borderWidth: 1,
+  },
+  ingredientCheckbox: {
+    marginRight: Spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 24,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+  checkboxCheck: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxAvailable: {
+    color: Colors.success,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  inStockBadge: {
+    fontSize: 10,
+    color: Colors.success,
+    backgroundColor: '#e8f5e9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  addSelectedButton: {
+    backgroundColor: Colors.success,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.lg,
+    alignItems: 'center',
+  },
+  addSelectedText: {
+    color: Colors.primaryForeground,
+    fontSize: Typography.sizes.base,
     fontWeight: Typography.weights.semibold,
   },
   ingredientItem: {

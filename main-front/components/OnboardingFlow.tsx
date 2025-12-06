@@ -620,7 +620,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
     // Step 5: Cooking Preferences
     {
       title: "Cooking Preferences",
-      subtitle: "What's your cooking skill level and meal preference?",
+      subtitle: "What's your cooking skill level?",
       icon: '🍽️',
       iconBg: '#E6A245',
       content: (
@@ -653,28 +653,6 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
               </View>
             </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Meal Preparation Time</Text>
-              <View style={styles.listContainer}>
-                {mealPreferences.map((pref) => (
-                  <TouchableOpacity
-                    key={pref}
-                    onPress={() => handleSingleSelect('mealPreference', pref)}
-                    style={[
-                      styles.listOptionButton,
-                      dietaryProfile.mealPreference === pref && styles.listOptionButtonSelectedOrange
-                    ]}
-                  >
-                    <Text style={[
-                      styles.optionButtonText,
-                      dietaryProfile.mealPreference === pref && styles.optionButtonTextSelected
-                    ]}>
-                      {pref}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
           </View>
         </View>
       )

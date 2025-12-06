@@ -4,6 +4,7 @@ import { Colors } from '../../src/constants/DesignTokens'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 import { supabase } from '../../src/services/supabase'
 import { useAuth } from '../../src/context/supabase-provider'
+import RecipeDetailScreen from '../RecipeDetailScreen'
 
 interface Recipe {
   id: string
@@ -18,12 +19,82 @@ interface Recipe {
   liked_at?: string
 }
 
+interface DetailRecipe {
+  id: string
+  name: string
+  image: string
+  cookTime: string
+  difficulty: 'Easy' | 'Medium' | 'Hard'
+  rating: number
+  tags: string[]
+  description: string
+  baseServings: number
+  ingredients: {
+    name: string
+    amount: string
+    unit: string
+    category: string
+  }[]
+  instructions: string[]
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+}
+
 export default function RecipesTabScreen({ route, navigation }: { route: any, navigation: any }) {
   const { session } = useAuth()
   const [likedRecipes, setLikedRecipes] = useState<Recipe[]>([])
   const [cookedRecipes, setCookedRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'liked' | 'cooked'>('liked')
+  const [selectedRecipe, setSelectedRecipe] = useState<DetailRecipe | null>(null)
+
+  const convertToDetailRecipe = (recipe: Recipe): DetailRecipe => {
+    const instructionsList = recipe.instructions 
+      ? recipe.instructions.split('\n').filter(line => line.trim().length > 0)
+      : ['No instructions available']
+    
+    const getCategoryEmoji = (category?: string): string => {
+      const emojiMap: Record<string, string> = {
+        'Beef': '🥩',
+        'Chicken': '🍗',
+        'Dessert': '🍰',
+        'Lamb': '🐑',
+        'Miscellaneous': '🍽️',
+        'Pasta': '🍝',
+        'Pork': '🥓',
+        'Seafood': '🐟',
+        'Side': '🥗',
+        'Starter': '🥗',
+        'Vegan': '🥬',
+        'Vegetarian': '🥕',
+        'Breakfast': '🍳',
+        'Goat': '🐐'
+      }
+      return emojiMap[category || ''] || '🍽️'
+    }
+    
+    return {
+      id: recipe.id,
+      name: recipe.title,
+      image: getCategoryEmoji(recipe.category),
+      cookTime: '30 mins',
+      difficulty: 'Medium',
+      rating: 4.5,
+      tags: [recipe.category || 'General', recipe.area || 'International'].filter(Boolean),
+      description: `A delicious ${recipe.category || ''} recipe${recipe.area ? ` from ${recipe.area}` : ''}.`,
+      baseServings: recipe.servings || 4,
+      ingredients: [
+        { name: 'See full recipe for ingredients', amount: '-', unit: '', category: 'Info' }
+      ],
+      instructions: instructionsList,
+      calories: parseInt(recipe.calories || '400'),
+      protein: parseInt(recipe.protein || '20'),
+      carbs: 45,
+      fat: 15
+    }
+  }
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -139,6 +210,15 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
     )
   }
 
+  if (selectedRecipe) {
+    return (
+      <RecipeDetailScreen
+        recipe={selectedRecipe}
+        onNavigateBack={() => setSelectedRecipe(null)}
+      />
+    )
+  }
+
   return (
     <ScreenWrapper>
       <ScrollView style={styles.content}>
@@ -197,8 +277,8 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
                 key={recipe.id}
                 style={styles.recipeCard}
                 onPress={() => {
-                  // TODO: Navigate to recipe detail screen
-                  console.log('View recipe:', recipe.title)
+                  const detailRecipe = convertToDetailRecipe(recipe)
+                  setSelectedRecipe(detailRecipe)
                 }}
               >
                 {recipe.image_url ? (
