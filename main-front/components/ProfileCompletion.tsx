@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 
 interface UserData {
   fullName: string;
@@ -164,25 +164,25 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 
             <View style={styles.halfWidth}>
               <Text style={styles.label}>Gender</Text>
-              <View style={styles.pickerContainer}>
-                <TouchableOpacity
-                  style={[styles.picker, errors.gender && styles.inputError]}
-                  onPress={() => {
-                    Alert.alert(
-                      'Select Gender',
-                      '',
-                      genderOptions.map(option => ({
-                        text: option,
-                        onPress: () => handleInputChange('gender', option)
-                      }))
-                    );
-                  }}
-                >
-                  <Text style={[styles.pickerText, !profileData.gender && styles.placeholderText]}>
-                    {profileData.gender || 'Select'}
-                  </Text>
-                  <Text style={styles.pickerArrow}>▼</Text>
-                </TouchableOpacity>
+              <View style={styles.genderOptionsContainer}>
+                {genderOptions.map(option => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.genderOption,
+                      profileData.gender === option && styles.genderOptionSelected,
+                      errors.gender && !profileData.gender && styles.inputError
+                    ]}
+                    onPress={() => handleInputChange('gender', option)}
+                  >
+                    <Text style={[
+                      styles.genderOptionText,
+                      profileData.gender === option && styles.genderOptionTextSelected
+                    ]}>
+                      {option === 'Prefer not to say' ? 'Other' : option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
               {errors.gender && <Text style={styles.errorText}>{errors.gender}</Text>}
             </View>
@@ -199,22 +199,20 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
                 onChangeText={(value) => handleInputChange('weight', value)}
                 keyboardType="decimal-pad"
               />
-              <TouchableOpacity
-                style={styles.unitButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Select Unit',
-                    '',
-                    [
-                      { text: 'kg', onPress: () => handleInputChange('weightUnit', 'kg') },
-                      { text: 'lbs', onPress: () => handleInputChange('weightUnit', 'lbs') }
-                    ]
-                  );
-                }}
-              >
-                <Text style={styles.unitButtonText}>{profileData.weightUnit}</Text>
-                <Text style={styles.pickerArrow}>▼</Text>
-              </TouchableOpacity>
+              <View style={styles.unitToggleContainer}>
+                <TouchableOpacity
+                  style={[styles.unitToggle, profileData.weightUnit === 'kg' && styles.unitToggleSelected]}
+                  onPress={() => handleInputChange('weightUnit', 'kg')}
+                >
+                  <Text style={[styles.unitToggleText, profileData.weightUnit === 'kg' && styles.unitToggleTextSelected]}>kg</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.unitToggle, profileData.weightUnit === 'lbs' && styles.unitToggleSelected]}
+                  onPress={() => handleInputChange('weightUnit', 'lbs')}
+                >
+                  <Text style={[styles.unitToggleText, profileData.weightUnit === 'lbs' && styles.unitToggleTextSelected]}>lbs</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             {errors.weight && <Text style={styles.errorText}>{errors.weight}</Text>}
           </View>
@@ -253,22 +251,20 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
                   <Text style={styles.unitLabel}>in</Text>
                 </View>
               )}
-              <TouchableOpacity
-                style={styles.unitButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Select Unit',
-                    '',
-                    [
-                      { text: 'cm', onPress: () => handleInputChange('heightUnit', 'cm') },
-                      { text: 'ft', onPress: () => handleInputChange('heightUnit', 'ft') }
-                    ]
-                  );
-                }}
-              >
-                <Text style={styles.unitButtonText}>{profileData.heightUnit}</Text>
-                <Text style={styles.pickerArrow}>▼</Text>
-              </TouchableOpacity>
+              <View style={styles.unitToggleContainer}>
+                <TouchableOpacity
+                  style={[styles.unitToggle, profileData.heightUnit === 'cm' && styles.unitToggleSelected]}
+                  onPress={() => handleInputChange('heightUnit', 'cm')}
+                >
+                  <Text style={[styles.unitToggleText, profileData.heightUnit === 'cm' && styles.unitToggleTextSelected]}>cm</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.unitToggle, profileData.heightUnit === 'ft' && styles.unitToggleSelected]}
+                  onPress={() => handleInputChange('heightUnit', 'ft')}
+                >
+                  <Text style={[styles.unitToggleText, profileData.heightUnit === 'ft' && styles.unitToggleTextSelected]}>ft</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             {errors.height && <Text style={styles.errorText}>{errors.height}</Text>}
           </View>
@@ -373,31 +369,55 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     marginTop: 4,
   },
-  pickerContainer: {
-    position: 'relative',
+  genderOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  picker: {
+  genderOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     backgroundColor: '#ffffff',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  pickerText: {
-    fontSize: 16,
-    color: '#1A1A1A', // Match dashboard soft black
+  genderOptionSelected: {
+    backgroundColor: '#6B8E23',
+    borderColor: '#6B8E23',
+  },
+  genderOptionText: {
+    fontSize: 13,
+    color: '#4A4A4A',
     fontFamily: 'Inter',
   },
-  placeholderText: {
-    color: '#4A4A4A', // Match dashboard warm charcoal
+  genderOptionTextSelected: {
+    color: '#ffffff',
+    fontWeight: '600',
   },
-  pickerArrow: {
-    fontSize: 12,
+  unitToggleContainer: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  unitToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#ffffff',
+  },
+  unitToggleSelected: {
+    backgroundColor: '#6B8E23',
+  },
+  unitToggleText: {
+    fontSize: 14,
     color: '#4A4A4A',
+    fontFamily: 'Inter',
+  },
+  unitToggleTextSelected: {
+    color: '#ffffff',
+    fontWeight: '600',
   },
   weightContainer: {
     flexDirection: 'row',
