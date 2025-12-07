@@ -5,6 +5,7 @@ import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 import { supabase } from '../../src/services/supabase'
 import { useAuth } from '../../src/context/supabase-provider'
 import RecipeDetailScreen from '../RecipeDetailScreen'
+import { recipeCacheService, CachedRecipe } from '../../src/services/recipeCacheService'
 
 interface Recipe {
   id: string
@@ -12,10 +13,19 @@ interface Recipe {
   image_url?: string
   category?: string
   area?: string
-  calories?: string
-  protein?: string
+  calories?: string | number
+  protein?: string | number
+  carbs?: number
+  fat?: number
+  fiber?: number
   servings?: number
-  instructions?: string
+  instructions?: string | string[]
+  ingredients?: { name: string; amount: string; category: string }[]
+  cookTime?: string
+  difficulty?: 'Easy' | 'Medium' | 'Hard'
+  rating?: number
+  tags?: string[]
+  description?: string
   liked_at?: string
 }
 
@@ -40,6 +50,7 @@ interface DetailRecipe {
   protein: number
   carbs: number
   fat: number
+  fiber: number
 }
 
 export default function RecipesTabScreen({ route, navigation }: { route: any, navigation: any }) {
@@ -51,9 +62,14 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
   const [selectedRecipe, setSelectedRecipe] = useState<DetailRecipe | null>(null)
 
   const convertToDetailRecipe = (recipe: Recipe): DetailRecipe => {
-    const instructionsList = recipe.instructions 
-      ? recipe.instructions.split('\n').filter(line => line.trim().length > 0)
-      : ['No instructions available']
+    let instructionsList: string[]
+    if (Array.isArray(recipe.instructions)) {
+      instructionsList = recipe.instructions.filter(line => line.trim().length > 0)
+    } else if (typeof recipe.instructions === 'string') {
+      instructionsList = recipe.instructions.split('\n').filter(line => line.trim().length > 0)
+    } else {
+      instructionsList = ['No instructions available']
+    }
     
     const getCategoryEmoji = (category?: string): string => {
       const emojiMap: Record<string, string> = {
@@ -74,25 +90,36 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
       }
       return emojiMap[category || ''] || '🍽️'
     }
+
+    const ingredients = recipe.ingredients && recipe.ingredients.length > 0
+      ? recipe.ingredients.map(ing => ({
+          name: ing.name,
+          amount: ing.amount,
+          unit: '',
+          category: ing.category || 'Other'
+        }))
+      : [{ name: 'See full recipe for ingredients', amount: '-', unit: '', category: 'Info' }]
+
+    const calories = typeof recipe.calories === 'number' ? recipe.calories : parseInt(String(recipe.calories) || '400')
+    const protein = typeof recipe.protein === 'number' ? recipe.protein : parseInt(String(recipe.protein) || '20')
     
     return {
       id: recipe.id,
       name: recipe.title,
       image: getCategoryEmoji(recipe.category),
-      cookTime: '30 mins',
-      difficulty: 'Medium',
-      rating: 4.5,
-      tags: [recipe.category || 'General', recipe.area || 'International'].filter(Boolean),
-      description: `A delicious ${recipe.category || ''} recipe${recipe.area ? ` from ${recipe.area}` : ''}.`,
+      cookTime: recipe.cookTime || '30 mins',
+      difficulty: recipe.difficulty || 'Medium',
+      rating: recipe.rating || 4.5,
+      tags: recipe.tags || [recipe.category || 'General', recipe.area || 'International'].filter(Boolean),
+      description: recipe.description || `A delicious ${recipe.category || ''} recipe${recipe.area ? ` from ${recipe.area}` : ''}.`,
       baseServings: recipe.servings || 4,
-      ingredients: [
-        { name: 'See full recipe for ingredients', amount: '-', unit: '', category: 'Info' }
-      ],
+      ingredients,
       instructions: instructionsList,
-      calories: parseInt(recipe.calories || '400'),
-      protein: parseInt(recipe.protein || '20'),
-      carbs: 45,
-      fat: 15
+      calories,
+      protein,
+      carbs: recipe.carbs || 45,
+      fat: recipe.fat || 15,
+      fiber: recipe.fiber || 5
     }
   }
 
@@ -106,7 +133,41 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
     try {
       setLoading(true)
 
-      // Fetch liked recipes from recipe_events
+      // Load from local cache (has full recipe data including ingredients)
+      const cachedLiked = await recipeCacheService.getLikedRecipes()
+      const cachedCooked = await recipeCacheService.getCookedRecipes()
+
+      console.log('📦 Cache check - Liked:', cachedLiked.length, 'Cooked:', cachedCooked.length)
+
+      // Convert cached recipes to Recipe format
+      const convertCachedToRecipe = (cached: CachedRecipe): Recipe => ({
+        id: cached.id,
+        title: cached.title,
+        image_url: cached.image_url,
+        category: cached.category,
+        area: cached.area,
+        calories: cached.calories,
+        protein: cached.protein,
+        carbs: cached.carbs,
+        fat: cached.fat,
+        fiber: cached.fiber,
+        servings: cached.servings,
+        instructions: cached.instructions,
+        ingredients: cached.ingredients,
+        cookTime: cached.cookTime,
+        difficulty: cached.difficulty,
+        rating: cached.rating,
+        tags: cached.tags,
+        description: cached.description
+      })
+
+      // Create maps for quick lookup of cached recipes
+      const cachedLikedMap = new Map(cachedLiked.map(r => [r.id, r]))
+      const cachedCookedMap = new Map(cachedCooked.map(r => [r.id, r]))
+
+      // Try to fetch from Supabase to get the authoritative list of liked/cooked recipes
+      // Then merge with cache (cache has full data, Supabase has IDs)
+      // If Supabase fails, fall back to cache only
       const { data: likedData, error: likedError } = await supabase
         .from('recipe_events')
         .select('recipe_id, created_at')
@@ -114,13 +175,64 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
         .eq('event', 'like')
         .order('created_at', { ascending: false })
 
-      console.log('📋 Liked recipes query result:', { likedData, likedError, userId: session?.user?.id })
-
       if (likedError) {
-        console.error('❌ Error loading liked recipes:', likedError)
+        console.error('❌ Error loading liked recipes from Supabase:', likedError)
+        // Fall back to cache only when Supabase fails
+        if (cachedLiked.length > 0) {
+          console.log('📦 Using cached liked recipes (offline mode):', cachedLiked.length)
+          setLikedRecipes(cachedLiked.map(convertCachedToRecipe))
+        } else {
+          setLikedRecipes([])
+        }
+      } else {
+        const likedRecipeIds = [...new Set(likedData?.map(item => item.recipe_id) || [])]
+        console.log('📡 Supabase liked IDs:', likedRecipeIds.length)
+
+        // Build liked recipes list: prefer cache (has full data), fallback to Supabase fetch
+        const finalLikedRecipes: Recipe[] = []
+        const missingLikedIds: string[] = []
+        const supabaseIdSet = new Set(likedRecipeIds)
+
+        // First add recipes from Supabase list, preferring cached versions
+        for (const id of likedRecipeIds) {
+          const cached = cachedLikedMap.get(id)
+          if (cached) {
+            finalLikedRecipes.push(convertCachedToRecipe(cached))
+          } else {
+            missingLikedIds.push(id)
+          }
+        }
+
+        // Also add cached-only recipes (liked offline, not yet synced to Supabase)
+        for (const cached of cachedLiked) {
+          if (!supabaseIdSet.has(cached.id)) {
+            console.log('📦 Adding cached-only liked recipe:', cached.title)
+            finalLikedRecipes.push(convertCachedToRecipe(cached))
+          }
+        }
+
+        // Fetch missing liked recipes from Supabase
+        if (missingLikedIds.length > 0) {
+          console.log('📡 Fetching', missingLikedIds.length, 'missing liked recipes from Supabase')
+          const { data: recipesData, error: recipesError } = await supabase
+            .from('recipes')
+            .select('id, title, image_url, category, area, servings, instructions')
+            .in('id', missingLikedIds)
+
+          if (recipesError) {
+            console.error('❌ Error fetching recipe details:', recipesError)
+          }
+
+          if (recipesData) {
+            finalLikedRecipes.push(...recipesData)
+          }
+        }
+
+        setLikedRecipes(finalLikedRecipes)
+        console.log('✅ Liked recipes loaded:', finalLikedRecipes.length)
       }
 
-      // Fetch cooked recipes from recipe_events
+      // Same for cooked recipes
       const { data: cookedData, error: cookedError } = await supabase
         .from('recipe_events')
         .select('recipe_id, created_at')
@@ -128,68 +240,58 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
         .eq('event', 'cook_now')
         .order('created_at', { ascending: false })
 
-      console.log('🍳 Cooked recipes query result:', { cookedData, cookedError, userId: session?.user?.id })
-
       if (cookedError) {
-        console.error('❌ Error loading cooked recipes:', cookedError)
-      }
-
-      // Get unique recipe IDs
-      const likedRecipeIds = [...new Set(likedData?.map(item => item.recipe_id) || [])]
-      const cookedRecipeIds = [...new Set(cookedData?.map(item => item.recipe_id) || [])]
-
-      console.log('🔍 Unique recipe IDs:', { likedRecipeIds, cookedRecipeIds })
-
-      // Fetch recipe details for liked recipes
-      if (likedRecipeIds.length > 0) {
-        console.log('🔍 Searching for recipes with IDs:', likedRecipeIds)
-        console.log('🔍 ID type check:', typeof likedRecipeIds[0], likedRecipeIds[0])
-
-        const { data: recipesData, error: recipesError } = await supabase
-          .from('recipes')
-          .select('id, title, image_url, category, area, servings, instructions')
-          .in('id', likedRecipeIds)
-
-        console.log('📝 Liked recipes details:', { recipesData, recipesError })
-
-        if (recipesError) {
-          console.error('❌ Error fetching recipe details:', recipesError)
+        console.error('❌ Error loading cooked recipes from Supabase:', cookedError)
+        // Fall back to cache only when Supabase fails
+        if (cachedCooked.length > 0) {
+          console.log('📦 Using cached cooked recipes (offline mode):', cachedCooked.length)
+          setCookedRecipes(cachedCooked.map(convertCachedToRecipe))
+        } else {
+          setCookedRecipes([])
         }
+      } else {
+        const cookedRecipeIds = [...new Set(cookedData?.map(item => item.recipe_id) || [])]
+        console.log('📡 Supabase cooked IDs:', cookedRecipeIds.length)
 
-        if (recipesData) {
-          console.log('✅ Found', recipesData.length, 'recipes out of', likedRecipeIds.length, 'requested')
-          if (recipesData.length === 0) {
-            console.error('❌ Recipe IDs exist in recipe_events but NOT found in recipes table!')
-            console.error('❌ This likely means recipe IDs don\'t match - check data types')
+        const finalCookedRecipes: Recipe[] = []
+        const missingCookedIds: string[] = []
+        const supabaseCookedIdSet = new Set(cookedRecipeIds)
 
-            // Try to fetch a sample recipe to see what IDs look like
-            const { data: sampleRecipes } = await supabase
-              .from('recipes')
-              .select('id, title')
-              .limit(3)
-            console.log('📋 Sample recipes in database:', sampleRecipes)
+        // First add recipes from Supabase list, preferring cached versions
+        for (const id of cookedRecipeIds) {
+          const cached = cachedCookedMap.get(id)
+          if (cached) {
+            finalCookedRecipes.push(convertCachedToRecipe(cached))
+          } else {
+            missingCookedIds.push(id)
           }
-          setLikedRecipes(recipesData)
         }
-      } else {
-        setLikedRecipes([])
+
+        // Also add cached-only recipes (cooked offline, not yet synced to Supabase)
+        for (const cached of cachedCooked) {
+          if (!supabaseCookedIdSet.has(cached.id)) {
+            console.log('📦 Adding cached-only cooked recipe:', cached.title)
+            finalCookedRecipes.push(convertCachedToRecipe(cached))
+          }
+        }
+
+        // Fetch missing cooked recipes from Supabase
+        if (missingCookedIds.length > 0) {
+          console.log('📡 Fetching', missingCookedIds.length, 'missing cooked recipes from Supabase')
+          const { data: recipesData, error: recipesError } = await supabase
+            .from('recipes')
+            .select('id, title, image_url, category, area, servings, instructions')
+            .in('id', missingCookedIds)
+
+          if (!recipesError && recipesData) {
+            finalCookedRecipes.push(...recipesData)
+          }
+        }
+
+        setCookedRecipes(finalCookedRecipes)
+        console.log('✅ Cooked recipes loaded:', finalCookedRecipes.length)
       }
 
-      // Fetch recipe details for cooked recipes
-      if (cookedRecipeIds.length > 0) {
-        const { data: recipesData, error: recipesError } = await supabase
-          .from('recipes')
-          .select('id, title, image_url, category, area, servings, instructions')
-          .in('id', cookedRecipeIds)
-
-        console.log('📝 Cooked recipes details:', { recipesData, recipesError })
-
-        if (!recipesError && recipesData) {
-          setCookedRecipes(recipesData)
-        }
-      } else {
-        setCookedRecipes([])
-      }
     } catch (error) {
       console.error('Error loading recipes:', error)
     } finally {
