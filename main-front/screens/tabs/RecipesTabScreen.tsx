@@ -7,6 +7,7 @@ import { useAuth } from '../../src/context/supabase-provider'
 import RecipeDetailScreen from '../RecipeDetailScreen'
 import { recipeCacheService, CachedRecipe } from '../../src/services/recipeCacheService'
 import { recommendationService } from '../../src/services/recommendationService'
+import { cookedRecipeService } from '../../src/services/cookedRecipeService'
 
 interface Recipe {
   id: string
@@ -278,13 +279,12 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
         console.log('✅ Liked recipes loaded:', finalLikedRecipes.length)
       }
 
-      // Same for cooked recipes
+      // Load cooked recipes from user_recipe_ratings table (Supabase)
       const { data: cookedData, error: cookedError } = await supabase
-        .from('recipe_events')
-        .select('recipe_id, created_at')
+        .from('user_recipe_ratings')
+        .select('recipe_id, rating, last_made_date, made_count')
         .eq('user_id', session?.user?.id)
-        .eq('event', 'cook_now')
-        .order('created_at', { ascending: false })
+        .order('last_made_date', { ascending: false })
 
       if (cookedError) {
         console.error('❌ Error loading cooked recipes from Supabase:', cookedError)
@@ -381,6 +381,19 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
         onNavigateBack={() => setSelectedRecipe(null)}
         onMarkAsCooked={async (recipe, rating) => {
           try {
+            // Save to Supabase
+            const result = await cookedRecipeService.saveCookedRecipe({
+              recipe_id: recipe.id,
+              rating: rating
+            })
+
+            if (!result.success) {
+              console.error('Failed to save cooked recipe to Supabase:', result.error)
+              Alert.alert('Error', 'Could not save to your cooked list. Please try again.')
+              return
+            }
+
+            // Also save to local cache for offline access
             await recipeCacheService.saveCookedRecipe({
               id: recipe.id,
               title: recipe.name,
@@ -403,10 +416,12 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
               cookTime: recipe.cookTime,
               rating: rating
             })
+
             await loadRecipes()
             setSelectedRecipe(null)
           } catch (error) {
             console.error('Failed to save cooked recipe:', error)
+            Alert.alert('Error', 'Could not save to your cooked list. Please try again.')
           }
         }}
       />
