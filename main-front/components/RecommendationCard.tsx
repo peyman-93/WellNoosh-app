@@ -237,13 +237,6 @@ export function RecommendationCard({
           <Text style={styles.recipeName}>{recipe.name}</Text>
           
           <View style={styles.recipeStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statIcon}>⏱</Text>
-              <Text style={styles.statText}>{recipe.cookTime}</Text>
-            </View>
-            <View style={styles.statDivider}>
-              <Text style={styles.statText}>•</Text>
-            </View>
             <View style={[styles.statItem, { flexDirection: 'row', alignItems: 'center', gap: 2 }]}>
               <TouchableOpacity onPress={decreaseServings} style={styles.servingButtonFront}>
                 <Text style={styles.servingButtonTextFront}>−</Text>
@@ -291,12 +284,7 @@ export function RecommendationCard({
           <Text style={styles.backTitle}>{recipe.name}</Text>
           <View style={styles.backStats}>
             <View style={styles.backStatItem}>
-              <Text style={styles.backStatIcon}>⏱</Text>
-              <Text style={styles.backStatText}>{recipe.cookTime}</Text>
-            </View>
-            <View style={styles.backStatItem}>
               <Text style={styles.backStatIcon}>👥</Text>
-              <Text style={styles.backStatDivider}>—</Text>
               <TouchableOpacity onPress={decreaseServings} style={styles.servingButton}>
                 <Text style={styles.servingButtonText}>−</Text>
               </TouchableOpacity>
@@ -304,7 +292,6 @@ export function RecommendationCard({
               <TouchableOpacity onPress={increaseServings} style={styles.servingButton}>
                 <Text style={styles.servingButtonText}>+</Text>
               </TouchableOpacity>
-              <Text style={styles.backStatDivider}>+</Text>
               <Text style={styles.backStatText}>servings</Text>
             </View>
           </View>

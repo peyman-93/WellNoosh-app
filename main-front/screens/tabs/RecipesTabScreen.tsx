@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native'
 import { Colors } from '../../src/constants/DesignTokens'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 import { supabase } from '../../src/services/supabase'
 import { useAuth } from '../../src/context/supabase-provider'
 import RecipeDetailScreen from '../RecipeDetailScreen'
 import { recipeCacheService, CachedRecipe } from '../../src/services/recipeCacheService'
+import { recommendationService } from '../../src/services/recommendationService'
 
 interface Recipe {
   id: string
@@ -60,6 +61,60 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'liked' | 'cooked'>('liked')
   const [selectedRecipe, setSelectedRecipe] = useState<DetailRecipe | null>(null)
+  const [isPersonalizing, setIsPersonalizing] = useState(false)
+
+  // Handle start cooking - personalize the recipe based on user profile
+  const handleStartCooking = async () => {
+    if (!selectedRecipe || !session?.user?.id) return
+
+    setIsPersonalizing(true)
+    try {
+      console.log('🍳 Personalizing recipe for cooking:', selectedRecipe.name)
+      const result = await recommendationService.personalizeForCooking(
+        session.user.id,
+        selectedRecipe.id
+      )
+
+      if (result.error || !result.recipe) {
+        Alert.alert('Note', 'Could not personalize recipe. Using default instructions.')
+        return
+      }
+
+      // Update the selected recipe with personalized instructions
+      const personalizedRecipe = result.recipe
+      setSelectedRecipe(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          instructions: personalizedRecipe.structured_instructions?.map(s => s.instruction) || prev.instructions,
+          cookTime: personalizedRecipe.total_cook_time || prev.cookTime,
+          difficulty: (personalizedRecipe.estimated_difficulty as 'Easy' | 'Medium' | 'Hard') || prev.difficulty
+        }
+      })
+
+      // Show personalization info
+      if (result.recipe.safety_warnings && result.recipe.safety_warnings.length > 0) {
+        Alert.alert(
+          '⚠️ Safety Note',
+          result.recipe.safety_warnings.join('\n'),
+          [{ text: 'OK', style: 'default' }]
+        )
+      } else if (result.recipe.substitution_notes && result.recipe.substitution_notes.length > 0) {
+        Alert.alert(
+          '✨ Personalized for You',
+          `Suggestions:\n${result.recipe.substitution_notes.join('\n')}`,
+          [{ text: 'Got it!', style: 'default' }]
+        )
+      }
+
+      console.log('✅ Recipe personalized successfully')
+    } catch (error) {
+      console.error('Error personalizing recipe:', error)
+      Alert.alert('Error', 'Failed to personalize recipe. Using default instructions.')
+    } finally {
+      setIsPersonalizing(false)
+    }
+  }
 
   const convertToDetailRecipe = (recipe: Recipe): DetailRecipe => {
     let instructionsList: string[]
@@ -106,7 +161,7 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
     return {
       id: recipe.id,
       name: recipe.title,
-      image: getCategoryEmoji(recipe.category),
+      image: recipe.image_url || getCategoryEmoji(recipe.category),
       cookTime: recipe.cookTime || '30 mins',
       difficulty: recipe.difficulty || 'Medium',
       rating: recipe.rating || 4.5,
@@ -317,6 +372,7 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
       <RecipeDetailScreen
         recipe={selectedRecipe}
         onNavigateBack={() => setSelectedRecipe(null)}
+        onStartCooking={handleStartCooking}
       />
     )
   }
