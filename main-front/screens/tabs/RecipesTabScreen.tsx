@@ -379,6 +379,36 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
       <RecipeDetailScreen
         recipe={selectedRecipe}
         onNavigateBack={() => setSelectedRecipe(null)}
+        onMarkAsCooked={async (recipe, rating) => {
+          try {
+            await recipeCacheService.saveCookedRecipe({
+              id: recipe.id,
+              title: recipe.name,
+              image_url: recipe.image,
+              category: recipe.tags?.[0],
+              calories: recipe.calories,
+              protein: recipe.protein,
+              carbs: recipe.carbs,
+              fat: recipe.fat,
+              servings: recipe.baseServings,
+              instructions: recipe.instructions,
+              ingredients: recipe.ingredients?.map(ing => ({
+                name: ing.name,
+                amount: `${ing.amount} ${ing.unit}`.trim(),
+                category: ing.category
+              })),
+              tags: recipe.tags,
+              description: recipe.description,
+              difficulty: recipe.difficulty,
+              cookTime: recipe.cookTime,
+              rating: rating
+            })
+            await loadRecipes()
+            setSelectedRecipe(null)
+          } catch (error) {
+            console.error('Failed to save cooked recipe:', error)
+          }
+        }}
       />
     )
   }

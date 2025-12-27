@@ -57,6 +57,7 @@ interface RecipeDetailScreenProps {
   onStartFamilyChoice?: (recipe: Recipe) => void
   onStartCooking?: () => void
   onRateRecipe?: (recipeId: string, rating: number) => void
+  onMarkAsCooked?: (recipe: Recipe, rating: number) => void
   userRating?: number
 }
 
@@ -70,6 +71,7 @@ export default function RecipeDetailScreen({
   onStartFamilyChoice,
   onStartCooking,
   onRateRecipe,
+  onMarkAsCooked,
   userRating = 0
 }: RecipeDetailScreenProps) {
   const [servings, setServings] = useState(recipe.baseServings)
@@ -77,6 +79,8 @@ export default function RecipeDetailScreen({
   const [currentUserRating, setCurrentUserRating] = useState(userRating)
   const [showCookingSteps, setShowCookingSteps] = useState(false)
   const [selectedIngredients, setSelectedIngredients] = useState<Set<string>>(new Set())
+  const [showRatingModal, setShowRatingModal] = useState(false)
+  const [cookedRating, setCookedRating] = useState(0)
   
   const servingMultiplier = servings / recipe.baseServings
 
@@ -428,20 +432,14 @@ export default function RecipeDetailScreen({
             {/* Action Buttons */}
             <View style={styles.actionSection}>
               <TouchableOpacity
-                style={styles.startCookingButton}
-                onPress={async () => {
-                  // Call personalization first if handler is provided
-                  if (onStartCooking) {
-                    await onStartCooking()
-                  }
-                  setShowCookingSteps(true)
-                }}
+                style={styles.cookedButton}
+                onPress={() => setShowRatingModal(true)}
               >
                 <LinearGradient
-                  colors={['#10B981', '#3B82F6']}
-                  style={styles.startCookingGradient}
+                  colors={['#10B981', '#059669']}
+                  style={styles.cookedGradient}
                 >
-                  <Text style={styles.startCookingText}>Start Cooking 👨‍🍳</Text>
+                  <Text style={styles.cookedText}>✓ Cooked</Text>
                 </LinearGradient>
               </TouchableOpacity>
               
@@ -584,6 +582,67 @@ export default function RecipeDetailScreen({
                     </Text>
                   </View>
                 </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Rating Modal */}
+        <Modal
+          visible={showRatingModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowRatingModal(false)}
+        >
+          <View style={styles.ratingModalOverlay}>
+            <View style={styles.ratingModalContent}>
+              <Text style={styles.ratingModalTitle}>How was this recipe?</Text>
+              <Text style={styles.ratingModalSubtitle}>Rate your cooking experience</Text>
+              
+              <View style={styles.ratingStarsContainer}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setCookedRating(star)}
+                    style={styles.ratingStar}
+                  >
+                    <Text style={[
+                      styles.ratingStarText,
+                      cookedRating >= star && styles.ratingStarFilled
+                    ]}>
+                      {cookedRating >= star ? '★' : '☆'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.ratingModalActions}>
+                <TouchableOpacity
+                  style={styles.ratingCancelButton}
+                  onPress={() => {
+                    setCookedRating(0)
+                    setShowRatingModal(false)
+                  }}
+                >
+                  <Text style={styles.ratingCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.ratingSaveButton,
+                    cookedRating === 0 && styles.ratingSaveButtonDisabled
+                  ]}
+                  onPress={() => {
+                    if (cookedRating > 0 && onMarkAsCooked) {
+                      onMarkAsCooked(recipe, cookedRating)
+                      setShowRatingModal(false)
+                      setCookedRating(0)
+                    }
+                  }}
+                  disabled={cookedRating === 0}
+                >
+                  <Text style={styles.ratingSaveText}>Save to Cooked</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -1024,7 +1083,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     gap: Spacing.md,
   },
-  startCookingButton: {
+  cookedButton: {
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -1033,11 +1092,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  startCookingGradient: {
+  cookedGradient: {
     paddingVertical: Spacing.lg,
     alignItems: 'center',
   },
-  startCookingText: {
+  cookedText: {
     fontSize: Typography.sizes.base,
     fontWeight: Typography.weights.bold,
     color: Colors.primaryForeground,
@@ -1186,5 +1245,83 @@ const styles = StyleSheet.create({
   },
   macroColorDot: {
     fontSize: 12,
+  },
+  ratingModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  ratingModalContent: {
+    backgroundColor: 'white',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  ratingModalTitle: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.bold,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  ratingModalSubtitle: {
+    fontSize: Typography.sizes.base,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xl,
+  },
+  ratingStarsContainer: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xl,
+  },
+  ratingStar: {
+    padding: Spacing.xs,
+  },
+  ratingStarText: {
+    fontSize: 40,
+    color: '#D1D5DB',
+  },
+  ratingStarFilled: {
+    color: '#F59E0B',
+  },
+  ratingModalActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    width: '100%',
+  },
+  ratingCancelButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  ratingCancelText: {
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.textSecondary,
+  },
+  ratingSaveButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+  },
+  ratingSaveButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  ratingSaveText: {
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.semibold,
+    color: 'white',
   },
 })
