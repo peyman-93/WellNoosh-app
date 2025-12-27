@@ -17,6 +17,7 @@ import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 // Services
 import { getNutritionDashboard, markMealCompleted, type NutritionDashboard } from '../../src/services/nutritionService'
 import { mealPlannerService, type MealPlanEntry } from '../../src/services/mealPlannerService'
+import { wellnessService } from '../../src/services/wellnessService'
 
 const { width: screenWidth } = Dimensions.get('window')
 
@@ -183,15 +184,24 @@ export default function DashboardScreen() {
       const today = new Date()
       console.log('🔄 Loading meals and nutrition for today')
       
-      // Load meals and nutrition in parallel
-      const [meals, nutrition] = await Promise.all([
+      // Load meals, nutrition, and wellness data in parallel
+      const [meals, nutrition, wellness] = await Promise.all([
         mealPlannerService.getMealPlanForDate(today),
-        getNutritionDashboard(session.user.id)
+        getNutritionDashboard(session.user.id),
+        wellnessService.getTodaysWellness(session.user.id)
       ])
       
-      console.log('✅ Loaded meals:', meals.length, 'Nutrition:', nutrition)
+      console.log('✅ Loaded meals:', meals.length, 'Nutrition:', nutrition, 'Wellness:', wellness)
       setTodaysMeals(meals)
       setNutritionDashboard(nutrition)
+      
+      // Restore wellness data from Supabase
+      if (wellness) {
+        const waterArray = new Array(10).fill(false).map((_, i) => i < wellness.water_glasses)
+        const breathingArray = new Array(6).fill(false).map((_, i) => i < wellness.breathing_exercises)
+        setWaterIntake(waterArray)
+        setBreathingExercises(breathingArray)
+      }
     } catch (error) {
       console.error('❌ Error loading data:', error)
       setTodaysMeals([])
@@ -311,37 +321,44 @@ export default function DashboardScreen() {
   }
 
   // Wellness wheel handlers
-  const handleWaterWheelPress = () => {
-    // Add one glass of water when the wheel is pressed
+  const handleWaterWheelPress = async () => {
+    if (!session?.user?.id) return
+    
     const nextIncompleteIndex = waterIntake.findIndex(glass => !glass)
     if (nextIncompleteIndex !== -1) {
-      setWaterIntake(prev => {
-        const newIntake = [...prev]
-        newIntake[nextIncompleteIndex] = true
-        return newIntake
-      })
+      const newIntake = [...waterIntake]
+      newIntake[nextIncompleteIndex] = true
+      setWaterIntake(newIntake)
+      
+      const newCount = newIntake.filter(g => g).length
+      await wellnessService.updateWaterGlasses(session.user.id, newCount)
     }
   }
 
-  const handleBreathingExerciseComplete = () => {
-    // Complete one breathing exercise
+  const handleBreathingExerciseComplete = async () => {
+    if (!session?.user?.id) return
+    
     const nextIncompleteIndex = breathingExercises.findIndex(exercise => !exercise)
     if (nextIncompleteIndex !== -1) {
-      setBreathingExercises(prev => {
-        const newExercises = [...prev]
-        newExercises[nextIncompleteIndex] = true
-        return newExercises
-      })
+      const newExercises = [...breathingExercises]
+      newExercises[nextIncompleteIndex] = true
+      setBreathingExercises(newExercises)
+      
+      const newCount = newExercises.filter(e => e).length
+      await wellnessService.updateBreathingExercises(session.user.id, newCount)
     }
     setShowBreathingExercise(false)
   }
 
-  const handleBreathingCircleClick = (index: number) => {
-    setBreathingExercises(prev => {
-      const newExercises = [...prev]
-      newExercises[index] = !newExercises[index]
-      return newExercises
-    })
+  const handleBreathingCircleClick = async (index: number) => {
+    if (!session?.user?.id) return
+    
+    const newExercises = [...breathingExercises]
+    newExercises[index] = !newExercises[index]
+    setBreathingExercises(newExercises)
+    
+    const newCount = newExercises.filter(e => e).length
+    await wellnessService.updateBreathingExercises(session.user.id, newCount)
   }
 
   const handleSaveMealFromModal = useCallback(async (mealData: any) => {
