@@ -70,16 +70,18 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
     }
   }, [session?.user?.id])
 
-  // Handle start cooking - personalize the recipe based on user profile
-  const handleStartCooking = async () => {
-    if (!selectedRecipe || !session?.user?.id) return
+  // Handle selecting and personalizing a recipe when viewing from My Recipes
+  const handleSelectRecipe = async (recipe: Recipe) => {
+    if (!session?.user?.id) return
 
+    const detailRecipe = convertToDetailRecipe(recipe)
+    setSelectedRecipe(detailRecipe)
     setIsPersonalizing(true)
+
     try {
-      console.log('🍳 Personalizing recipe for cooking:', selectedRecipe.name)
       const result = await recommendationService.personalizeForCooking(
         session.user.id,
-        selectedRecipe.id
+        detailRecipe.id
       )
 
       if (result.error || !result.recipe) {
@@ -113,10 +115,7 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
           [{ text: 'Got it!', style: 'default' }]
         )
       }
-
-      console.log('✅ Recipe personalized successfully')
     } catch (error) {
-      console.error('Error personalizing recipe:', error)
       Alert.alert('Error', 'Failed to personalize recipe. Using default instructions.')
     } finally {
       setIsPersonalizing(false)
@@ -376,11 +375,18 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
 
   if (selectedRecipe) {
     return (
-      <RecipeDetailScreen
-        recipe={selectedRecipe}
-        onNavigateBack={() => setSelectedRecipe(null)}
-        onStartCooking={handleStartCooking}
-      />
+      <View style={{ flex: 1 }}>
+        {isPersonalizing && (
+          <View style={styles.personalizingOverlay}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.personalizingText}>Personalizing recipe for you...</Text>
+          </View>
+        )}
+        <RecipeDetailScreen
+          recipe={selectedRecipe}
+          onNavigateBack={() => setSelectedRecipe(null)}
+        />
+      </View>
     )
   }
 
@@ -441,10 +447,7 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
               <TouchableOpacity
                 key={recipe.id}
                 style={styles.recipeCard}
-                onPress={() => {
-                  const detailRecipe = convertToDetailRecipe(recipe)
-                  setSelectedRecipe(detailRecipe)
-                }}
+                onPress={() => handleSelectRecipe(recipe)}
               >
                 {recipe.image_url ? (
                   <Image
@@ -642,5 +645,24 @@ const styles = StyleSheet.create({
   },
   likedIcon: {
     fontSize: 20,
+  },
+  personalizingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(16, 185, 129, 0.95)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    zIndex: 1000,
+    gap: 10,
+  },
+  personalizingText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 })
