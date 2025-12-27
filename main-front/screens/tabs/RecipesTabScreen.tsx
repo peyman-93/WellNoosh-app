@@ -422,7 +422,8 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
               rating: rating
             })
 
-            // Remove from liked list since it's now cooked
+            // Remove from liked list since it's now cooked (both Supabase and local cache)
+            await cookedRecipeService.removeLikeEvent(recipe.id)
             await recipeCacheService.removeLikedRecipe(recipe.id)
 
             await loadRecipes()

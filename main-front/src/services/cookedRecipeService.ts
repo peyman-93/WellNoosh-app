@@ -185,6 +185,33 @@ class CookedRecipeService {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
+
+  async removeLikeEvent(recipeId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const { error } = await supabase
+        .from('recipe_events')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('recipe_id', recipeId)
+        .eq('event', 'like');
+
+      if (error) {
+        console.error('Error removing like event:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('✅ Like event removed from Supabase:', recipeId);
+      return { success: true };
+    } catch (error) {
+      console.error('Error in removeLikeEvent:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
 }
 
 export const cookedRecipeService = new CookedRecipeService();
