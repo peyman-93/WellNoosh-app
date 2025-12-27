@@ -556,25 +556,27 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.wellnessProgressRing}>
               <Svg width={60} height={60} style={styles.wellnessRingSvg}>
-                <Circle
-                  cx={30}
-                  cy={30}
-                  r={25}
-                  stroke="#E0E0E0"
-                  strokeWidth={3}
-                  fill="none"
-                />
-                <Circle
-                  cx={30}
-                  cy={30}
-                  r={25}
-                  stroke="#6B8E23"
-                  strokeWidth={3}
-                  fill="none"
-                  strokeDasharray={`${(completedBreathingExercises / 6) * 157} 157`}
-                  strokeDashoffset={-39.25}
-                  strokeLinecap="round"
-                />
+                <G rotation="-90" origin="30, 30">
+                  <Circle
+                    cx={30}
+                    cy={30}
+                    r={25}
+                    stroke="#E0E0E0"
+                    strokeWidth={3}
+                    fill="none"
+                  />
+                  <Circle
+                    cx={30}
+                    cy={30}
+                    r={25}
+                    stroke="#6B8E23"
+                    strokeWidth={3}
+                    fill="none"
+                    strokeDasharray={157}
+                    strokeDashoffset={157 - (completedBreathingExercises / 6) * 157}
+                    strokeLinecap="round"
+                  />
+                </G>
               </Svg>
               <View style={styles.wellnessProgressText}>
                 <Text style={styles.wellnessProgressNumber}>{completedBreathingExercises}</Text>
@@ -596,25 +598,27 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.wellnessProgressRing}>
               <Svg width={60} height={60} style={styles.wellnessRingSvg}>
-                <Circle
-                  cx={30}
-                  cy={30}
-                  r={25}
-                  stroke="#E0E0E0"
-                  strokeWidth={3}
-                  fill="none"
-                />
-                <Circle
-                  cx={30}
-                  cy={30}
-                  r={25}
-                  stroke="#4A90E2"
-                  strokeWidth={3}
-                  fill="none"
-                  strokeDasharray={`${(completedGlasses / 10) * 157} 157`}
-                  strokeDashoffset={-39.25}
-                  strokeLinecap="round"
-                />
+                <G rotation="-90" origin="30, 30">
+                  <Circle
+                    cx={30}
+                    cy={30}
+                    r={25}
+                    stroke="#E0E0E0"
+                    strokeWidth={3}
+                    fill="none"
+                  />
+                  <Circle
+                    cx={30}
+                    cy={30}
+                    r={25}
+                    stroke="#4A90E2"
+                    strokeWidth={3}
+                    fill="none"
+                    strokeDasharray={157}
+                    strokeDashoffset={157 - (completedGlasses / 10) * 157}
+                    strokeLinecap="round"
+                  />
+                </G>
               </Svg>
               <View style={styles.wellnessProgressText}>
                 <Text style={styles.wellnessProgressNumber}>{completedGlasses}</Text>

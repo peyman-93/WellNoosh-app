@@ -422,6 +422,9 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
               rating: rating
             })
 
+            // Remove from liked list since it's now cooked
+            await recipeCacheService.removeLikedRecipe(recipe.id)
+
             await loadRecipes()
             setSelectedRecipe(null)
           } catch (error) {
