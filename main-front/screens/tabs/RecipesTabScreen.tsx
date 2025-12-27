@@ -75,7 +75,6 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
     if (!session?.user?.id) return
 
     const detailRecipe = convertToDetailRecipe(recipe)
-    setSelectedRecipe(detailRecipe)
     setIsPersonalizing(true)
 
     try {
@@ -85,38 +84,24 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
       )
 
       if (result.error || !result.recipe) {
-        Alert.alert('Note', 'Could not personalize recipe. Using default instructions.')
+        // If personalization fails, show original recipe
+        setSelectedRecipe(detailRecipe)
         return
       }
 
-      // Update the selected recipe with personalized instructions
+      // Create personalized recipe with updated instructions
       const personalizedRecipe = result.recipe
-      setSelectedRecipe(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          instructions: personalizedRecipe.structured_instructions?.map(s => s.instruction) || prev.instructions,
-          cookTime: personalizedRecipe.total_cook_time || prev.cookTime,
-          difficulty: (personalizedRecipe.estimated_difficulty as 'Easy' | 'Medium' | 'Hard') || prev.difficulty
-        }
-      })
-
-      // Show personalization info
-      if (result.recipe.safety_warnings && result.recipe.safety_warnings.length > 0) {
-        Alert.alert(
-          '⚠️ Safety Note',
-          result.recipe.safety_warnings.join('\n'),
-          [{ text: 'OK', style: 'default' }]
-        )
-      } else if (result.recipe.substitution_notes && result.recipe.substitution_notes.length > 0) {
-        Alert.alert(
-          '✨ Personalized for You',
-          `Suggestions:\n${result.recipe.substitution_notes.join('\n')}`,
-          [{ text: 'Got it!', style: 'default' }]
-        )
+      const personalizedDetailRecipe: DetailRecipe = {
+        ...detailRecipe,
+        instructions: personalizedRecipe.structured_instructions?.map(s => s.instruction) || detailRecipe.instructions,
+        cookTime: personalizedRecipe.total_cook_time || detailRecipe.cookTime,
+        difficulty: (personalizedRecipe.estimated_difficulty as 'Easy' | 'Medium' | 'Hard') || detailRecipe.difficulty
       }
+
+      setSelectedRecipe(personalizedDetailRecipe)
     } catch (error) {
-      Alert.alert('Error', 'Failed to personalize recipe. Using default instructions.')
+      // If error, show original recipe
+      setSelectedRecipe(detailRecipe)
     } finally {
       setIsPersonalizing(false)
     }
@@ -373,20 +358,28 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
     )
   }
 
+  if (isPersonalizing) {
+    return (
+      <ScreenWrapper>
+        <View style={styles.personalizingContainer}>
+          <View style={styles.personalizingCard}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.personalizingTitle}>Personalizing Your Recipe</Text>
+            <Text style={styles.personalizingSubtitle}>
+              We're adjusting ingredients and instructions based on your health profile and dietary preferences...
+            </Text>
+          </View>
+        </View>
+      </ScreenWrapper>
+    )
+  }
+
   if (selectedRecipe) {
     return (
-      <View style={{ flex: 1 }}>
-        {isPersonalizing && (
-          <View style={styles.personalizingOverlay}>
-            <ActivityIndicator size="small" color={Colors.primary} />
-            <Text style={styles.personalizingText}>Personalizing recipe for you...</Text>
-          </View>
-        )}
-        <RecipeDetailScreen
-          recipe={selectedRecipe}
-          onNavigateBack={() => setSelectedRecipe(null)}
-        />
-      </View>
+      <RecipeDetailScreen
+        recipe={selectedRecipe}
+        onNavigateBack={() => setSelectedRecipe(null)}
+      />
     )
   }
 
@@ -646,23 +639,36 @@ const styles = StyleSheet.create({
   likedIcon: {
     fontSize: 20,
   },
-  personalizingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(16, 185, 129, 0.95)',
-    flexDirection: 'row',
-    alignItems: 'center',
+  personalizingContainer: {
+    flex: 1,
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    zIndex: 1000,
-    gap: 10,
+    alignItems: 'center',
+    padding: 40,
   },
-  personalizingText: {
-    color: 'white',
+  personalizingCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 40,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    maxWidth: 320,
+  },
+  personalizingTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginTop: 24,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  personalizingSubtitle: {
     fontSize: 14,
-    fontWeight: '600',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 })
