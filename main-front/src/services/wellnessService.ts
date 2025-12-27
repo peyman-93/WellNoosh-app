@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase } from './supabase'
 
 interface DailyWellness {
   id?: string
