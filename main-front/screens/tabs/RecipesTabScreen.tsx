@@ -63,6 +63,13 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
   const [selectedRecipe, setSelectedRecipe] = useState<DetailRecipe | null>(null)
   const [isPersonalizing, setIsPersonalizing] = useState(false)
 
+  useEffect(() => {
+    if (session?.user?.id) {
+      recipeCacheService.setUserId(session.user.id)
+      recipeCacheService.clearLegacyCache()
+    }
+  }, [session?.user?.id])
+
   // Handle start cooking - personalize the recipe based on user profile
   const handleStartCooking = async () => {
     if (!selectedRecipe || !session?.user?.id) return

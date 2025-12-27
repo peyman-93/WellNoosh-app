@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LIKED_RECIPES_KEY = 'wellnoosh_liked_recipes';
-const COOKED_RECIPES_KEY = 'wellnoosh_cooked_recipes';
+const LIKED_RECIPES_KEY_PREFIX = 'wellnoosh_liked_recipes_';
+const COOKED_RECIPES_KEY_PREFIX = 'wellnoosh_cooked_recipes_';
+const LEGACY_LIKED_KEY = 'wellnoosh_liked_recipes';
+const LEGACY_COOKED_KEY = 'wellnoosh_cooked_recipes';
 
 export interface CachedRecipe {
   id: string;
@@ -30,6 +32,26 @@ export interface CachedRecipe {
 }
 
 class RecipeCacheService {
+  private currentUserId: string | null = null;
+
+  setUserId(userId: string | null) {
+    this.currentUserId = userId;
+  }
+
+  private getLikedKey(): string {
+    if (!this.currentUserId) {
+      return LEGACY_LIKED_KEY;
+    }
+    return `${LIKED_RECIPES_KEY_PREFIX}${this.currentUserId}`;
+  }
+
+  private getCookedKey(): string {
+    if (!this.currentUserId) {
+      return LEGACY_COOKED_KEY;
+    }
+    return `${COOKED_RECIPES_KEY_PREFIX}${this.currentUserId}`;
+  }
+
   async saveLikedRecipe(recipe: Omit<CachedRecipe, 'cachedAt'>): Promise<void> {
     try {
       const existing = await this.getLikedRecipes();
@@ -38,8 +60,8 @@ class RecipeCacheService {
         { ...recipe, cachedAt: new Date().toISOString() },
         ...filtered
       ];
-      await AsyncStorage.setItem(LIKED_RECIPES_KEY, JSON.stringify(updated));
-      console.log('✅ Recipe cached locally:', recipe.title);
+      await AsyncStorage.setItem(this.getLikedKey(), JSON.stringify(updated));
+      console.log('✅ Recipe cached locally for user:', this.currentUserId, recipe.title);
     } catch (error) {
       console.error('❌ Failed to cache recipe:', error);
     }
@@ -53,8 +75,8 @@ class RecipeCacheService {
         { ...recipe, cachedAt: new Date().toISOString() },
         ...filtered
       ];
-      await AsyncStorage.setItem(COOKED_RECIPES_KEY, JSON.stringify(updated));
-      console.log('✅ Cooked recipe cached locally:', recipe.title);
+      await AsyncStorage.setItem(this.getCookedKey(), JSON.stringify(updated));
+      console.log('✅ Cooked recipe cached locally for user:', this.currentUserId, recipe.title);
     } catch (error) {
       console.error('❌ Failed to cache cooked recipe:', error);
     }
@@ -62,7 +84,7 @@ class RecipeCacheService {
 
   async getLikedRecipes(): Promise<CachedRecipe[]> {
     try {
-      const data = await AsyncStorage.getItem(LIKED_RECIPES_KEY);
+      const data = await AsyncStorage.getItem(this.getLikedKey());
       return data ? JSON.parse(data) : [];
     } catch (error) {
       console.error('❌ Failed to get cached liked recipes:', error);
@@ -72,7 +94,7 @@ class RecipeCacheService {
 
   async getCookedRecipes(): Promise<CachedRecipe[]> {
     try {
-      const data = await AsyncStorage.getItem(COOKED_RECIPES_KEY);
+      const data = await AsyncStorage.getItem(this.getCookedKey());
       return data ? JSON.parse(data) : [];
     } catch (error) {
       console.error('❌ Failed to get cached cooked recipes:', error);
@@ -84,7 +106,7 @@ class RecipeCacheService {
     try {
       const existing = await this.getLikedRecipes();
       const filtered = existing.filter(r => r.id !== recipeId);
-      await AsyncStorage.setItem(LIKED_RECIPES_KEY, JSON.stringify(filtered));
+      await AsyncStorage.setItem(this.getLikedKey(), JSON.stringify(filtered));
       console.log('✅ Recipe removed from cache:', recipeId);
     } catch (error) {
       console.error('❌ Failed to remove recipe from cache:', error);
@@ -107,10 +129,21 @@ class RecipeCacheService {
 
   async clearCache(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove([LIKED_RECIPES_KEY, COOKED_RECIPES_KEY]);
-      console.log('✅ Recipe cache cleared');
+      const likedKey = this.getLikedKey();
+      const cookedKey = this.getCookedKey();
+      await AsyncStorage.multiRemove([likedKey, cookedKey]);
+      console.log('✅ Recipe cache cleared for user:', this.currentUserId);
     } catch (error) {
       console.error('❌ Failed to clear cache:', error);
+    }
+  }
+
+  async clearLegacyCache(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove([LEGACY_LIKED_KEY, LEGACY_COOKED_KEY]);
+      console.log('✅ Legacy recipe cache cleared');
+    } catch (error) {
+      console.error('❌ Failed to clear legacy cache:', error);
     }
   }
 }
