@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
   SafeAreaView,
   Dimensions,
   Alert,
-  Modal
+  Modal,
+  Image
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Colors, Typography, Spacing, BorderRadius } from '../src/constants/DesignTokens'
@@ -261,7 +262,11 @@ export default function RecipeDetailScreen({
             {/* Recipe Hero Section */}
             <View style={styles.heroSection}>
               <View style={styles.recipeImageContainer}>
-                <Text style={styles.recipeEmoji}>{recipe.image}</Text>
+                {recipe.image && recipe.image.startsWith('http') ? (
+                  <Image source={{ uri: recipe.image }} style={styles.recipeImage} resizeMode="cover" />
+                ) : (
+                  <Text style={styles.recipeEmoji}>{recipe.image}</Text>
+                )}
                 <View style={styles.heroOverlay}>
                   <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(recipe.difficulty) }]}>
                     <Text style={styles.difficultyText}>{recipe.difficulty}</Text>
@@ -422,9 +427,15 @@ export default function RecipeDetailScreen({
 
             {/* Action Buttons */}
             <View style={styles.actionSection}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.startCookingButton}
-                onPress={() => setShowCookingSteps(true)}
+                onPress={async () => {
+                  // Call personalization first if handler is provided
+                  if (onStartCooking) {
+                    await onStartCooking()
+                  }
+                  setShowCookingSteps(true)
+                }}
               >
                 <LinearGradient
                   colors={['#10B981', '#3B82F6']}
@@ -688,6 +699,10 @@ const styles = StyleSheet.create({
   },
   recipeEmoji: {
     fontSize: 80,
+  },
+  recipeImage: {
+    width: '100%',
+    height: '100%',
   },
   heroOverlay: {
     position: 'absolute',

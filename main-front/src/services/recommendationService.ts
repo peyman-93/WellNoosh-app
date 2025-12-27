@@ -37,6 +37,35 @@ export interface FeedbackRequest {
   event_type: 'like' | 'dislike' | 'save' | 'pass'
 }
 
+export interface PersonalizedRecipe extends RecipeRecommendation {
+  safety_validated: boolean
+  safety_score: number
+  safety_warnings: string[]
+  substitution_notes: string[]
+  estimated_difficulty: string
+  total_prep_time: string
+  total_cook_time: string
+  personalization_notes: string
+  structured_instructions: Array<{
+    step: number
+    instruction: string
+    time: string
+  }>
+}
+
+export interface PersonalizedRecipeResponse {
+  user_id: string
+  recipe: PersonalizedRecipe | null
+  user_profile_applied: {
+    allergies: string[]
+    diet_style: string
+    cooking_skill: string
+    medical_conditions: string[]
+  } | null
+  messages: string[]
+  error?: string
+}
+
 class RecommendationService {
   private apiUrl: string
 
@@ -255,6 +284,52 @@ class RecommendationService {
     } catch (error) {
       console.error('Recommendation API health check failed:', error)
       return false
+    }
+  }
+
+  /**
+   * Personalize a recipe when user clicks 'Cook Now'
+   * This applies safety validation, substitutions, and adaptations based on user profile
+   */
+  async personalizeForCooking(userId: string, recipeId: string): Promise<PersonalizedRecipeResponse> {
+    try {
+      console.log('🍳 Personalizing recipe for cooking:', { userId, recipeId })
+
+      const response = await fetch(`${this.apiUrl}/api/personalize-for-cooking`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          recipe_id: recipeId
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || `Failed to personalize recipe: ${response.status}`)
+      }
+
+      const data: PersonalizedRecipeResponse = await response.json()
+      console.log('✅ Recipe personalized:', data.recipe?.title)
+
+      // Show safety warnings if any
+      if (data.recipe?.safety_warnings && data.recipe.safety_warnings.length > 0) {
+        console.warn('⚠️ Safety warnings:', data.recipe.safety_warnings)
+      }
+
+      return data
+    } catch (error) {
+      console.error('❌ Error personalizing recipe:', error)
+      return {
+        user_id: userId,
+        recipe: null,
+        user_profile_applied: null,
+        messages: ['Failed to personalize recipe'],
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
     }
   }
 }
