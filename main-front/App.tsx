@@ -11,6 +11,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 // Providers
 import { AuthProvider, useAuth } from './src/context/supabase-provider'
 import { UserDataProvider, useUserData } from './src/context/user-data-provider'
+import { BadgeProvider } from './src/context/BadgeContext'
 
 // Screens
 import MainTabs from './screens/MainTabs'
@@ -375,7 +376,9 @@ export default function App() {
   return (
     <AuthProvider>
       <UserDataProvider>
-        <AppContent />
+        <BadgeProvider>
+          <AppContent />
+        </BadgeProvider>
       </UserDataProvider>
     </AuthProvider>
   )

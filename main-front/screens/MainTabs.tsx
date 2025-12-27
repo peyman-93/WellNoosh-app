@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { View, Text } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import Svg, { Path, Circle, Rect, G } from 'react-native-svg'
 import { MealPlannerIcon } from '../src/components/Icons/MealPlannerIcon'
+import { useBadge } from '../src/context/BadgeContext'
 
 // Import tab screens
 import HomeTabScreen from './tabs/HomeTabScreen'
@@ -72,7 +73,57 @@ const ProfileIcon = ({ color, size }: { color: string; size: number }) => (
 
 const Tab = createBottomTabNavigator()
 
+const BadgedIcon = ({ IconComponent, badgeCount, color, size }: { 
+  IconComponent: React.FC<{ color: string; size: number }>;
+  badgeCount: number;
+  color: string;
+  size: number;
+}) => (
+  <View style={{ width: size + 10, height: size + 10, alignItems: 'center', justifyContent: 'center' }}>
+    <IconComponent color={color} size={size} />
+    {badgeCount > 0 && (
+      <View style={badgeStyles.badge}>
+        <Text style={badgeStyles.badgeText}>
+          {badgeCount > 99 ? '99+' : badgeCount}
+        </Text>
+      </View>
+    )}
+  </View>
+);
+
+const badgeStyles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+});
+
 export default function MainTabs() {
+  const { recipeBadgeCount, groceryBadgeCount, clearRecipeBadge, clearGroceryBadge, refreshBadges } = useBadge();
+
+  useEffect(() => {
+    refreshBadges();
+    const interval = setInterval(() => {
+      refreshBadges();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [refreshBadges]);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -127,7 +178,19 @@ export default function MainTabs() {
         name="Recipes"
         component={RecipesTabScreen}
         options={{
-          tabBarIcon: CuisinesIcon,
+          tabBarIcon: ({ color, size }) => (
+            <BadgedIcon 
+              IconComponent={CuisinesIcon} 
+              badgeCount={recipeBadgeCount} 
+              color={color} 
+              size={size} 
+            />
+          ),
+        }}
+        listeners={{
+          tabPress: () => {
+            clearRecipeBadge();
+          },
         }}
       />
       <Tab.Screen
@@ -149,8 +212,20 @@ export default function MainTabs() {
         name="GroceryList"
         component={GroceryListTabScreen}
         options={{
-          tabBarIcon: GroceryIcon,
+          tabBarIcon: ({ color, size }) => (
+            <BadgedIcon 
+              IconComponent={GroceryIcon} 
+              badgeCount={groceryBadgeCount} 
+              color={color} 
+              size={size} 
+            />
+          ),
           tabBarLabel: 'Grocery List',
+        }}
+        listeners={{
+          tabPress: () => {
+            clearGroceryBadge();
+          },
         }}
       />
       <Tab.Screen
@@ -180,7 +255,7 @@ export default function MainTabs() {
         }}
         listeners={{
           tabPress: (e) => {
-            e.preventDefault(); // Prevent default tab behavior
+            e.preventDefault();
           },
         }}
       />

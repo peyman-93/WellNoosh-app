@@ -289,6 +289,12 @@ export default function RecipeSwipeScreen({ onNavigateBack }: RecipeSwipeScreenP
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (session?.user?.id) {
+      recipeCacheService.setUserId(session.user.id);
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
     loadRecommendations();
   }, []);
 
