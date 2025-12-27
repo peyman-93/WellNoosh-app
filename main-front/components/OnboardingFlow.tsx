@@ -92,7 +92,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
 
   // Health Goals
   const healthGoals = [
-    'Lose Weight', 'Gain Weight', 'Maintain Weight', 'Build Muscle', 'Improve Energy'
+    'Lose Weight', 'Gain Weight', 'Maintain Weight', 'Build Muscle'
   ];
 
   // Timeline Options

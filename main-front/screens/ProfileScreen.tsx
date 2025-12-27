@@ -258,8 +258,7 @@ export default function ProfileScreen() {
     'Lose Weight',
     'Gain Weight',
     'Maintain Weight',
-    'Build Muscle',
-    'Improve Energy'
+    'Build Muscle'
   ]
   const timelines = [
     '1-3 months',
