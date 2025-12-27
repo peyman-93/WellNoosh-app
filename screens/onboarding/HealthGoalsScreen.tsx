@@ -15,7 +15,6 @@ const healthGoals = [
   { id: 'gain-weight', name: 'Gain Weight', emoji: '📈', bgColor: '#D1FAE5' },
   { id: 'maintain-weight', name: 'Maintain Weight', emoji: '⚖️', bgColor: '#DBEAFE' },
   { id: 'build-muscle', name: 'Build Muscle', emoji: '💪', bgColor: '#EDE9FE' },
-  { id: 'improve-energy', name: 'Improve Energy', emoji: '⚡', bgColor: '#FEF3C7' },
   { id: 'better-digestion', name: 'Better Digestion', emoji: '🫄', bgColor: '#D1FAE5' },
   { id: 'reduce-inflammation', name: 'Reduce Inflammation', emoji: '🌿', bgColor: '#ECFDF5' },
   { id: 'heart-health', name: 'Heart Health', emoji: '❤️', bgColor: '#FEE2E2' },
