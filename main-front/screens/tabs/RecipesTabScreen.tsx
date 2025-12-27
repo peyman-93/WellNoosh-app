@@ -71,11 +71,19 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
     }
   }, [session?.user?.id])
 
-  // Handle selecting and personalizing a recipe when viewing from My Recipes
+  // Handle selecting a recipe - only personalize liked recipes, not already-cooked ones
   const handleSelectRecipe = async (recipe: Recipe) => {
     if (!session?.user?.id) return
 
     const detailRecipe = convertToDetailRecipe(recipe)
+
+    // If viewing cooked recipes, skip personalization (already done before)
+    if (activeTab === 'cooked') {
+      setSelectedRecipe(detailRecipe)
+      return
+    }
+
+    // Only personalize liked recipes (first time viewing before cooking)
     setIsPersonalizing(true)
 
     try {
@@ -85,12 +93,10 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
       )
 
       if (result.error || !result.recipe) {
-        // If personalization fails, show original recipe
         setSelectedRecipe(detailRecipe)
         return
       }
 
-      // Create personalized recipe with updated instructions
       const personalizedRecipe = result.recipe
       const personalizedDetailRecipe: DetailRecipe = {
         ...detailRecipe,
@@ -101,7 +107,6 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
 
       setSelectedRecipe(personalizedDetailRecipe)
     } catch (error) {
-      // If error, show original recipe
       setSelectedRecipe(detailRecipe)
     } finally {
       setIsPersonalizing(false)
@@ -524,7 +529,15 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
                 </View>
 
                 <View style={styles.likedBadge}>
-                  <Text style={styles.likedIcon}>💚</Text>
+                  {activeTab === 'cooked' && recipe.rating ? (
+                    <View style={styles.ratingBadge}>
+                      <Text style={styles.ratingStars}>
+                        {'★'.repeat(recipe.rating)}{'☆'.repeat(5 - recipe.rating)}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.likedIcon}>💚</Text>
+                  )}
                 </View>
               </TouchableOpacity>
             ))}
@@ -683,6 +696,14 @@ const styles = StyleSheet.create({
   },
   likedIcon: {
     fontSize: 20,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+  },
+  ratingStars: {
+    fontSize: 12,
+    color: '#F59E0B',
+    letterSpacing: -1,
   },
   personalizingContainer: {
     flex: 1,

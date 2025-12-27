@@ -1,6 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { recipeCacheService } from '../services/recipeCacheService';
-import { groceryListService } from '../services/groceryListService';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { useAuth } from './supabase-provider';
 
 interface BadgeContextType {
@@ -19,47 +17,46 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const [recipeBadgeCount, setRecipeBadgeCount] = useState(0);
   const [groceryBadgeCount, setGroceryBadgeCount] = useState(0);
+  const hasSeenRecipes = useRef(false);
+  const hasSeenGrocery = useRef(false);
 
   const refreshBadges = useCallback(async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      recipeCacheService.setUserId(session.user.id);
-      const likedRecipes = await recipeCacheService.getLikedRecipes();
-      setRecipeBadgeCount(likedRecipes.length);
-
-      try {
-        const groceryItems = await groceryListService.getGroceryList();
-        const uncheckedItems = groceryItems.filter(item => !item.completed).length;
-        setGroceryBadgeCount(uncheckedItems);
-      } catch (error) {
-        console.log('Could not fetch grocery list for badge:', error);
-      }
-    } catch (error) {
-      console.error('Error refreshing badges:', error);
-    }
+    // Badges only show new items since last visit
+    // They start at 0 and only increment when new items are added
   }, [session?.user?.id]);
 
   useEffect(() => {
     if (session?.user?.id) {
-      refreshBadges();
+      // Reset badge visibility flags on login
+      hasSeenRecipes.current = false;
+      hasSeenGrocery.current = false;
+      setRecipeBadgeCount(0);
+      setGroceryBadgeCount(0);
     }
-  }, [session?.user?.id, refreshBadges]);
+  }, [session?.user?.id]);
 
   const clearRecipeBadge = useCallback(() => {
+    hasSeenRecipes.current = true;
     setRecipeBadgeCount(0);
   }, []);
 
   const clearGroceryBadge = useCallback(() => {
+    hasSeenGrocery.current = true;
     setGroceryBadgeCount(0);
   }, []);
 
   const incrementRecipeBadge = useCallback(() => {
-    setRecipeBadgeCount(prev => prev + 1);
+    // Only show badge if user hasn't seen the recipes tab yet
+    if (!hasSeenRecipes.current) {
+      setRecipeBadgeCount(prev => prev + 1);
+    }
   }, []);
 
   const incrementGroceryBadge = useCallback((count: number = 1) => {
-    setGroceryBadgeCount(prev => prev + count);
+    // Only show badge if user hasn't seen the grocery tab yet
+    if (!hasSeenGrocery.current) {
+      setGroceryBadgeCount(prev => prev + count);
+    }
   }, []);
 
   return (

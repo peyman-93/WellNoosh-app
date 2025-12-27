@@ -217,48 +217,6 @@ export default function RecipeDetailScreen({
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           
-          {/* Actions and Star Rating */}
-          <View style={styles.headerActionsContainer}>
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerActionButton} onPress={() => {
-                Alert.alert(
-                  'Share Recipe',
-                  `Share "${recipe.name}" with your friends and family!`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Share', onPress: () => console.log('Sharing recipe:', recipe.name) }
-                  ]
-                )
-              }}>
-                <Text style={styles.headerActionText}>↗️</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerActionButton} onPress={() => {
-                if (onStartFamilyChoice) {
-                  onStartFamilyChoice(recipe)
-                } else {
-                  Alert.alert(
-                    'Vote on Recipe',
-                    `Start a family vote for "${recipe.name}"!`,
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Start Vote', onPress: () => console.log('Starting vote for recipe:', recipe.name) }
-                    ]
-                  )
-                }
-              }}>
-                <Text style={styles.headerActionText}>🗳️</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.headerRatingContainer}>
-              <StarRating 
-                rating={currentUserRating || 0}
-                onRatingChange={handleRating}
-                size="small"
-                interactive={!!onRateRecipe}
-                showRating={false}
-              />
-            </View>
-          </View>
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -419,14 +377,17 @@ export default function RecipeDetailScreen({
             {/* Instructions Section */}
             <View style={styles.instructionsSection}>
               <Text style={styles.sectionTitle}>Instructions</Text>
-              {recipe.instructions.map((instruction, index) => (
-                <View key={index} style={styles.instructionItem}>
-                  <View style={styles.instructionNumber}>
-                    <Text style={styles.instructionNumberText}>{index + 1}</Text>
+              {recipe.instructions.map((instruction, index) => {
+                const cleanInstruction = instruction.replace(/^\d+[\.\)\-\s]+\s*/, '').trim()
+                return (
+                  <View key={index} style={styles.instructionItem}>
+                    <View style={styles.instructionNumber}>
+                      <Text style={styles.instructionNumberText}>{index + 1}</Text>
+                    </View>
+                    <Text style={styles.instructionText}>{cleanInstruction}</Text>
                   </View>
-                  <Text style={styles.instructionText}>{instruction}</Text>
-                </View>
-              ))}
+                )
+              })}
             </View>
 
             {/* Action Buttons */}
