@@ -288,6 +288,13 @@ Use ONLY recipe IDs from the provided list."""
                     recipe = recipe_map.get(recipe_id)
 
                     if recipe:
+                        # Helper to safely convert string/float to int
+                        def safe_int(val, default=0):
+                            try:
+                                return int(float(val)) if val else default
+                            except (ValueError, TypeError):
+                                return default
+                        
                         enriched_meals.append({
                             'plan_date': meal.get('plan_date'),
                             'meal_slot': meal.get('meal_slot'),
@@ -296,10 +303,10 @@ Use ONLY recipe IDs from the provided list."""
                             'recipe_image': recipe.get('image_url'),
                             'notes': meal.get('notes', ''),
                             'servings': 1,
-                            'calories': int(recipe.get('calories', 0)),
-                            'protein_g': int(recipe.get('protein', 0)),
-                            'carbs_g': int(recipe.get('carbs', 0)),
-                            'fat_g': int(recipe.get('fat', 0))
+                            'calories': safe_int(recipe.get('calories', 0)),
+                            'protein_g': safe_int(recipe.get('protein', 0)),
+                            'carbs_g': safe_int(recipe.get('carbs', 0)),
+                            'fat_g': safe_int(recipe.get('fat', 0))
                         })
                     else:
                         # Recipe not found, use provided info
