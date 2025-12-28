@@ -3,22 +3,25 @@ import OpenAI from 'openai';
 import { asyncHandler, createError } from '../middleware/errorHandler';
 
 // Support both Replit integration (for Replit environment) and direct OpenAI API key (for local development)
-const openaiConfig: { apiKey?: string; baseURL?: string } = {};
+let openai: OpenAI;
 
 if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
   // Replit environment - use Replit's OpenAI integration
-  openaiConfig.apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  openaiConfig.baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
+  });
   console.log('🤖 Using Replit OpenAI integration');
 } else if (process.env.OPENAI_API_KEY) {
   // Local development - use direct OpenAI API key
-  openaiConfig.apiKey = process.env.OPENAI_API_KEY;
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+  });
   console.log('🤖 Using direct OpenAI API key');
 } else {
   console.warn('⚠️ No OpenAI API key configured. AI features will not work.');
+  openai = new OpenAI({ apiKey: 'dummy' }); // Will fail gracefully when called
 }
-
-const openai = new OpenAI(openaiConfig);
 
 interface UserHealthContext {
   allergies?: string[];
@@ -142,6 +145,8 @@ class MealPlanController {
   });
 
   aiChat = asyncHandler(async (req: Request, res: Response) => {
+    console.log('📝 AI Chat request received');
+    
     const { messages, healthContext } = req.body as {
       messages: ChatMessage[];
       healthContext: UserHealthContext;
@@ -151,6 +156,7 @@ class MealPlanController {
       throw createError('Messages array is required', 400);
     }
 
+    console.log('📝 Processing chat with', messages.length, 'messages');
     const systemPrompt = buildSystemPrompt(healthContext || {});
 
     const response = await openai.chat.completions.create({
@@ -170,12 +176,16 @@ class MealPlanController {
   });
 
   aiGeneratePlan = asyncHandler(async (req: Request, res: Response) => {
+    console.log('🍽️ AI Generate Plan request received');
+    
     const { messages, healthContext, startDate, numberOfDays = 7 } = req.body as {
       messages: ChatMessage[];
       healthContext: UserHealthContext;
       startDate: string;
       numberOfDays?: number;
     };
+
+    console.log('🍽️ Request params:', { messagesCount: messages?.length, startDate, numberOfDays });
 
     if (!messages || !Array.isArray(messages)) {
       throw createError('Messages array is required', 400);
