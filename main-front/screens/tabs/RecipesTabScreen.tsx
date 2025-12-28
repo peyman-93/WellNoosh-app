@@ -98,11 +98,36 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
       }
 
       const personalizedRecipe = result.recipe
+
+      // Convert adapted ingredients to DetailRecipe format
+      const adaptedIngredients = personalizedRecipe.adapted_ingredients?.map(ing => ({
+        name: ing.name,
+        amount: ing.amount,
+        unit: '',
+        category: ing.reason || 'Ingredient'
+      })) || detailRecipe.ingredients
+
+      // Convert adapted instructions to string array with tips
+      const adaptedInstructions = personalizedRecipe.structured_instructions?.map(s =>
+        s.tip ? `${s.instruction} 💡 Tip: ${s.tip}` : s.instruction
+      ) || detailRecipe.instructions
+
       const personalizedDetailRecipe: DetailRecipe = {
         ...detailRecipe,
-        instructions: personalizedRecipe.structured_instructions?.map(s => s.instruction) || detailRecipe.instructions,
+        ingredients: adaptedIngredients,
+        instructions: adaptedInstructions,
         cookTime: personalizedRecipe.total_cook_time || detailRecipe.cookTime,
-        difficulty: (personalizedRecipe.estimated_difficulty as 'Easy' | 'Medium' | 'Hard') || detailRecipe.difficulty
+        difficulty: (personalizedRecipe.estimated_difficulty as 'Easy' | 'Medium' | 'Hard') || detailRecipe.difficulty,
+        description: personalizedRecipe.personalization_summary || detailRecipe.description
+      }
+
+      // Show personalization summary
+      if (personalizedRecipe.personalization_summary) {
+        Alert.alert(
+          '✨ Recipe Personalized',
+          personalizedRecipe.personalization_summary,
+          [{ text: 'Got it!', style: 'default' }]
+        )
       }
 
       setSelectedRecipe(personalizedDetailRecipe)

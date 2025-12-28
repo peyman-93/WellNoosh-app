@@ -188,52 +188,18 @@ def create_filters(state: RecipeState) -> RecipeState:
 
 
 def fetch_recipes(state: RecipeState) -> RecipeState:
-    """Fetch candidate recipes from database with allergen filtering"""
-    print(f"\n[Node: fetch_recipes] Fetching candidate recipes")
+    """Fetch diverse recipes from database (no personalization/filtering)"""
+    print(f"\n[Node: fetch_recipes] Fetching diverse recipes from database")
 
     if state.get("error"):
         return state
-
-    filters = state["filters"]
 
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Build strict allergen exclusions
-        allergen_conditions = []
-        for allergen in filters.get('allergies', []):
-            allergen = allergen.lower().strip()
-            if allergen:
-                allergen_patterns = {
-                    'milk': ['milk', 'cream', 'cheese', 'butter', 'dairy'],
-                    'eggs': ['egg'],
-                    'wheat': ['wheat', 'flour', 'bread'],
-                    'nuts': ['nut', 'almond', 'walnut', 'pecan'],
-                    'peanuts': ['peanut'],
-                    'shellfish': ['shrimp', 'lobster', 'crab', 'shellfish'],
-                    'soy': ['soy', 'tofu']
-                }
-
-                search_terms = allergen_patterns.get(allergen, [allergen])
-                term_conditions = []
-                for term in search_terms:
-                    term_conditions.append(f"LOWER(ri.ingredient_name) LIKE '%{term}%'")
-
-                if term_conditions:
-                    allergen_conditions.append(f"""
-                        NOT EXISTS (
-                            SELECT 1 FROM recipe_ingredients ri
-                            WHERE ri.recipe_id = r.id
-                            AND ({' OR '.join(term_conditions)})
-                        )
-                    """)
-
-        where_clause = "WHERE r.instructions IS NOT NULL"
-        if allergen_conditions:
-            where_clause += " AND " + " AND ".join(allergen_conditions)
-
-        query = f"""
+        # Simple query - just fetch diverse recipes, no filtering
+        query = """
             SELECT
                 r.id, r.title, r.category, r.area as cuisine,
                 r.instructions, r.image_url, r.servings,
@@ -250,11 +216,11 @@ def fetch_recipes(state: RecipeState) -> RecipeState:
             FROM recipes r
             LEFT JOIN recipe_nutrients rn ON r.id = rn.recipe_id
             LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
-            {where_clause}
+            WHERE r.instructions IS NOT NULL
             GROUP BY r.id, r.title, r.category, r.area,
                      r.instructions, r.image_url, r.servings, rn.per_serving
             ORDER BY RANDOM()
-            LIMIT 50
+            LIMIT 20
         """
 
         cur.execute(query)
@@ -263,13 +229,13 @@ def fetch_recipes(state: RecipeState) -> RecipeState:
         conn.close()
 
         recipe_list = [dict(r) for r in recipes]
-        print(f"  Found {len(recipe_list)} candidate recipes")
+        print(f"  Found {len(recipe_list)} recipes")
 
         return {
             **state,
             "candidate_recipes": recipe_list,
             "total_candidates": len(recipe_list),
-            "messages": [f"Found {len(recipe_list)} candidate recipes"]
+            "messages": [f"Found {len(recipe_list)} diverse recipes"]
         }
 
     except Exception as e:
@@ -759,59 +725,101 @@ def should_continue_after_validation(state: RecipeState) -> str:
 # ============================================
 
 def build_recommendation_graph() -> StateGraph:
-    """Build the LangGraph workflow for recipe recommendations"""
+    """Build simplified LangGraph workflow - just fetch diverse recipes, no personalization"""
 
     # Create the graph
     workflow = StateGraph(RecipeState)
 
-    # Add nodes
-    workflow.add_node("load_profile", load_user_profile)
-    workflow.add_node("create_filters", create_filters)
-    workflow.add_node("fetch_recipes", fetch_recipes)
-    workflow.add_node("validate_safety", validate_safety)
-    workflow.add_node("rank_recipes", rank_recipes)
-    workflow.add_node("adapt_recipes", adapt_recipes)
-    workflow.add_node("parse_instructions", parse_instructions)
+    # Simplified nodes - no personalization for browsing
+    workflow.add_node("fetch_recipes", fetch_recipes_simple)
     workflow.add_node("save_results", save_results)
 
-    # Add edges
-    workflow.add_edge(START, "load_profile")
-
-    workflow.add_conditional_edges(
-        "load_profile",
-        should_continue_after_profile,
-        {
-            "continue": "create_filters",
-            "end": END
-        }
-    )
-
-    workflow.add_edge("create_filters", "fetch_recipes")
+    # Simple linear flow: fetch -> save -> end
+    workflow.add_edge(START, "fetch_recipes")
 
     workflow.add_conditional_edges(
         "fetch_recipes",
         should_continue_after_fetch,
         {
-            "continue": "validate_safety",
+            "continue": "save_results",
             "end": END
         }
     )
 
-    workflow.add_conditional_edges(
-        "validate_safety",
-        should_continue_after_validation,
-        {
-            "continue": "rank_recipes",
-            "end": END
-        }
-    )
-
-    workflow.add_edge("rank_recipes", "adapt_recipes")
-    workflow.add_edge("adapt_recipes", "parse_instructions")
-    workflow.add_edge("parse_instructions", "save_results")
     workflow.add_edge("save_results", END)
 
     return workflow.compile()
+
+
+def fetch_recipes_simple(state: RecipeState) -> RecipeState:
+    """Simplified fetch - just get diverse recipes from database"""
+    print(f"\n[Node: fetch_recipes_simple] Fetching diverse recipes")
+
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            SELECT
+                r.id, r.title, r.category, r.area as cuisine,
+                r.instructions, r.image_url, r.servings,
+                COALESCE(rn.per_serving->>'kcal', '300') as calories,
+                COALESCE(rn.per_serving->>'protein_g', '15') as protein,
+                COALESCE(rn.per_serving->>'sodium_mg', '400') as sodium,
+                COALESCE(rn.per_serving->>'sugar_g', '5') as sugar,
+                json_agg(
+                    json_build_object(
+                        'name', ri.ingredient_name,
+                        'amount', ri.measure_text
+                    ) ORDER BY ri.position
+                ) as ingredients
+            FROM recipes r
+            LEFT JOIN recipe_nutrients rn ON r.id = rn.recipe_id
+            LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+            WHERE r.instructions IS NOT NULL
+            GROUP BY r.id, r.title, r.category, r.area,
+                     r.instructions, r.image_url, r.servings, rn.per_serving
+            ORDER BY RANDOM()
+            LIMIT 20
+        """
+
+        cur.execute(query)
+        recipes = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        recipe_list = []
+        for r in recipes:
+            recipe = dict(r)
+            # Add basic fields for display (no personalization)
+            recipe['recommendation_reason'] = 'Discover new recipes'
+            recipe['safety_validated'] = False
+            recipe['safety_score'] = 0
+            recipe['safety_warnings'] = []
+            recipe_list.append(recipe)
+
+        print(f"  Found {len(recipe_list)} recipes")
+
+        return {
+            **state,
+            "candidate_recipes": recipe_list,
+            "final_recommendations": recipe_list,
+            "total_candidates": len(recipe_list),
+            "final_count": len(recipe_list),
+            "messages": [f"Found {len(recipe_list)} diverse recipes"]
+        }
+
+    except Exception as e:
+        print(f"  Error fetching recipes: {e}")
+        return {
+            **state,
+            "error": str(e),
+            "candidate_recipes": [],
+            "final_recommendations": [],
+            "total_candidates": 0,
+            "final_count": 0,
+            "messages": [f"Recipe fetch error: {str(e)}"]
+        }
 
 
 # ============================================
@@ -834,13 +842,13 @@ class LangGraphRecipeAgent:
             print(f"Warning: LLM initialization issue: {e}")
 
     def get_recommendations(self, user_id: str) -> Dict:
-        """Get personalized recipe recommendations"""
+        """Get diverse recipe recommendations (no personalization)"""
         print(f"\n{'='*60}")
-        print(f"LangGraph Recipe Recommendation Agent")
+        print(f"Recipe Recommendation Agent (Browse Mode)")
         print(f"{'='*60}")
-        print(f"Getting recommendations for user: {user_id}")
+        print(f"Fetching diverse recipes for user: {user_id}")
 
-        # Initialize state
+        # Initialize state - simplified, no user profile needed for browsing
         initial_state: RecipeState = {
             "user_id": user_id,
             "user_profile": None,
@@ -857,7 +865,7 @@ class LangGraphRecipeAgent:
             "final_count": 0
         }
 
-        # Run the graph
+        # Run the simplified graph
         try:
             final_state = self.graph.invoke(initial_state)
 
@@ -871,9 +879,9 @@ class LangGraphRecipeAgent:
             return {
                 'user_id': user_id,
                 'recommendations': final_state.get("final_recommendations", []),
-                'filters_applied': final_state.get("filters", {}),
+                'filters_applied': {},  # No filters in browse mode
                 'total_candidates': final_state.get("total_candidates", 0),
-                'safe_count': final_state.get("safe_count", 0),
+                'safe_count': 0,  # No safety validation in browse mode
                 'final_count': final_state.get("final_count", 0),
                 'messages': final_state.get("messages", [])
             }
@@ -886,6 +894,268 @@ class LangGraphRecipeAgent:
                 'user_id': user_id,
                 'error': str(e),
                 'recommendations': []
+            }
+
+    def personalize_for_cooking(self, user_id: str, recipe_id: str) -> Dict:
+        """
+        Personalize a specific recipe when user clicks 'Cook Now'
+        This applies all personalization: safety validation, adaptations, substitutions
+        """
+        print(f"\n{'='*60}")
+        print(f"Personalizing Recipe for Cooking")
+        print(f"{'='*60}")
+        print(f"User: {user_id}, Recipe: {recipe_id}")
+
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+
+            # 1. Load user profile
+            cur.execute("""
+                SELECT
+                    up.user_id, up.full_name, up.email,
+                    uhp.cooking_skill, uhp.diet_style,
+                    uhp.allergies, uhp.medical_conditions,
+                    uhp.health_goals, uhp.daily_calorie_goal
+                FROM user_profiles up
+                LEFT JOIN user_health_profiles uhp ON up.user_id = uhp.user_id
+                WHERE up.user_id = %s
+            """, (user_id,))
+            profile = cur.fetchone()
+
+            if not profile:
+                return {'error': 'User profile not found', 'recipe': None}
+
+            user_profile = dict(profile)
+            print(f"  Loaded profile: {user_profile.get('full_name', 'User')}")
+
+            # 2. Load the recipe
+            cur.execute("""
+                SELECT
+                    r.id, r.title, r.category, r.area as cuisine,
+                    r.instructions, r.image_url, r.servings,
+                    COALESCE(rn.per_serving->>'kcal', '300') as calories,
+                    COALESCE(rn.per_serving->>'protein_g', '15') as protein,
+                    COALESCE(rn.per_serving->>'sodium_mg', '400') as sodium,
+                    COALESCE(rn.per_serving->>'sugar_g', '5') as sugar,
+                    json_agg(
+                        json_build_object(
+                            'name', ri.ingredient_name,
+                            'amount', ri.measure_text
+                        ) ORDER BY ri.position
+                    ) as ingredients
+                FROM recipes r
+                LEFT JOIN recipe_nutrients rn ON r.id = rn.recipe_id
+                LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+                WHERE r.id = %s
+                GROUP BY r.id, r.title, r.category, r.area,
+                         r.instructions, r.image_url, r.servings, rn.per_serving
+            """, (recipe_id,))
+            recipe_row = cur.fetchone()
+
+            if not recipe_row:
+                cur.close()
+                conn.close()
+                return {'error': 'Recipe not found', 'recipe': None}
+
+            recipe = dict(recipe_row)
+            cur.close()
+            conn.close()
+
+            # 3. Perform personalization using LLM
+            llm = get_llm()
+
+            allergies = user_profile.get('allergies', []) or []
+            medical_conditions = user_profile.get('medical_conditions', []) or []
+            diet_style = user_profile.get('diet_style', 'balanced')
+            cooking_skill = user_profile.get('cooking_skill', 'beginner')
+            health_goals = user_profile.get('health_goals', []) or []
+
+            allergies_str = ', '.join(allergies) if allergies else 'None'
+            conditions_str = ', '.join(medical_conditions) if medical_conditions else 'None'
+            health_goals_str = ', '.join(health_goals) if health_goals else 'None'
+
+            # Get full ingredients with amounts
+            ingredients = recipe.get('ingredients', [])
+            ingredients_list = []
+            for ing in ingredients:
+                if ing:
+                    name = ing.get('name', '')
+                    amount = ing.get('amount', '')
+                    if name:
+                        ingredients_list.append(f"- {amount} {name}".strip())
+
+            ingredients_text = '\n'.join(ingredients_list) if ingredients_list else 'No ingredients listed'
+            instructions = recipe.get('instructions', '')
+
+            prompt = f"""You are a professional chef and nutritionist. FULLY ADAPT this recipe for the user's specific needs.
+
+USER PROFILE:
+- Allergies: {allergies_str}
+- Medical Conditions: {conditions_str}
+- Diet Style: {diet_style}
+- Cooking Skill Level: {cooking_skill}
+- Health Goals: {health_goals_str}
+
+ORIGINAL RECIPE: {recipe.get('title')}
+
+ORIGINAL INGREDIENTS:
+{ingredients_text}
+
+ORIGINAL INSTRUCTIONS:
+{instructions}
+
+YOUR TASK:
+1. REWRITE the ingredients list - replace problematic ingredients with REAL, SPECIFIC alternatives
+2. REWRITE the instructions step-by-step using the NEW ingredient names
+3. Adjust portions based on health goals
+
+CRITICAL RULES - USE REAL INGREDIENT NAMES:
+❌ NEVER use generic terms like:
+- "dairy-free alternative"
+- "dairy-free butter"
+- "dairy-free cream"
+- "nut-free option"
+- "sugar-free sweetener"
+- "gluten-free flour"
+
+✅ ALWAYS use SPECIFIC real ingredients:
+- Instead of "dairy-free milk" → use "oat milk", "coconut milk", "almond milk", or "soy milk"
+- Instead of "dairy-free butter" → use "coconut oil", "olive oil", or "avocado oil"
+- Instead of "dairy-free cream" → use "coconut cream", "cashew cream", or "oat cream"
+- Instead of "dairy-free chocolate" → use "dark chocolate (70% cocoa)", "cacao nibs", or "carob chips"
+- Instead of "nut-free butter" → use "sunflower seed butter", "tahini", or "soy nut butter"
+- Instead of "sugar-free sweetener" → use "stevia", "monk fruit", "erythritol", or "date syrup"
+- Instead of "gluten-free flour" → use "almond flour", "rice flour", "oat flour", or "coconut flour"
+- Instead of "egg substitute" → use "flax egg (1 tbsp flax + 3 tbsp water)", "chia egg", or "mashed banana"
+
+ALLERGY-SPECIFIC SUBSTITUTIONS:
+- Dairy allergy: Use coconut, oat, or soy-based alternatives (check if also nut-free needed)
+- Nut allergy: Use seeds (sunflower, pumpkin), coconut, or oat-based products
+- Egg allergy: Use flax eggs, chia eggs, applesauce, or mashed banana
+- Gluten allergy: Use rice, almond, coconut, or certified gluten-free oat flour
+- Soy allergy: Avoid soy milk/tofu, use coconut or oat alternatives
+
+Return ONLY a valid JSON object:
+{{
+    "safety_score": 0-100,
+    "safety_warnings": ["any remaining concerns the user should know"],
+    "adapted_ingredients": [
+        {{"name": "ingredient name", "amount": "quantity with unit", "original": "what it replaced (or null if unchanged)", "reason": "why changed (or null)"}},
+        ...
+    ],
+    "adapted_instructions": [
+        {{"step": 1, "instruction": "detailed instruction text", "tip": "optional helpful tip for this step"}},
+        {{"step": 2, "instruction": "...", "tip": "..."}},
+        ...
+    ],
+    "estimated_difficulty": "easy/medium/hard",
+    "prep_time": "X minutes",
+    "cook_time": "X minutes",
+    "nutrition_adjustments": "brief explanation of nutritional changes made",
+    "personalization_summary": "2-3 sentence summary of all adaptations made for this user"
+}}"""
+
+            response = llm.invoke([HumanMessage(content=prompt)])
+            response_text = response.content
+
+            # Parse the LLM response
+            try:
+                json_match = re.search(r'\{[\s\S]*\}', response_text)
+                if json_match:
+                    personalization = json.loads(json_match.group())
+                else:
+                    personalization = {}
+            except Exception as parse_error:
+                print(f"  JSON parse error: {parse_error}")
+                personalization = {}
+
+            # Build adapted ingredients list
+            adapted_ingredients = []
+            for ing in personalization.get('adapted_ingredients', []):
+                adapted_ingredients.append({
+                    'name': ing.get('name', ''),
+                    'amount': ing.get('amount', ''),
+                    'original': ing.get('original'),
+                    'reason': ing.get('reason'),
+                    'was_changed': ing.get('original') is not None
+                })
+
+            # If no adapted ingredients from LLM, use original
+            if not adapted_ingredients:
+                for ing in ingredients:
+                    if ing:
+                        adapted_ingredients.append({
+                            'name': ing.get('name', ''),
+                            'amount': ing.get('amount', ''),
+                            'original': None,
+                            'reason': None,
+                            'was_changed': False
+                        })
+
+            # Build the personalized recipe response
+            personalized_recipe = {
+                **recipe,
+                'safety_validated': True,
+                'safety_score': personalization.get('safety_score', 75),
+                'safety_warnings': personalization.get('safety_warnings', []),
+                'adapted_ingredients': adapted_ingredients,
+                'nutrition_adjustments': personalization.get('nutrition_adjustments', ''),
+                'estimated_difficulty': personalization.get('estimated_difficulty', 'medium'),
+                'total_prep_time': personalization.get('prep_time', '15 min'),
+                'total_cook_time': personalization.get('cook_time', '30 min'),
+                'personalization_summary': personalization.get('personalization_summary', ''),
+                'structured_instructions': []
+            }
+
+            # Build structured instructions from adapted instructions
+            adapted_instructions = personalization.get('adapted_instructions', [])
+            for step_data in adapted_instructions:
+                if isinstance(step_data, dict):
+                    personalized_recipe['structured_instructions'].append({
+                        'step': step_data.get('step', len(personalized_recipe['structured_instructions']) + 1),
+                        'instruction': step_data.get('instruction', ''),
+                        'tip': step_data.get('tip', ''),
+                        'time': '5 min'
+                    })
+                elif isinstance(step_data, str):
+                    personalized_recipe['structured_instructions'].append({
+                        'step': len(personalized_recipe['structured_instructions']) + 1,
+                        'instruction': step_data,
+                        'tip': '',
+                        'time': '5 min'
+                    })
+
+            # Fallback if no adapted instructions
+            if not personalized_recipe['structured_instructions']:
+                personalized_recipe['structured_instructions'] = _simple_instruction_parse(
+                    recipe.get('instructions', '')
+                )
+
+            # Record the cook_now event
+            self.record_feedback(user_id, recipe_id, 'cook_now')
+
+            print(f"  Personalization complete. Safety score: {personalized_recipe['safety_score']}")
+
+            return {
+                'user_id': user_id,
+                'recipe': personalized_recipe,
+                'user_profile_applied': {
+                    'allergies': allergies,
+                    'diet_style': diet_style,
+                    'cooking_skill': cooking_skill,
+                    'medical_conditions': medical_conditions
+                },
+                'messages': ['Recipe personalized for your profile']
+            }
+
+        except Exception as e:
+            print(f"Error personalizing recipe: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'error': str(e),
+                'recipe': None
             }
 
     def record_feedback(self, user_id: str, recipe_id: str, event_type: str) -> bool:

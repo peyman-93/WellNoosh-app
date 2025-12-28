@@ -1,19 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { 
-  View, 
-  Text, 
-  Modal, 
-  TouchableOpacity, 
-  ScrollView, 
-  TextInput, 
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator
 } from 'react-native'
 import { useUserData } from '../../context/user-data-provider'
+import { useAuth } from '../../context/supabase-provider'
 import { mealPlanAIService, ChatMessage, UserHealthContext } from '../../services/mealPlanAIService'
-import { mealPlannerService, CreateMealPlanEntry } from '../../services/mealPlannerService'
+import { mealPlannerService } from '../../services/mealPlannerService'
 
 interface MealPlanChatModalProps {
   visible: boolean
@@ -31,6 +32,8 @@ interface DisplayMessage {
 
 export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStartDate }: MealPlanChatModalProps) {
   const { userData } = useUserData()
+  const { session } = useAuth()
+  const userId = session?.user?.id || ''
   const [messages, setMessages] = useState<DisplayMessage[]>([])
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -109,7 +112,7 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
       }))
       chatHistory.push({ role: 'user', content: userMessage.content })
 
-      const response = await mealPlanAIService.chat(chatHistory, healthContext)
+      const response = await mealPlanAIService.chat(userId, chatHistory, healthContext)
 
       const assistantMessage: DisplayMessage = {
         id: (Date.now() + 1).toString(),
@@ -160,6 +163,7 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
       })()
 
       const result = await mealPlanAIService.generateMealPlan(
+        userId,
         chatHistory,
         healthContext,
         startOfWeek,

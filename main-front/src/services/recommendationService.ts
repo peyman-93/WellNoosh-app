@@ -37,20 +37,32 @@ export interface FeedbackRequest {
   event_type: 'like' | 'dislike' | 'save' | 'pass'
 }
 
+export interface AdaptedIngredient {
+  name: string
+  amount: string
+  original: string | null  // What it replaced (null if unchanged)
+  reason: string | null    // Why it was changed
+  was_changed: boolean
+}
+
+export interface AdaptedInstruction {
+  step: number
+  instruction: string
+  tip: string
+  time: string
+}
+
 export interface PersonalizedRecipe extends RecipeRecommendation {
   safety_validated: boolean
   safety_score: number
   safety_warnings: string[]
-  substitution_notes: string[]
+  adapted_ingredients: AdaptedIngredient[]
+  nutrition_adjustments: string
   estimated_difficulty: string
   total_prep_time: string
   total_cook_time: string
-  personalization_notes: string
-  structured_instructions: Array<{
-    step: number
-    instruction: string
-    time: string
-  }>
+  personalization_summary: string
+  structured_instructions: AdaptedInstruction[]
 }
 
 export interface PersonalizedRecipeResponse {
