@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
-// Use relative URL for API calls - the Metro proxy will forward to the backend
-const API_URL = '/api';
+// Use relative URL on Replit (proxy handles it), use env var or localhost for local dev
+const API_URL = process.env.EXPO_PUBLIC_API_URL || '/api';
 
 export interface UserHealthContext {
   allergies?: string[];

@@ -1,0 +1,46 @@
+(casrl-venv) mohammadpeyman@Mohammads-MacBook-Air main-front % npx expo start --clear
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_GOOGLE_CLIENT_ID EXPO_PUBLIC_RECOMMENDATION_API_URL
+Starting project at /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front
+Error: Cannot find module 'http-proxy-middleware'
+Require stack:
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/metro.config.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/cosmiconfig/node_modules/import-fresh/index.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/cosmiconfig/dist/loaders.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/cosmiconfig/dist/createExplorer.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/cosmiconfig/dist/index.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/metro-config/src/loadConfig.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/metro-config/src/index.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/server/metro/instantiateMetro.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/server/metro/MetroBundlerDevServer.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/server/DevServerManager.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/startAsync.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/index.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/bin/cli
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/expo/bin/cli
+Error: Cannot find module 'http-proxy-middleware'
+Require stack:
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/metro.config.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/cosmiconfig/node_modules/import-fresh/index.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/cosmiconfig/dist/loaders.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/cosmiconfig/dist/createExplorer.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/cosmiconfig/dist/index.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/metro-config/src/loadConfig.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/metro-config/src/index.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/server/metro/instantiateMetro.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/server/metro/MetroBundlerDevServer.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/server/DevServerManager.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/startAsync.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/src/start/index.js
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/@expo/cli/build/bin/cli
+- /Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/node_modules/expo/bin/cli
+    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1144:15)
+    at Function.Module._load (node:internal/modules/cjs/loader:985:27)
+    at Module.require (node:internal/modules/cjs/loader:1235:19)
+    at require (node:internal/modules/helpers:176:18)
+    at Object.<anonymous> (/Users/mohammadpeyman/Desktop/PeyFab_Tech_demo/WellNoosh-app/main-front/metro.config.js:2:35)
+    at Module._compile (node:internal/modules/cjs/loader:1376:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1435:10)
+    at Module.load (node:internal/modules/cjs/loader:1207:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1023:12)
+    at Module.require (node:internal/modules/cjs/loader:1235:19)
