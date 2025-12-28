@@ -2,10 +2,23 @@ import { Request, Response } from 'express';
 import OpenAI from 'openai';
 import { asyncHandler, createError } from '../middleware/errorHandler';
 
-const openai = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY
-});
+// Support both Replit integration (for Replit environment) and direct OpenAI API key (for local development)
+const openaiConfig: { apiKey?: string; baseURL?: string } = {};
+
+if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+  // Replit environment - use Replit's OpenAI integration
+  openaiConfig.apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  openaiConfig.baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  console.log('🤖 Using Replit OpenAI integration');
+} else if (process.env.OPENAI_API_KEY) {
+  // Local development - use direct OpenAI API key
+  openaiConfig.apiKey = process.env.OPENAI_API_KEY;
+  console.log('🤖 Using direct OpenAI API key');
+} else {
+  console.warn('⚠️ No OpenAI API key configured. AI features will not work.');
+}
+
+const openai = new OpenAI(openaiConfig);
 
 interface UserHealthContext {
   allergies?: string[];
