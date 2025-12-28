@@ -1,9 +1,14 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables FIRST, before any other imports
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
-import dotenv from 'dotenv';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { authRoutes } from './routes/auth';
@@ -12,9 +17,6 @@ import { recipeRoutes } from './routes/recipes';
 import { healthRoutes } from './routes/health';
 import { mealPlanRoutes } from './routes/mealPlans';
 import { nutritionRoutes } from './routes/nutrition';
-
-// Load environment variables from parent directory
-dotenv.config({ path: require('path').resolve(__dirname, '../../.env') });
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
