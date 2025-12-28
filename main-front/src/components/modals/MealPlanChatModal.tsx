@@ -172,7 +172,17 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
 
       if (result.meals.length > 0) {
         await mealPlannerService.clearWeek(startOfWeek)
-        await mealPlannerService.bulkAddMeals(result.meals)
+        
+        // Map generated meals to the format expected by the service
+        const mealsToSave = result.meals.map(meal => ({
+          plan_date: meal.plan_date,
+          meal_slot: meal.meal_slot,
+          custom_title: meal.recipe_title,
+          notes: meal.notes,
+          servings: meal.servings || 1
+        }))
+        
+        await mealPlannerService.bulkAddMeals(mealsToSave)
 
         const successMessage: DisplayMessage = {
           id: (Date.now() + 1).toString(),

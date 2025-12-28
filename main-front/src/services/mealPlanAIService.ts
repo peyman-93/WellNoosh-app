@@ -1,5 +1,6 @@
-// Configuration for meal planner AI API (same as recommendation API)
-const MEAL_PLAN_API_URL = process.env.EXPO_PUBLIC_RECOMMENDATION_API_URL || 'http://localhost:8000';
+import { supabase } from './supabase';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export interface UserHealthContext {
   allergies?: string[];
@@ -38,10 +39,16 @@ export interface GeneratedMealPlan {
 }
 
 class MealPlanAIService {
-  private apiUrl: string;
-
-  constructor() {
-    this.apiUrl = MEAL_PLAN_API_URL;
+  private async getAuthHeaders(): Promise<Record<string, string>> {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    return headers;
   }
 
   async chat(
@@ -52,12 +59,10 @@ class MealPlanAIService {
     try {
       console.log('🤖 Sending chat to meal planner AI...');
 
-      const response = await fetch(`${this.apiUrl}/api/meal-plans/ai-chat`, {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_URL}/meal-plans/ai-chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           user_id: userId,
           messages,
@@ -66,8 +71,9 @@ class MealPlanAIService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `Chat failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Chat API error:', response.status, errorText);
+        throw new Error(`Chat failed: ${response.status}`);
       }
 
       const data = await response.json();
@@ -89,12 +95,10 @@ class MealPlanAIService {
     try {
       console.log('🍽️ Generating meal plan...');
 
-      const response = await fetch(`${this.apiUrl}/api/meal-plans/ai-generate`, {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_URL}/meal-plans/ai-generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           user_id: userId,
           messages,
@@ -105,14 +109,27 @@ class MealPlanAIService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `Generate failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Generate API error:', response.status, errorText);
+        throw new Error(`Generate failed: ${response.status}`);
       }
 
-      const data: GeneratedMealPlan = await response.json();
+      const data = await response.json();
       console.log('✅ Generated meal plan with', data.meals?.length || 0, 'meals');
 
-      return data;
+      // Map response to expected format (backend uses custom_title, frontend expects recipe_title)
+      const mappedMeals: GeneratedMeal[] = (data.meals || []).map((meal: any) => ({
+        plan_date: meal.plan_date,
+        meal_slot: meal.meal_slot,
+        recipe_title: meal.custom_title || meal.recipe_title || 'Unnamed Meal',
+        notes: meal.notes,
+        servings: meal.servings || 1
+      }));
+
+      return {
+        meals: mappedMeals,
+        summary: data.summary || 'Your personalized meal plan is ready!'
+      };
     } catch (error) {
       console.error('❌ Error generating meal plan:', error);
       throw error;
@@ -121,9 +138,10 @@ class MealPlanAIService {
 
   async checkHealthStatus(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.apiUrl}/health`);
+      const baseUrl = API_URL.replace('/api', '');
+      const response = await fetch(`${baseUrl}/health`);
       const data = await response.json();
-      return data.status === 'healthy';
+      return data.status === 'OK';
     } catch (error) {
       console.error('Meal planner API health check failed:', error);
       return false;
