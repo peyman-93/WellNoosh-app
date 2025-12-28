@@ -19,6 +19,9 @@ dotenv.config({ path: require('path').resolve(__dirname, '../../.env') });
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
+// Trust proxy for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(cors({

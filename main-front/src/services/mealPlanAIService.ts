@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+// Use relative URL for API calls - the Metro proxy will forward to the backend
+const API_URL = '/api';
 
 export interface UserHealthContext {
   allergies?: string[];
