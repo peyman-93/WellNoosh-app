@@ -630,11 +630,6 @@ export default function DashboardScreen() {
 
         {/* Food Detection Section */}
         <View style={styles.foodDetectionSection}>
-          <View style={styles.foodDetectionHeader}>
-            <Text style={styles.foodDetectionTitle}>Log Your Meal</Text>
-            <Text style={styles.foodDetectionSubtitle}>Scan food to track nutrition instantly</Text>
-          </View>
-          
           <TouchableOpacity 
             style={styles.foodDetectionButton}
             onPress={() => navigation.navigate('FoodDetection' as never)}
@@ -645,31 +640,14 @@ export default function DashboardScreen() {
                 <Text style={styles.foodDetectionIcon}>📸</Text>
               </View>
               <View style={styles.foodDetectionTextContent}>
-                <Text style={styles.foodDetectionButtonTitle}>Capture Your Dish</Text>
-                <Text style={styles.foodDetectionButtonSubtitle}>Take a photo to analyze nutrition</Text>
+                <Text style={styles.foodDetectionButtonTitle}>Log Your Meal</Text>
+                <Text style={styles.foodDetectionButtonSubtitle}>Scan food to track nutrition instantly</Text>
               </View>
               <View style={styles.foodDetectionArrow}>
                 <Text style={styles.foodDetectionArrowIcon}>→</Text>
               </View>
             </View>
           </TouchableOpacity>
-          
-          <View style={styles.foodDetectionStats}>
-            <View style={styles.foodDetectionStatItem}>
-              <Text style={styles.foodDetectionStatValue}>{nutritionDashboard?.totals.calories || 0}</Text>
-              <Text style={styles.foodDetectionStatLabel}>Calories Today</Text>
-            </View>
-            <View style={styles.foodDetectionStatDivider} />
-            <View style={styles.foodDetectionStatItem}>
-              <Text style={styles.foodDetectionStatValue}>{nutritionDashboard?.totals.completedMeals || 0}</Text>
-              <Text style={styles.foodDetectionStatLabel}>Meals Logged</Text>
-            </View>
-            <View style={styles.foodDetectionStatDivider} />
-            <View style={styles.foodDetectionStatItem}>
-              <Text style={styles.foodDetectionStatValue}>{Math.round(nutritionDashboard?.totals.protein_g || 0)}g</Text>
-              <Text style={styles.foodDetectionStatLabel}>Protein</Text>
-            </View>
-          </View>
         </View>
 
         {/* Quick Actions */}
@@ -983,38 +961,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   foodDetectionSection: {
-    paddingHorizontal: 20,
     marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
     marginHorizontal: 16,
-    paddingVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  foodDetectionHeader: {
-    marginBottom: 16,
-  },
-  foodDetectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  foodDetectionSubtitle: {
-    fontSize: 14,
-    color: '#6B6B6B',
   },
   foodDetectionButton: {
     backgroundColor: '#6B8E23',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   foodDetectionButtonContent: {
     flexDirection: 'row',
@@ -1057,33 +1015,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#FFFFFF',
     fontWeight: '600',
-  },
-  foodDetectionStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-  },
-  foodDetectionStatItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  foodDetectionStatValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  foodDetectionStatLabel: {
-    fontSize: 12,
-    color: '#6B6B6B',
-    marginTop: 4,
-  },
-  foodDetectionStatDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E0E0E0',
   },
   mealPlanSection: {
     paddingHorizontal: 20,

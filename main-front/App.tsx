@@ -33,8 +33,8 @@ const Stack = createNativeStackNavigator()
 type AppState = 'landing' | 'auth' | 'profileCompletion' | 'onboarding' | 'profileSummary' | 'recipeSwipe' | 'authenticated' | 'familyVoteShare' | 'familyVoteLanding' | 'voteResults'
 type AuthMode = 'login' | 'signup' | 'google'
 
-// Track if recommendations were shown for the current user session
-// This is reset when user logs out, enabling recommendations on next login
+// Track if recommendations were shown for the current user in this app session
+// This resets when user logs out OR when the app/module reloads
 let shownRecommendationsForUserId: string | null = null
 
 interface Recipe {
@@ -70,17 +70,10 @@ function AppContent() {
   const [currentVoteId, setCurrentVoteId] = React.useState<string | null>(null)
   const [onboardingData, setOnboardingData] = React.useState<any>(null)
 
-  // Track previous user ID to detect login transitions
-  const prevUserIdRef = React.useRef<string | null>(null)
-  
   React.useEffect(() => {
     const currentUserId = session?.user?.id || null
-    const prevUserId = prevUserIdRef.current
-    
-    // Detect a new login: previous user was null/different, current user exists
-    const isNewLogin = currentUserId && prevUserId !== currentUserId
-    // Check if recommendations were already shown for this specific user
-    const alreadyShownForUser = currentUserId === shownRecommendationsForUserId
+    // Show recommendations if user is authenticated and hasn't seen them this app session
+    const shouldShowRecommendations = currentUserId && shownRecommendationsForUserId !== currentUserId
     
     console.log('🔍 App State Effect - Initial Check:', {
       loading,
@@ -89,23 +82,19 @@ function AppContent() {
       onboardingCompleted: userData?.onboardingCompleted,
       currentAppState: appState,
       currentUserId,
-      prevUserId,
-      isNewLogin,
-      alreadyShownForUser
+      shownRecommendationsForUserId,
+      shouldShowRecommendations
     })
     
     if (!loading && !userDataLoading) {
-      // Update the previous user ID ref after loading completes
-      prevUserIdRef.current = currentUserId
-      
       if (session) {
         // User is authenticated, check onboarding status
         if (userData?.onboardingCompleted) {
           // Don't override recipeSwipe state - let it complete naturally
           if (appState !== 'recipeSwipe') {
-            // Show recipe recommendations on new login if not already shown for this user
-            if (isNewLogin && !alreadyShownForUser) {
-              console.log('🍽️ Showing recipe recommendations for new sign-in')
+            // Show recipe recommendations if not already shown for this user this session
+            if (shouldShowRecommendations) {
+              console.log('🍽️ Showing recipe recommendations for sign-in')
               setAppState('recipeSwipe')
             } else {
               console.log('✅ User onboarding completed, setting to authenticated')
