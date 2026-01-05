@@ -4,7 +4,9 @@ import {
   StyleSheet,
   Text,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { RecommendationCard } from '../components/RecommendationCard';
 import { recommendationService } from '../src/services/recommendationService';
 import { recipeCacheService } from '../src/services/recipeCacheService';
@@ -39,6 +41,8 @@ interface RecipeSwipeScreenProps {
   onNavigateBack?: () => void;
   onRecipeLiked?: (recipe: Recipe) => void;
   onRecipeDisliked?: (recipe: Recipe) => void;
+  showSkipButton?: boolean;
+  onSkip?: () => void;
 }
 
 // Helper function to extract time from instructions or use default
@@ -281,7 +285,7 @@ const convertApiRecipeToCardFormat = (apiRecipe: any): Recipe => {
   };
 };
 
-export default function RecipeSwipeScreen({ onNavigateBack }: RecipeSwipeScreenProps) {
+export default function RecipeSwipeScreen({ onNavigateBack, showSkipButton = true, onSkip }: RecipeSwipeScreenProps) {
   const { session } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [currentRecipeIndex, setCurrentRecipeIndex] = useState(0);
@@ -492,8 +496,23 @@ export default function RecipeSwipeScreen({ onNavigateBack }: RecipeSwipeScreenP
     );
   }
 
+  const handleSkip = () => {
+    if (onSkip) {
+      onSkip();
+    } else if (onNavigateBack) {
+      onNavigateBack();
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {showSkipButton && (
+        <SafeAreaView edges={['top']} style={styles.skipContainer}>
+          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+            <Text style={styles.skipButtonText}>Skip</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      )}
       <RecommendationCard
         key={recipes[currentRecipeIndex].id}
         recipe={recipes[currentRecipeIndex]}
@@ -526,5 +545,29 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     paddingHorizontal: 32,
+  },
+  skipContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 100,
+    paddingRight: 16,
+    paddingTop: 8,
+  },
+  skipButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  skipButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B8E23',
   },
 });

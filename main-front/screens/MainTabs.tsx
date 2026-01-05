@@ -14,6 +14,7 @@ import GroceryListTabScreen from './tabs/GroceryListTabScreen'
 import PantryTabScreen from './tabs/PantryTabScreen'
 import ProfileScreen from './ProfileScreen'
 import TrackerScreen from './TrackerScreen'
+import FoodDetectionScreen from './FoodDetectionScreen'
 
 // Tab icon components with organic wellness style
 const HomeIcon = ({ color, size }: { color: string; size: number }) => (
@@ -257,6 +258,14 @@ export default function MainTabs() {
           tabPress: (e) => {
             e.preventDefault();
           },
+        }}
+      />
+      <Tab.Screen
+        name="FoodDetection"
+        component={FoodDetectionScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
     </Tab.Navigator>

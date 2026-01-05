@@ -33,6 +33,10 @@ const Stack = createNativeStackNavigator()
 type AppState = 'landing' | 'auth' | 'profileCompletion' | 'onboarding' | 'profileSummary' | 'recipeSwipe' | 'authenticated' | 'familyVoteShare' | 'familyVoteLanding' | 'voteResults'
 type AuthMode = 'login' | 'signup' | 'google'
 
+// Track if recommendations were shown for the current user session
+// This is reset when user logs out, enabling recommendations on next login
+let shownRecommendationsForUserId: string | null = null
+
 interface Recipe {
   id: string
   name: string
@@ -66,23 +70,47 @@ function AppContent() {
   const [currentVoteId, setCurrentVoteId] = React.useState<string | null>(null)
   const [onboardingData, setOnboardingData] = React.useState<any>(null)
 
+  // Track previous user ID to detect login transitions
+  const prevUserIdRef = React.useRef<string | null>(null)
+  
   React.useEffect(() => {
+    const currentUserId = session?.user?.id || null
+    const prevUserId = prevUserIdRef.current
+    
+    // Detect a new login: previous user was null/different, current user exists
+    const isNewLogin = currentUserId && prevUserId !== currentUserId
+    // Check if recommendations were already shown for this specific user
+    const alreadyShownForUser = currentUserId === shownRecommendationsForUserId
+    
     console.log('🔍 App State Effect - Initial Check:', {
       loading,
       userDataLoading,
       hasSession: !!session,
       onboardingCompleted: userData?.onboardingCompleted,
-      currentAppState: appState
+      currentAppState: appState,
+      currentUserId,
+      prevUserId,
+      isNewLogin,
+      alreadyShownForUser
     })
     
     if (!loading && !userDataLoading) {
+      // Update the previous user ID ref after loading completes
+      prevUserIdRef.current = currentUserId
+      
       if (session) {
         // User is authenticated, check onboarding status
         if (userData?.onboardingCompleted) {
           // Don't override recipeSwipe state - let it complete naturally
           if (appState !== 'recipeSwipe') {
-            console.log('✅ User onboarding completed, setting to authenticated')
-            setAppState('authenticated')
+            // Show recipe recommendations on new login if not already shown for this user
+            if (isNewLogin && !alreadyShownForUser) {
+              console.log('🍽️ Showing recipe recommendations for new sign-in')
+              setAppState('recipeSwipe')
+            } else {
+              console.log('✅ User onboarding completed, setting to authenticated')
+              setAppState('authenticated')
+            }
           } else {
             console.log('🍽️ User in recipe swipe, not overriding state')
           }
@@ -91,7 +119,8 @@ function AppContent() {
           setAppState('profileCompletion')
         }
       } else {
-        // User is not authenticated
+        // User is not authenticated - reset recommendation tracking
+        shownRecommendationsForUserId = null
         console.log('🚪 No session, setting to landing')
         setAppState('landing')
       }
@@ -210,6 +239,22 @@ function AppContent() {
       currentState: appState,
       nextState: 'authenticated'
     })
+    // Mark that we've shown recommendations for this user
+    if (session?.user?.id) {
+      shownRecommendationsForUserId = session.user.id
+    }
+    setAppState('authenticated')
+  }
+
+  const handleRecipeSwipeSkip = () => {
+    console.log('🔄 Recipe Swipe Skipped:', {
+      currentState: appState,
+      nextState: 'authenticated'
+    })
+    // Mark that we've shown recommendations for this user (even if skipped)
+    if (session?.user?.id) {
+      shownRecommendationsForUserId = session.user.id
+    }
     setAppState('authenticated')
   }
 
@@ -351,6 +396,8 @@ function AppContent() {
             <StatusBar style="dark" />
             <RecipeSwipeScreen 
               onNavigateBack={handleRecipeSwipeComplete}
+              showSkipButton={true}
+              onSkip={handleRecipeSwipeSkip}
             />
           </View>
         </SafeAreaProvider>

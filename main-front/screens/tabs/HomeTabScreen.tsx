@@ -628,100 +628,48 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Meal's Plan Section */}
-        <View style={styles.mealPlanSection}>
-          <View style={styles.mealPlanningHeader}>
-            <View style={styles.mealPlanningTitleSection}>
-              <Text style={styles.mealPlanningTitle}>Meal's Plan</Text>
-              {todaysMeals.length > 0 ? (
-                <Text style={styles.mealPlanningSubtitle}>{greeting}! {completedMeals} of {totalMeals} completed today</Text>
-              ) : (
-                <Text style={styles.mealPlanningSubtitle}>{greeting}! Plan your daily nutrition</Text>
-              )}
-            </View>
-            
-            <View style={styles.mealPlanningActions}>
-              <TouchableOpacity 
-                style={styles.aiPlanButton} 
-                onPress={handleGenerateMealPlan}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.aiPlanIcon}>🤖</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.addMealButton} 
-                onPress={handleAddMeal}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.addMealIcon}>+</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Food Detection Section */}
+        <View style={styles.foodDetectionSection}>
+          <View style={styles.foodDetectionHeader}>
+            <Text style={styles.foodDetectionTitle}>Log Your Meal</Text>
+            <Text style={styles.foodDetectionSubtitle}>Scan food to track nutrition instantly</Text>
           </View>
           
+          <TouchableOpacity 
+            style={styles.foodDetectionButton}
+            onPress={() => navigation.navigate('FoodDetection' as never)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.foodDetectionButtonContent}>
+              <View style={styles.foodDetectionIconContainer}>
+                <Text style={styles.foodDetectionIcon}>📸</Text>
+              </View>
+              <View style={styles.foodDetectionTextContent}>
+                <Text style={styles.foodDetectionButtonTitle}>Capture Your Dish</Text>
+                <Text style={styles.foodDetectionButtonSubtitle}>Take a photo to analyze nutrition</Text>
+              </View>
+              <View style={styles.foodDetectionArrow}>
+                <Text style={styles.foodDetectionArrowIcon}>→</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
           
-          {todaysMeals.length > 0 ? (
-            <View style={styles.mealsCompactGrid}>
-              {(showAllMeals ? todaysMeals : contextualMeals).map((meal: MealPlanEntry) => (
-                <TouchableOpacity
-                  key={meal.id}
-                  style={[styles.mealCompactCard, meal.is_completed && styles.mealCompactCardCompleted]}
-                  onPress={() => handleToggleMeal(meal.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[
-                    styles.mealCompactLeft,
-                    meal.is_completed ? styles.mealCompactLeftCompleted : styles.mealCompactLeftIncomplete
-                  ]}>
-                    <Text style={[
-                      styles.mealCompactTimeLeft,
-                      !meal.is_completed && { color: '#4A4A4A' }
-                    ]}>{getMealTime(meal.meal_slot)}</Text>
-                  </View>
-                  <View style={styles.mealCompactRight}>
-                    <Text style={styles.mealCompactTitle}>{getMealTitle(meal)}</Text>
-                    <View style={styles.mealCompactBottomRow}>
-                      <Text style={styles.mealCompactCalories}>
-                        {meal.calories || 0} cal
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-              
-              {/* Show "more" indicator when there are hidden meals */}
-              {!showAllMeals && todaysMeals.length > contextualMeals.length && (
-                <TouchableOpacity 
-                  style={styles.moreMealsButton}
-                  onPress={() => setShowAllMeals(true)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.moreMealsText}>
-                    +{todaysMeals.length - contextualMeals.length} more
-                  </Text>
-                </TouchableOpacity>
-              )}
-              
-              {/* Show "show less" option when expanded */}
-              {showAllMeals && (
-                <TouchableOpacity 
-                  style={styles.showLessButton}
-                  onPress={() => setShowAllMeals(false)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.showLessText}>Show less</Text>
-                </TouchableOpacity>
-              )}
+          <View style={styles.foodDetectionStats}>
+            <View style={styles.foodDetectionStatItem}>
+              <Text style={styles.foodDetectionStatValue}>{nutritionDashboard?.totals.calories || 0}</Text>
+              <Text style={styles.foodDetectionStatLabel}>Calories Today</Text>
             </View>
-          ) : loadingMealPlan ? (
-            <View style={styles.mealPlanLoading}>
-              <Text style={styles.mealPlanLoadingText}>Loading meal plan...</Text>
+            <View style={styles.foodDetectionStatDivider} />
+            <View style={styles.foodDetectionStatItem}>
+              <Text style={styles.foodDetectionStatValue}>{nutritionDashboard?.totals.completedMeals || 0}</Text>
+              <Text style={styles.foodDetectionStatLabel}>Meals Logged</Text>
             </View>
-          ) : (
-            <View style={styles.noMealPlan}>
-              <Text style={styles.noMealPlanText}>No meal plan for today</Text>
-              <Text style={styles.noMealPlanSubtext}>Add meals to track your nutrition</Text>
+            <View style={styles.foodDetectionStatDivider} />
+            <View style={styles.foodDetectionStatItem}>
+              <Text style={styles.foodDetectionStatValue}>{Math.round(nutritionDashboard?.totals.protein_g || 0)}g</Text>
+              <Text style={styles.foodDetectionStatLabel}>Protein</Text>
             </View>
-          )}
+          </View>
         </View>
 
         {/* Quick Actions */}
@@ -1033,6 +981,109 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 20,
     marginBottom: 16,
+  },
+  foodDetectionSection: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    marginHorizontal: 16,
+    paddingVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  foodDetectionHeader: {
+    marginBottom: 16,
+  },
+  foodDetectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  foodDetectionSubtitle: {
+    fontSize: 14,
+    color: '#6B6B6B',
+  },
+  foodDetectionButton: {
+    backgroundColor: '#6B8E23',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  foodDetectionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  foodDetectionIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  foodDetectionIcon: {
+    fontSize: 24,
+  },
+  foodDetectionTextContent: {
+    flex: 1,
+  },
+  foodDetectionButtonTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  foodDetectionButtonSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  foodDetectionArrow: {
+    width: 32,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  foodDetectionArrowIcon: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  foodDetectionStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+  },
+  foodDetectionStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  foodDetectionStatValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  foodDetectionStatLabel: {
+    fontSize: 12,
+    color: '#6B6B6B',
+    marginTop: 4,
+  },
+  foodDetectionStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E0E0E0',
   },
   mealPlanSection: {
     paddingHorizontal: 20,
