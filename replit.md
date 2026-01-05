@@ -183,6 +183,16 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
 
 ## Recent Changes
 
+### January 2026
+- Added recipe recommendations on every sign-in (with skip option)
+- Removed meal planner section from Home screen (now only in Meal Planner tab)
+- Added Food Detection camera feature for capturing and logging meals:
+  - Camera integration with expo-camera
+  - Gallery picker fallback
+  - Mock AI food analysis (production would use vision AI)
+  - Automatic meal logging to Supabase
+  - Nutrition stats displayed on Home screen (calories, meals logged, protein)
+
 ### December 2024
 - Added AI meal planner chatbot feature with OpenAI GPT-4o integration
 - Created secure backend API endpoints for AI chat and meal plan generation
