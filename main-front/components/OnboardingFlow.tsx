@@ -78,7 +78,7 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
   const medicalConditions = [
     'Diabetes', 'High Blood Pressure', 'High Cholesterol', 'Heart Disease',
     'Kidney Disease', 'Liver Disease', 'Thyroid Issues', 
-    'Digestive Issues', 'Eating Disorder', 'Other'
+    'Digestive Issues', 'Other'
   ];
 
   // Activity Levels
@@ -231,6 +231,110 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
     }
   };
 
+  // Postal code validation patterns by country
+  const postalCodePatterns: { [key: string]: { pattern: RegExp; example: string } } = {
+    'United States': { pattern: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
+    'Canada': { pattern: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/, example: 'A1B 2C3' },
+    'United Kingdom': { pattern: /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
+    'Germany': { pattern: /^\d{5}$/, example: '12345' },
+    'France': { pattern: /^\d{5}$/, example: '75001' },
+    'Australia': { pattern: /^\d{4}$/, example: '2000' },
+    'Netherlands': { pattern: /^\d{4}\s?[A-Za-z]{2}$/, example: '1234 AB' },
+    'Italy': { pattern: /^\d{5}$/, example: '00100' },
+    'Spain': { pattern: /^\d{5}$/, example: '28001' },
+    'Brazil': { pattern: /^\d{5}-?\d{3}$/, example: '01310-100' },
+    'Japan': { pattern: /^\d{3}-?\d{4}$/, example: '100-0001' },
+    'India': { pattern: /^\d{6}$/, example: '110001' },
+    'China': { pattern: /^\d{6}$/, example: '100000' },
+    'Mexico': { pattern: /^\d{5}$/, example: '06600' },
+    'South Korea': { pattern: /^\d{5}$/, example: '03181' },
+    'Sweden': { pattern: /^\d{3}\s?\d{2}$/, example: '123 45' },
+    'Norway': { pattern: /^\d{4}$/, example: '0101' },
+    'Denmark': { pattern: /^\d{4}$/, example: '1000' },
+    'Finland': { pattern: /^\d{5}$/, example: '00100' },
+    'Poland': { pattern: /^\d{2}-?\d{3}$/, example: '00-001' },
+    'Switzerland': { pattern: /^\d{4}$/, example: '8000' },
+    'Austria': { pattern: /^\d{4}$/, example: '1010' },
+    'Belgium': { pattern: /^\d{4}$/, example: '1000' },
+    'Portugal': { pattern: /^\d{4}-?\d{3}$/, example: '1000-001' },
+    'Ireland': { pattern: /^[A-Za-z]\d{2}\s?[A-Za-z\d]{4}$/, example: 'D02 AF30' },
+    'New Zealand': { pattern: /^\d{4}$/, example: '1010' },
+    'Singapore': { pattern: /^\d{6}$/, example: '018956' },
+  };
+
+  const validatePostalCode = (country: string, postalCode: string): { valid: boolean; message: string } => {
+    if (!postalCode || postalCode.trim() === '') {
+      return { valid: false, message: 'Please enter a postal code' };
+    }
+
+    const countryPattern = postalCodePatterns[country];
+    if (!countryPattern) {
+      // For countries without a specific pattern, just check it's not empty
+      return { valid: true, message: '' };
+    }
+
+    if (!countryPattern.pattern.test(postalCode.trim())) {
+      return { 
+        valid: false, 
+        message: `Invalid postal code for ${country}. Example format: ${countryPattern.example}` 
+      };
+    }
+
+    return { valid: true, message: '' };
+  };
+
+  const validateWeightGoal = (): { valid: boolean; message: string } => {
+    if (!hasWeightGoal()) {
+      return { valid: true, message: '' };
+    }
+
+    const currentWeight = userData?.weight;
+    const targetWeight = parseFloat(dietaryProfile.targetWeight);
+    
+    if (!dietaryProfile.targetWeight || isNaN(targetWeight)) {
+      return { valid: false, message: 'Please enter a target weight' };
+    }
+
+    // Skip validation if current weight is not available
+    if (!currentWeight || currentWeight <= 0) {
+      return { valid: true, message: '' };
+    }
+
+    // Convert weights to same unit if needed
+    let currentWeightKg = currentWeight;
+    let targetWeightKg = targetWeight;
+
+    // Convert current weight to kg if in lbs
+    if (userData?.weightUnit === 'lbs') {
+      currentWeightKg = currentWeightKg * 0.453592;
+    }
+
+    // Convert target weight to kg if in lbs
+    if (dietaryProfile.targetWeightUnit === 'lbs') {
+      targetWeightKg = targetWeightKg * 0.453592;
+    }
+
+    if (dietaryProfile.healthGoals.includes('Lose Weight')) {
+      if (targetWeightKg >= currentWeightKg) {
+        return { 
+          valid: false, 
+          message: `For weight loss, your target weight must be less than your current weight (${currentWeight} ${userData?.weightUnit || 'kg'})` 
+        };
+      }
+    }
+
+    if (dietaryProfile.healthGoals.includes('Gain Weight')) {
+      if (targetWeightKg <= currentWeightKg) {
+        return { 
+          valid: false, 
+          message: `For weight gain, your target weight must be greater than your current weight (${currentWeight} ${userData?.weightUnit || 'kg'})` 
+        };
+      }
+    }
+
+    return { valid: true, message: '' };
+  };
+
   const handleNext = () => {
     // Clear custom inputs when moving to next step
     setCustomDietText('');
@@ -239,6 +343,15 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
     setShowCustomAllergyInput(false);
     setCustomMedicalText('');
     setShowCustomMedicalInput(false);
+
+    // Validate weight goal on health goals step (step 4)
+    if (currentStep === 4 && hasWeightGoal()) {
+      const weightValidation = validateWeightGoal();
+      if (!weightValidation.valid) {
+        Alert.alert('Invalid Weight Goal', weightValidation.message);
+        return;
+      }
+    }
 
     if (currentStep < onboardingSteps.length - 1) {
       setCurrentStep(currentStep + 1);

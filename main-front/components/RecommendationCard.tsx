@@ -247,26 +247,12 @@ export function RecommendationCard({
               </TouchableOpacity>
               <Text style={styles.statText}>servings</Text>
             </View>
-            <View style={styles.statDivider}>
-              <Text style={styles.statText}>•</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statText}>{recipe.difficulty}</Text>
-            </View>
           </View>
         </View>
       </View>
 
       <View style={styles.cardBottom}>
         <Text style={styles.recipeDescription}>{recipe.description}</Text>
-        
-        <View style={styles.tagContainer}>
-          {recipe.tags.slice(0, 3).map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
         
         <Text style={styles.flipHint}>Tap card to see ingredients • Swipe to choose</Text>
       </View>
@@ -370,45 +356,6 @@ export function RecommendationCard({
               <Text style={styles.nutritionValue}>{getScaledNutrition().fat}g</Text>
               <Text style={styles.nutritionLabel}>fat</Text>
             </View>
-          </View>
-        </View>
-
-        {/* Action Buttons Section - Always shown on back */}
-        <View style={styles.likedActionsSection}>
-          <Text style={styles.likedActionsTitle}>Quick Actions</Text>
-          <View style={styles.likedActionsButtons}>
-            <TouchableOpacity
-              style={styles.cookNowButton}
-              onPress={() => {
-                onCookNow?.();
-                setIsFlipped(false);
-              }}
-            >
-              <Text style={styles.cookNowIcon}>🍳</Text>
-              <Text style={styles.cookNowText}>Cook This Now</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.shareFamilyButton}
-              onPress={() => {
-                onShareFamily?.();
-                setIsFlipped(false);
-              }}
-            >
-              <Text style={styles.shareFamilyIcon}>👥</Text>
-              <Text style={styles.shareFamilyText}>Share with Family</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.saveToFavoriteButton}
-              onPress={() => {
-                onSaveToFavorite?.();
-                setIsFlipped(false);
-              }}
-            >
-              <Text style={styles.saveToFavoriteIcon}>⭐</Text>
-              <Text style={styles.saveToFavoriteText}>Save to Favorite</Text>
-            </TouchableOpacity>
           </View>
         </View>
 

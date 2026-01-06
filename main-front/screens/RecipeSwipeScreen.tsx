@@ -319,8 +319,8 @@ export default function RecipeSwipeScreen({ onNavigateBack, showSkipButton = tru
         throw new Error('No recommendations available');
       }
 
-      // Convert API recipes to card format
-      const formattedRecipes = recommendations.map(convertApiRecipeToCardFormat);
+      // Convert API recipes to card format and limit to 5
+      const formattedRecipes = recommendations.slice(0, 5).map(convertApiRecipeToCardFormat);
       setRecipes(formattedRecipes);
       
     } catch (err: any) {
@@ -549,9 +549,9 @@ const styles = StyleSheet.create({
   skipContainer: {
     position: 'absolute',
     top: 0,
-    right: 0,
+    left: 0,
     zIndex: 100,
-    paddingRight: 16,
+    paddingLeft: 16,
     paddingTop: 8,
   },
   skipButton: {
