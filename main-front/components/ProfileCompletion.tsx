@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface UserData {
   fullName: string;
@@ -23,6 +24,10 @@ interface ProfileCompletionProps {
 }
 
 export function ProfileCompletion({ onComplete, userData }: ProfileCompletionProps) {
+  const { width, height } = useWindowDimensions();
+  const isSmallScreen = height < 700;
+  const isMediumScreen = height >= 700 && height < 850;
+  
   const [profileData, setProfileData] = useState({
     age: '',
     gender: '',
@@ -49,7 +54,6 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Age validation
     if (!profileData.age) {
       newErrors.age = 'Age is required';
     } else {
@@ -59,12 +63,10 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
       }
     }
 
-    // Gender validation
     if (!profileData.gender) {
       newErrors.gender = 'Gender is required';
     }
 
-    // Weight validation
     if (!profileData.weight) {
       newErrors.weight = 'Weight is required';
     } else {
@@ -76,8 +78,6 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
       }
     }
 
-
-    // Height validation
     if (profileData.heightUnit === 'cm') {
       if (!profileData.height) {
         newErrors.height = 'Height is required';
@@ -133,173 +133,226 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
     onComplete(completeUserData);
   };
 
+  const responsiveStyles = {
+    contentPadding: isSmallScreen ? 16 : isMediumScreen ? 20 : 24,
+    headerMargin: isSmallScreen ? 20 : isMediumScreen ? 28 : 36,
+    iconSize: isSmallScreen ? 56 : isMediumScreen ? 68 : 80,
+    iconFontSize: isSmallScreen ? 28 : isMediumScreen ? 34 : 40,
+    titleSize: isSmallScreen ? 20 : isMediumScreen ? 22 : 24,
+    subtitleSize: isSmallScreen ? 14 : isMediumScreen ? 15 : 16,
+    formGap: isSmallScreen ? 14 : isMediumScreen ? 18 : 22,
+    inputPadding: isSmallScreen ? 12 : isMediumScreen ? 14 : 16,
+    labelSize: isSmallScreen ? 14 : 15,
+    inputFontSize: isSmallScreen ? 15 : 16,
+  };
+
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Text style={styles.iconText}>👤</Text>
-          </View>
-          <Text style={styles.title}>Complete Your Profile</Text>
-          <Text style={styles.subtitle}>
-            Help us personalize your nutrition recommendations, {getUserFirstName()}
-          </Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.form}>
-          {/* Age and Gender Row */}
-          <View style={styles.row}>
-            <View style={styles.halfWidth}>
-              <Text style={styles.label}>Age</Text>
-              <TextInput
-                style={[styles.input, errors.age && styles.inputError]}
-                placeholder="25"
-                value={profileData.age}
-                onChangeText={(value) => handleInputChange('age', value)}
-                keyboardType="numeric"
-                maxLength={3}
-              />
-              {errors.age && <Text style={styles.errorText}>{errors.age}</Text>}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardView} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={[
+            styles.content,
+            { paddingHorizontal: responsiveStyles.contentPadding }
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.header, { marginBottom: responsiveStyles.headerMargin }]}>
+            <View style={[
+              styles.iconContainer, 
+              { 
+                width: responsiveStyles.iconSize, 
+                height: responsiveStyles.iconSize, 
+                borderRadius: responsiveStyles.iconSize / 2 
+              }
+            ]}>
+              <Text style={[styles.iconText, { fontSize: responsiveStyles.iconFontSize }]}>👤</Text>
             </View>
-
-            <View style={styles.halfWidth}>
-              <Text style={styles.label}>Gender</Text>
-              <TouchableOpacity 
-                style={[
-                  styles.dropdownButton,
-                  errors.gender && !profileData.gender && styles.inputError
-                ]}
-                onPress={() => setShowGenderDropdown(!showGenderDropdown)}
-              >
-                <Text style={[
-                  styles.dropdownButtonText,
-                  !profileData.gender && styles.dropdownPlaceholder
-                ]}>
-                  {profileData.gender || 'Select gender'}
-                </Text>
-                <Text style={styles.dropdownArrow}>{showGenderDropdown ? '▲' : '▼'}</Text>
-              </TouchableOpacity>
-              {showGenderDropdown && (
-                <View style={styles.dropdownList}>
-                  {genderOptions.map(option => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.dropdownItem,
-                        profileData.gender === option && styles.dropdownItemSelected
-                      ]}
-                      onPress={() => {
-                        handleInputChange('gender', option);
-                        setShowGenderDropdown(false);
-                      }}
-                    >
-                      <Text style={[
-                        styles.dropdownItemText,
-                        profileData.gender === option && styles.dropdownItemTextSelected
-                      ]}>
-                        {option}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-              {errors.gender && <Text style={styles.errorText}>{errors.gender}</Text>}
-            </View>
+            <Text style={[styles.title, { fontSize: responsiveStyles.titleSize }]}>Complete Your Profile</Text>
+            <Text style={[styles.subtitle, { fontSize: responsiveStyles.subtitleSize }]}>
+              Help us personalize your nutrition recommendations, {getUserFirstName()}
+            </Text>
           </View>
 
-          {/* Weight */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Weight</Text>
-            <View style={styles.weightContainer}>
-              <TextInput
-                style={[styles.weightInput, errors.weight && styles.inputError]}
-                placeholder="70"
-                value={profileData.weight}
-                onChangeText={(value) => handleInputChange('weight', value)}
-                keyboardType="decimal-pad"
-              />
-              <View style={styles.unitToggleContainer}>
-                <TouchableOpacity
-                  style={[styles.unitToggle, profileData.weightUnit === 'kg' && styles.unitToggleSelected]}
-                  onPress={() => handleInputChange('weightUnit', 'kg')}
-                >
-                  <Text style={[styles.unitToggleText, profileData.weightUnit === 'kg' && styles.unitToggleTextSelected]}>kg</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.unitToggle, profileData.weightUnit === 'lbs' && styles.unitToggleSelected]}
-                  onPress={() => handleInputChange('weightUnit', 'lbs')}
-                >
-                  <Text style={[styles.unitToggleText, profileData.weightUnit === 'lbs' && styles.unitToggleTextSelected]}>lbs</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            {errors.weight && <Text style={styles.errorText}>{errors.weight}</Text>}
-          </View>
-
-          {/* Height */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Height</Text>
-            <View style={styles.heightContainer}>
-              {profileData.heightUnit === 'cm' ? (
+          <View style={[styles.form, { gap: responsiveStyles.formGap }]}>
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                <Text style={[styles.label, { fontSize: responsiveStyles.labelSize }]}>Age</Text>
                 <TextInput
-                  style={[styles.heightInput, errors.height && styles.inputError]}
-                  placeholder="175"
-                  value={profileData.height}
-                  onChangeText={(value) => handleInputChange('height', value)}
+                  style={[
+                    styles.input, 
+                    { padding: responsiveStyles.inputPadding, fontSize: responsiveStyles.inputFontSize },
+                    errors.age && styles.inputError
+                  ]}
+                  placeholder="25"
+                  placeholderTextColor="#9CA3AF"
+                  value={profileData.age}
+                  onChangeText={(value) => handleInputChange('age', value)}
                   keyboardType="numeric"
+                  maxLength={3}
                 />
-              ) : (
-                <View style={styles.feetInchesContainer}>
-                  <TextInput
-                    style={[styles.feetInput, errors.height && styles.inputError]}
-                    placeholder="5"
-                    value={profileData.heightFeet}
-                    onChangeText={(value) => handleInputChange('heightFeet', value)}
-                    keyboardType="numeric"
-                    maxLength={1}
-                  />
-                  <Text style={styles.unitLabel}>ft</Text>
-                  <TextInput
-                    style={[styles.inchesInput, errors.height && styles.inputError]}
-                    placeholder="9"
-                    value={profileData.heightInches}
-                    onChangeText={(value) => handleInputChange('heightInches', value)}
-                    keyboardType="numeric"
-                    maxLength={2}
-                  />
-                  <Text style={styles.unitLabel}>in</Text>
-                </View>
-              )}
-              <View style={styles.unitToggleContainer}>
-                <TouchableOpacity
-                  style={[styles.unitToggle, profileData.heightUnit === 'cm' && styles.unitToggleSelected]}
-                  onPress={() => handleInputChange('heightUnit', 'cm')}
+                {errors.age && <Text style={styles.errorText}>{errors.age}</Text>}
+              </View>
+
+              <View style={styles.halfWidth}>
+                <Text style={[styles.label, { fontSize: responsiveStyles.labelSize }]}>Gender</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.dropdownButton,
+                    { padding: responsiveStyles.inputPadding },
+                    errors.gender && !profileData.gender && styles.inputError
+                  ]}
+                  onPress={() => setShowGenderDropdown(!showGenderDropdown)}
                 >
-                  <Text style={[styles.unitToggleText, profileData.heightUnit === 'cm' && styles.unitToggleTextSelected]}>cm</Text>
+                  <Text style={[
+                    styles.dropdownButtonText,
+                    { fontSize: responsiveStyles.inputFontSize },
+                    !profileData.gender && styles.dropdownPlaceholder
+                  ]}>
+                    {profileData.gender || 'Select gender'}
+                  </Text>
+                  <Text style={styles.dropdownArrow}>{showGenderDropdown ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.unitToggle, profileData.heightUnit === 'ft' && styles.unitToggleSelected]}
-                  onPress={() => handleInputChange('heightUnit', 'ft')}
-                >
-                  <Text style={[styles.unitToggleText, profileData.heightUnit === 'ft' && styles.unitToggleTextSelected]}>ft</Text>
-                </TouchableOpacity>
+                {showGenderDropdown && (
+                  <View style={styles.dropdownList}>
+                    {genderOptions.map(option => (
+                      <TouchableOpacity
+                        key={option}
+                        style={[
+                          styles.dropdownItem,
+                          profileData.gender === option && styles.dropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          handleInputChange('gender', option);
+                          setShowGenderDropdown(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dropdownItemText,
+                          profileData.gender === option && styles.dropdownItemTextSelected
+                        ]}>
+                          {option}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+                {errors.gender && <Text style={styles.errorText}>{errors.gender}</Text>}
               </View>
             </View>
-            {errors.height && <Text style={styles.errorText}>{errors.height}</Text>}
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { fontSize: responsiveStyles.labelSize }]}>Weight</Text>
+              <View style={styles.weightContainer}>
+                <TextInput
+                  style={[
+                    styles.weightInput, 
+                    { padding: responsiveStyles.inputPadding, fontSize: responsiveStyles.inputFontSize },
+                    errors.weight && styles.inputError
+                  ]}
+                  placeholder="70"
+                  placeholderTextColor="#9CA3AF"
+                  value={profileData.weight}
+                  onChangeText={(value) => handleInputChange('weight', value)}
+                  keyboardType="decimal-pad"
+                />
+                <View style={styles.unitToggleContainer}>
+                  <TouchableOpacity
+                    style={[styles.unitToggle, profileData.weightUnit === 'kg' && styles.unitToggleSelected]}
+                    onPress={() => handleInputChange('weightUnit', 'kg')}
+                  >
+                    <Text style={[styles.unitToggleText, profileData.weightUnit === 'kg' && styles.unitToggleTextSelected]}>kg</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.unitToggle, profileData.weightUnit === 'lbs' && styles.unitToggleSelected]}
+                    onPress={() => handleInputChange('weightUnit', 'lbs')}
+                  >
+                    <Text style={[styles.unitToggleText, profileData.weightUnit === 'lbs' && styles.unitToggleTextSelected]}>lbs</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {errors.weight && <Text style={styles.errorText}>{errors.weight}</Text>}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { fontSize: responsiveStyles.labelSize }]}>Height</Text>
+              <View style={styles.heightContainer}>
+                {profileData.heightUnit === 'cm' ? (
+                  <TextInput
+                    style={[
+                      styles.heightInput, 
+                      { padding: responsiveStyles.inputPadding, fontSize: responsiveStyles.inputFontSize },
+                      errors.height && styles.inputError
+                    ]}
+                    placeholder="175"
+                    placeholderTextColor="#9CA3AF"
+                    value={profileData.height}
+                    onChangeText={(value) => handleInputChange('height', value)}
+                    keyboardType="numeric"
+                  />
+                ) : (
+                  <View style={styles.feetInchesContainer}>
+                    <TextInput
+                      style={[
+                        styles.feetInput, 
+                        { paddingVertical: responsiveStyles.inputPadding, fontSize: responsiveStyles.inputFontSize },
+                        errors.height && styles.inputError
+                      ]}
+                      placeholder="5"
+                      placeholderTextColor="#9CA3AF"
+                      value={profileData.heightFeet}
+                      onChangeText={(value) => handleInputChange('heightFeet', value)}
+                      keyboardType="numeric"
+                      maxLength={1}
+                    />
+                    <Text style={styles.unitLabel}>ft</Text>
+                    <TextInput
+                      style={[
+                        styles.inchesInput, 
+                        { paddingVertical: responsiveStyles.inputPadding, fontSize: responsiveStyles.inputFontSize },
+                        errors.height && styles.inputError
+                      ]}
+                      placeholder="9"
+                      placeholderTextColor="#9CA3AF"
+                      value={profileData.heightInches}
+                      onChangeText={(value) => handleInputChange('heightInches', value)}
+                      keyboardType="numeric"
+                      maxLength={2}
+                    />
+                    <Text style={styles.unitLabel}>in</Text>
+                  </View>
+                )}
+                <View style={styles.unitToggleContainer}>
+                  <TouchableOpacity
+                    style={[styles.unitToggle, profileData.heightUnit === 'cm' && styles.unitToggleSelected]}
+                    onPress={() => handleInputChange('heightUnit', 'cm')}
+                  >
+                    <Text style={[styles.unitToggleText, profileData.heightUnit === 'cm' && styles.unitToggleTextSelected]}>cm</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.unitToggle, profileData.heightUnit === 'ft' && styles.unitToggleSelected]}
+                    onPress={() => handleInputChange('heightUnit', 'ft')}
+                  >
+                    <Text style={[styles.unitToggleText, profileData.heightUnit === 'ft' && styles.unitToggleTextSelected]}>ft</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {errors.height && <Text style={styles.errorText}>{errors.height}</Text>}
+            </View>
           </View>
+        </ScrollView>
 
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.continueButton} onPress={handleSubmit}>
+            <Text style={styles.continueButtonText}>Continue</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.continueButton} onPress={handleSubmit}>
-          <Text style={styles.continueButtonText}>Continue</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -308,54 +361,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FAF7F0',
   },
+  keyboardView: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    flexGrow: 1,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 16,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     backgroundColor: '#6B8E23',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
     shadowColor: '#6B8E23',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   iconText: {
-    fontSize: 22,
     color: 'white',
   },
   title: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: '#1A1A1A',
     textAlign: 'center',
-    marginBottom: 4,
-    fontFamily: 'Inter',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 13,
     color: '#4A4A4A',
     textAlign: 'center',
-    lineHeight: 18,
-    fontFamily: 'Inter',
-    paddingHorizontal: 8,
+    lineHeight: 22,
+    paddingHorizontal: 20,
   },
   form: {
-    gap: 12,
+    width: '100%',
   },
   row: {
     flexDirection: 'row',
@@ -368,19 +415,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    fontSize: 14,
     fontWeight: '600',
     color: '#1A1A1A',
-    marginBottom: 4,
-    fontFamily: 'Inter',
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
   },
   inputError: {
@@ -391,47 +433,17 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     marginTop: 4,
   },
-  genderOptionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  genderOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
-  },
-  genderOptionSelected: {
-    backgroundColor: '#6B8E23',
-    borderColor: '#6B8E23',
-  },
-  genderOptionText: {
-    fontSize: 13,
-    color: '#4A4A4A',
-    fontFamily: 'Inter',
-  },
-  genderOptionTextSelected: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
   dropdownButton: {
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   dropdownButtonText: {
-    fontSize: 15,
     color: '#1A1A1A',
-    fontFamily: 'Inter',
   },
   dropdownPlaceholder: {
     color: '#9CA3AF',
@@ -444,13 +456,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
   },
   dropdownItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
@@ -460,7 +472,6 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     fontSize: 15,
     color: '#1A1A1A',
-    fontFamily: 'Inter',
   },
   dropdownItemTextSelected: {
     color: '#6B8E23',
@@ -468,14 +479,14 @@ const styles = StyleSheet.create({
   },
   unitToggleContainer: {
     flexDirection: 'row',
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#d1d5db',
   },
   unitToggle: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     backgroundColor: '#ffffff',
   },
   unitToggleSelected: {
@@ -484,7 +495,7 @@ const styles = StyleSheet.create({
   unitToggleText: {
     fontSize: 14,
     color: '#4A4A4A',
-    fontFamily: 'Inter',
+    fontWeight: '500',
   },
   unitToggleTextSelected: {
     color: '#ffffff',
@@ -492,110 +503,75 @@ const styles = StyleSheet.create({
   },
   weightContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   weightInput: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
   },
   heightContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   heightInput: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
   },
   feetInchesContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   feetInput: {
-    width: 50,
+    width: 55,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     backgroundColor: '#ffffff',
     textAlign: 'center',
   },
   inchesInput: {
-    width: 50,
+    width: 55,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     backgroundColor: '#ffffff',
     textAlign: 'center',
   },
   unitLabel: {
     fontSize: 14,
-    color: '#4A4A4A', // Match dashboard warm charcoal
-    fontFamily: 'Inter',
-  },
-  unitButton: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minWidth: 80,
-  },
-  unitButtonText: {
-    fontSize: 16,
-    color: '#1A1A1A', // Match dashboard soft black
-    fontFamily: 'Inter',
-  },
-  optionalText: {
-    fontSize: 14,
-    color: '#4A4A4A', // Match dashboard warm charcoal
-    fontWeight: '400',
-    fontFamily: 'Inter',
+    color: '#4A4A4A',
   },
   footer: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
   },
   continueButton: {
     backgroundColor: '#6B8E23',
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
     shadowColor: '#6B8E23',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 4,
   },
   continueButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    fontFamily: 'Inter',
   },
 });
