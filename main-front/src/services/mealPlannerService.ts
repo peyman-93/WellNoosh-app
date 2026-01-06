@@ -223,5 +223,20 @@ export const mealPlannerService = {
       console.error('Error clearing day:', error);
       throw error;
     }
+  },
+
+  async markMealAsCooked(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('meal_plans')
+      .update({ 
+        is_completed: true, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error marking meal as cooked:', error);
+      throw error;
+    }
   }
 };

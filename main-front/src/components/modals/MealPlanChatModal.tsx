@@ -62,31 +62,37 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
   }, [visible])
 
   function buildGreeting(): string {
-    let greeting = "Hi! I'm your AI meal planning assistant. "
+    const userName = userData?.fullName?.split(' ')[0] || ''
+    let greeting = `Hi${userName ? ` ${userName}` : ''}! Welcome to WellNoosh Meals Planner.\n\n`
 
-    if (userData?.dietStyle || userData?.allergies?.length || userData?.healthGoals?.length) {
-      greeting += "I can see from your profile that "
-      const parts: string[] = []
+    if (userData?.dietStyle || userData?.allergies?.length || userData?.healthGoals?.length || userData?.cookingSkill) {
+      greeting += "I already know some things about you:\n"
       
       if (userData?.dietStyle) {
-        parts.push(`you follow a ${userData.dietStyle} diet`)
+        greeting += `• Diet: ${userData.dietStyle}\n`
       }
       if (userData?.allergies && userData.allergies.length > 0) {
-        parts.push(`you have allergies to ${userData.allergies.join(', ')}`)
+        greeting += `• Allergies: ${userData.allergies.join(', ')}\n`
       }
       if (userData?.healthGoals && userData.healthGoals.length > 0) {
-        parts.push(`your goals include ${userData.healthGoals.join(', ')}`)
+        greeting += `• Goals: ${userData.healthGoals.join(', ')}\n`
+      }
+      if (userData?.cookingSkill) {
+        greeting += `• Cooking skill: ${userData.cookingSkill}\n`
+      }
+      if (userData?.dailyCalorieGoal) {
+        greeting += `• Daily calorie target: ${userData.dailyCalorieGoal} kcal\n`
       }
       
-      greeting += parts.join(' and ') + ". "
+      greeting += "\n"
     }
 
-    greeting += "\n\nHow can I help you plan your meals this week? You can tell me things like:\n"
-    greeting += "- \"I want easy weeknight dinners\"\n"
-    greeting += "- \"Plan meals for weight loss\"\n"
-    greeting += "- \"I need quick breakfast ideas\"\n"
-    greeting += "- \"Create a balanced weekly plan\"\n\n"
-    greeting += "Just let me know what you're looking for!"
+    greeting += "To create your perfect meal plan, please tell me:\n\n"
+    greeting += "1. How many meals per day? (2-4)\n"
+    greeting += "2. Any special requirements or preferences?\n"
+    greeting += "   (e.g., quick meals, budget-friendly, meal prep)\n"
+    greeting += "3. Any specific cuisines you prefer?\n\n"
+    greeting += "Or just say 'create my plan' and I'll use your profile to make a balanced 7-day meal plan!"
 
     return greeting
   }
@@ -155,9 +161,8 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
         content: m.content
       }))
 
-      const startOfWeek = weekStartDate ? new Date(weekStartDate) : (() => {
+      const startDate = weekStartDate ? new Date(weekStartDate) : (() => {
         const today = new Date()
-        today.setDate(today.getDate() - today.getDay())
         today.setHours(0, 0, 0, 0)
         return today
       })()
@@ -166,12 +171,12 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
         userId,
         chatHistory,
         healthContext,
-        startOfWeek,
+        startDate,
         7
       )
 
       if (result.meals.length > 0) {
-        await mealPlannerService.clearWeek(startOfWeek)
+        await mealPlannerService.clearWeek(startDate)
         
         // Map generated meals to the format expected by the service
         const mealsToSave = result.meals.map(meal => ({

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 import { mealPlannerService, MealPlanEntry, MealSlot } from '../../src/services/mealPlannerService'
 import { MealPlanChatModal } from '../../src/components/modals/MealPlanChatModal'
+import { MealDetailModal } from '../../src/components/modals/MealDetailModal'
 
 const MEAL_SLOTS: { key: MealSlot; label: string; icon: string }[] = [
   { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -19,24 +20,29 @@ export default function MealPlannerTabScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [showChatModal, setShowChatModal] = useState(false)
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [selectedMeal, setSelectedMeal] = useState<MealPlanEntry | null>(null)
+  const [showMealDetail, setShowMealDetail] = useState(false)
   
   const currentDate = new Date()
-  const startOfWeek = new Date(currentDate)
-  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + (currentWeek * 7))
-  startOfWeek.setHours(0, 0, 0, 0)
+  currentDate.setHours(0, 0, 0, 0)
+  
+  const startDate = new Date(currentDate)
+  startDate.setDate(currentDate.getDate() + (currentWeek * 7))
   
   const weekDays = []
   for (let i = 0; i < 7; i++) {
-    const day = new Date(startOfWeek)
-    day.setDate(startOfWeek.getDate() + i)
+    const day = new Date(startDate)
+    day.setDate(startDate.getDate() + i)
     weekDays.push({
       date: day,
       dateStr: day.toISOString().split('T')[0],
       dayName: day.toLocaleDateString('en-US', { weekday: 'short' }),
       dayNumber: day.getDate(),
-      isToday: day.toDateString() === currentDate.toDateString()
+      isToday: day.toDateString() === new Date().toDateString()
     })
   }
+  
+  const startOfWeek = startDate
 
   const loadMealPlan = useCallback(async () => {
     try {
@@ -75,18 +81,23 @@ export default function MealPlannerTabScreen() {
   }
 
   const handleMealPress = (meal: MealPlanEntry) => {
-    Alert.alert(
-      meal.custom_title || meal.recipe_title || 'Meal',
-      meal.notes || 'No notes',
-      [
-        { text: 'OK', style: 'default' },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: () => handleRemoveMeal(meal.id)
-        }
-      ]
-    )
+    setSelectedMeal(meal)
+    setShowMealDetail(true)
+  }
+
+  const handleMealCooked = async (mealId: string) => {
+    try {
+      await mealPlannerService.markMealAsCooked(mealId)
+      setMealPlan(prev => prev.map(m => 
+        m.id === mealId ? { ...m, is_completed: true } : m
+      ))
+    } catch (error) {
+      console.error('Error marking meal as cooked:', error)
+    }
+  }
+
+  const handleMealRemovedFromModal = async (mealId: string) => {
+    await handleRemoveMeal(mealId)
   }
 
   const handlePlanGenerated = () => {
@@ -116,13 +127,6 @@ export default function MealPlannerTabScreen() {
               <Text style={styles.headerTitle}>Meal Planner</Text>
               <Text style={styles.headerSubtitle}>Plan your weekly meals</Text>
             </View>
-            <TouchableOpacity 
-              style={styles.generateBtn}
-              onPress={() => setShowChatModal(true)}
-            >
-              <Text style={styles.generateBtnIcon}>🤖</Text>
-              <Text style={styles.generateBtnText}>AI Plan</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -206,20 +210,44 @@ export default function MealPlannerTabScreen() {
 
               {!hasMealsForWeek && (
                 <View style={styles.emptyStateContainer}>
-                  <View style={styles.emptyCard}>
-                    <Text style={styles.emptyIcon}>📅</Text>
-                    <Text style={styles.emptyTitle}>No meals planned</Text>
-                    <Text style={styles.emptyDescription}>
-                      Use the AI assistant to generate a personalized meal plan for this week.
-                    </Text>
-                    <TouchableOpacity 
-                      style={styles.emptyButton}
-                      onPress={() => setShowChatModal(true)}
+                  <TouchableOpacity 
+                    style={styles.wellnooshCard}
+                    onPress={() => setShowChatModal(true)}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={['#6B8E23', '#556B2F']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.wellnooshGradient}
                     >
-                      <Text style={styles.emptyButtonIcon}>🤖</Text>
-                      <Text style={styles.emptyButtonText}>Generate Meal Plan</Text>
-                    </TouchableOpacity>
-                  </View>
+                      <View style={styles.wellnooshIconContainer}>
+                        <Text style={styles.wellnooshMainIcon}>🥗</Text>
+                      </View>
+                      <Text style={styles.wellnooshTitle}>WellNoosh Meals Planner</Text>
+                      <Text style={styles.wellnooshDescription}>
+                        Tap to chat with our AI and create a personalized meal plan based on your health profile, goals, and preferences.
+                      </Text>
+                      <View style={styles.wellnooshFeatures}>
+                        <View style={styles.featureItem}>
+                          <Text style={styles.featureIcon}>✓</Text>
+                          <Text style={styles.featureText}>Based on your profile</Text>
+                        </View>
+                        <View style={styles.featureItem}>
+                          <Text style={styles.featureIcon}>✓</Text>
+                          <Text style={styles.featureText}>Respects allergies</Text>
+                        </View>
+                        <View style={styles.featureItem}>
+                          <Text style={styles.featureIcon}>✓</Text>
+                          <Text style={styles.featureText}>Meets your goals</Text>
+                        </View>
+                      </View>
+                      <View style={styles.startChatButton}>
+                        <Text style={styles.startChatText}>Start Planning</Text>
+                        <Text style={styles.startChatArrow}>→</Text>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -240,6 +268,13 @@ export default function MealPlannerTabScreen() {
                         <Text style={styles.summaryLabel}>Days Covered</Text>
                       </View>
                     </View>
+                    <TouchableOpacity 
+                      style={styles.regenerateButton}
+                      onPress={() => setShowChatModal(true)}
+                    >
+                      <Text style={styles.regenerateButtonIcon}>🥗</Text>
+                      <Text style={styles.regenerateButtonText}>Update Plan with AI</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
@@ -253,6 +288,17 @@ export default function MealPlannerTabScreen() {
         onClose={() => setShowChatModal(false)}
         onPlanGenerated={handlePlanGenerated}
         weekStartDate={startOfWeek}
+      />
+
+      <MealDetailModal
+        visible={showMealDetail}
+        onClose={() => {
+          setShowMealDetail(false)
+          setSelectedMeal(null)
+        }}
+        meal={selectedMeal}
+        onMealCooked={handleMealCooked}
+        onMealRemoved={handleMealRemovedFromModal}
       />
     </ScreenWrapper>
   )
@@ -283,24 +329,6 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 16,
     color: '#4A4A4A',
-    fontFamily: 'Inter',
-  },
-  generateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#6B8E23',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
-  },
-  generateBtnIcon: {
-    fontSize: 16,
-  },
-  generateBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
     fontFamily: 'Inter',
   },
   scrollView: {
@@ -450,53 +478,87 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+  wellnooshCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#6B8E23',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  wellnooshGradient: {
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  emptyIcon: {
+  wellnooshIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  wellnooshMainIcon: {
     fontSize: 40,
+  },
+  wellnooshTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
     marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
     fontFamily: 'Inter',
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: '#4A4A4A',
     textAlign: 'center',
-    lineHeight: 20,
+  },
+  wellnooshDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    lineHeight: 22,
     marginBottom: 20,
     fontFamily: 'Inter',
+    paddingHorizontal: 10,
   },
-  emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#6B8E23',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
+  wellnooshFeatures: {
+    width: '100%',
+    marginBottom: 20,
     gap: 8,
   },
-  emptyButtonIcon: {
-    fontSize: 18,
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  emptyButtonText: {
+  featureIcon: {
+    fontSize: 16,
     color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  featureText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontFamily: 'Inter',
+  },
+  startChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 25,
+    gap: 10,
+  },
+  startChatText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
     fontFamily: 'Inter',
+  },
+  startChatArrow: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
   summaryContainer: {
     paddingHorizontal: 20,
@@ -543,5 +605,24 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: '#E0E0E0',
+  },
+  regenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6B8E23',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 16,
+    gap: 8,
+  },
+  regenerateButtonIcon: {
+    fontSize: 18,
+  },
+  regenerateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    fontFamily: 'Inter',
   },
 })
