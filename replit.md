@@ -184,6 +184,15 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
 ## Recent Changes
 
 ### January 2026
+- Enhanced Meal Planner with WellNoosh Meals Planner:
+  - Removed AI Plan button/picture from header
+  - Added beautiful WellNoosh Meals Planner card that connects to AI chat
+  - Calendar now starts from current day (not beginning of week)
+  - MealPlanChatModal enhanced to ask for special requirements and number of meals
+  - Created MealDetailModal showing ingredients, instructions with grocery list integration
+  - Tap on meals to view details, add ingredients to grocery list, mark as cooked
+  - Added "Update Plan with AI" button when meals already exist
+- Made ProfileCompletion screen responsive and adaptable to all screen sizes
 - Added recipe recommendations on every sign-in (with skip option)
 - Removed meal planner section from Home screen (now only in Meal Planner tab)
 - Added Food Detection camera feature for capturing and logging meals:
