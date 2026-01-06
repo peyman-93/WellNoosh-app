@@ -23,6 +23,10 @@ args = "Frontend"
 task = "workflow.run"
 args = "Backend"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "AI Brain"
+
 [[workflows.workflow]]
 name = "Frontend"
 author = "agent"
@@ -47,6 +51,18 @@ task = "shell.exec"
 args = "cd main-backend && npm run dev"
 waitForPort = 3000
 
+[[workflows.workflow]]
+name = "AI Brain"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd main-brain && python main.py"
+waitForPort = 8000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[ports]]
 localPort = 3000
 externalPort = 3000
@@ -54,6 +70,10 @@ externalPort = 3000
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
 
 [userenv]
 

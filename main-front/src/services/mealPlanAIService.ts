@@ -19,12 +19,35 @@ export interface ChatMessage {
 
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
+export interface Ingredient {
+  name: string;
+  amount: string;
+  category: string;
+}
+
+export interface Nutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 export interface GeneratedMeal {
   plan_date: string;
   meal_slot: MealSlot;
+  id?: string;
+  name?: string;
   recipe_id?: string;
-  recipe_title: string;
+  recipe_title?: string;
   recipe_image?: string;
+  image?: string;
+  description?: string;
+  cookTime?: string;
+  difficulty?: string;
+  tags?: string[];
+  ingredients?: Ingredient[];
+  instructions?: string[];
+  nutrition?: Nutrition;
   notes?: string;
   servings?: number;
   calories?: number;
@@ -136,10 +159,10 @@ class MealPlanAIService {
     numberOfDays: number = 7
   ): Promise<GeneratedMealPlan> {
     try {
-      console.log('🍽️ Generating meal plan...');
+      console.log('🍽️ Generating meal plan with DSPy...');
 
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_URL}/meal-plans/ai-generate`, {
+      const response = await fetch(`${API_URL}/meal-plans/dspy-generate`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -158,19 +181,27 @@ class MealPlanAIService {
       }
 
       const data = await response.json();
-      console.log('✅ Generated meal plan with', data.meals?.length || 0, 'meals');
+      console.log('✅ Generated DSPy meal plan with', data.meals?.length || 0, 'meals');
 
-      // Map response to expected format (backend uses custom_title, frontend expects recipe_title)
       const mappedMeals: GeneratedMeal[] = (data.meals || []).map((meal: any) => ({
         plan_date: meal.plan_date,
         meal_slot: meal.meal_slot,
-        recipe_title: meal.custom_title || meal.recipe_title || 'Unnamed Meal',
-        notes: meal.notes,
+        id: meal.id,
+        name: meal.name,
+        recipe_title: meal.name || meal.custom_title || meal.recipe_title || 'Unnamed Meal',
+        description: meal.description,
+        cookTime: meal.cookTime,
+        difficulty: meal.difficulty,
+        tags: meal.tags || [],
+        ingredients: meal.ingredients || [],
+        instructions: meal.instructions || [],
+        nutrition: meal.nutrition,
+        notes: this.formatNotesFromMeal(meal),
         servings: meal.servings || 1,
-        calories: meal.calories,
-        protein_g: meal.protein_g,
-        carbs_g: meal.carbs_g,
-        fat_g: meal.fat_g
+        calories: meal.nutrition?.calories || meal.calories,
+        protein_g: meal.nutrition?.protein || meal.protein_g,
+        carbs_g: meal.nutrition?.carbs || meal.carbs_g,
+        fat_g: meal.nutrition?.fat || meal.fat_g
       }));
 
       return {
@@ -181,6 +212,26 @@ class MealPlanAIService {
       console.error('❌ Error generating meal plan:', error);
       throw error;
     }
+  }
+
+  private formatNotesFromMeal(meal: any): string {
+    let notes = '';
+    
+    if (meal.ingredients && meal.ingredients.length > 0) {
+      notes += 'Ingredients:\n';
+      for (const ing of meal.ingredients) {
+        notes += `- ${ing.amount} ${ing.name}\n`;
+      }
+    }
+    
+    if (meal.instructions && meal.instructions.length > 0) {
+      notes += '\nInstructions:\n';
+      meal.instructions.forEach((step: string, index: number) => {
+        notes += `${index + 1}. ${step}\n`;
+      });
+    }
+    
+    return notes;
   }
 
   async checkHealthStatus(): Promise<boolean> {

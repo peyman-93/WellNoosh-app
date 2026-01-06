@@ -25,3 +25,14 @@ langchain-community
 "langgraph[sqlite]"
 langchain-core
 numpy
+dspy-ai
+fastapi
+langchain
+langchain-google-genai
+langchain-openai
+langgraph
+psycopg2-binary
+pydantic
+python-dotenv
+requests
+uvicorn

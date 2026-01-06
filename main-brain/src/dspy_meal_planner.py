@@ -387,10 +387,14 @@ class DSPyMealPlannerService:
                 raise ValueError("GOOGLE_API_KEY not set")
             lm = dspy.LM('google/gemini-1.5-flash', api_key=api_key)
         else:
-            api_key = os.getenv('OPENAI_API_KEY')
+            api_key = os.getenv('AI_INTEGRATIONS_OPENAI_API_KEY') or os.getenv('OPENAI_API_KEY')
+            base_url = os.getenv('AI_INTEGRATIONS_OPENAI_BASE_URL')
             if not api_key:
                 raise ValueError("OPENAI_API_KEY not set")
-            lm = dspy.LM('openai/gpt-4o-mini', api_key=api_key)
+            if base_url:
+                lm = dspy.LM('openai/gpt-4o-mini', api_key=api_key, api_base=base_url)
+            else:
+                lm = dspy.LM('openai/gpt-4o-mini', api_key=api_key)
 
         dspy.configure(lm=lm)
 
