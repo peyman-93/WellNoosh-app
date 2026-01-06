@@ -8,6 +8,46 @@ interface AuthScreenProps {
   initialMode: 'login' | 'signup' | 'google'
 }
 
+// Postal code validation patterns by country
+const postalCodePatterns: { [key: string]: { pattern: RegExp; example: string } } = {
+  'United States': { pattern: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
+  'Canada': { pattern: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/, example: 'A1B 2C3' },
+  'United Kingdom': { pattern: /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
+  'Germany': { pattern: /^\d{5}$/, example: '12345' },
+  'France': { pattern: /^\d{5}$/, example: '75001' },
+  'Australia': { pattern: /^\d{4}$/, example: '2000' },
+  'Netherlands': { pattern: /^\d{4}\s?[A-Za-z]{2}$/, example: '1234 AB' },
+  'Italy': { pattern: /^\d{5}$/, example: '00100' },
+  'Spain': { pattern: /^\d{5}$/, example: '28001' },
+  'Belgium': { pattern: /^\d{4}$/, example: '1000' },
+};
+
+const validatePostalCode = (countryName: string, code: string): { valid: boolean; message: string } => {
+  if (!code || code.trim() === '') {
+    return { valid: false, message: 'Postal code is required' };
+  }
+
+  const normalizedCountry = countryName.trim().toLowerCase();
+  const countryEntry = Object.entries(postalCodePatterns).find(
+    ([key]) => key.toLowerCase() === normalizedCountry
+  );
+  
+  if (!countryEntry) {
+    return { valid: true, message: '' };
+  }
+
+  const [countryKey, countryPattern] = countryEntry;
+
+  if (!countryPattern.pattern.test(code.trim())) {
+    return { 
+      valid: false, 
+      message: `Invalid postal code for ${countryKey}. Example: ${countryPattern.example}` 
+    };
+  }
+
+  return { valid: true, message: '' };
+};
+
 export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
   const { signUp, signIn, signInWithGoogle, resetPassword } = useAuth()
   const [mode, setMode] = useState(initialMode)
@@ -30,7 +70,15 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       if (!fullName) newErrors.fullName = 'Full name is required'
       if (!country) newErrors.country = 'Country is required'
       if (!city) newErrors.city = 'City is required'
-      if (!postalCode) newErrors.postalCode = 'Postal code is required'
+      
+      if (!postalCode) {
+        newErrors.postalCode = 'Postal code is required'
+      } else if (country) {
+        const postalValidation = validatePostalCode(country, postalCode)
+        if (!postalValidation.valid) {
+          newErrors.postalCode = postalValidation.message
+        }
+      }
       
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors)
