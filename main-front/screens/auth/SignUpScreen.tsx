@@ -138,12 +138,15 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     if (!postalCode) {
       newErrors.postalCode = 'Postal code is required'
     } else if (country) {
+      console.log('Validating postal code:', { country, postalCode })
       const postalValidation = validatePostalCode(country, postalCode)
+      console.log('Postal validation result:', postalValidation)
       if (!postalValidation.valid) {
         newErrors.postalCode = postalValidation.message
       }
     }
 
+    console.log('Form validation errors:', newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
