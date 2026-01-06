@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { CountryCityPicker } from '../src/components/CountryCityPicker';
 
 interface UserData {
   fullName: string;
@@ -23,25 +22,8 @@ interface ProfileCompletionProps {
   userData: UserData | null;
 }
 
-// Postal code validation patterns by country
-const postalCodePatterns: { [key: string]: { pattern: RegExp; example: string } } = {
-  'United States': { pattern: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
-  'Canada': { pattern: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/, example: 'A1B 2C3' },
-  'United Kingdom': { pattern: /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
-  'Germany': { pattern: /^\d{5}$/, example: '12345' },
-  'France': { pattern: /^\d{5}$/, example: '75001' },
-  'Australia': { pattern: /^\d{4}$/, example: '2000' },
-  'Netherlands': { pattern: /^\d{4}\s?[A-Za-z]{2}$/, example: '1234 AB' },
-  'Italy': { pattern: /^\d{5}$/, example: '00100' },
-  'Spain': { pattern: /^\d{5}$/, example: '28001' },
-  'Belgium': { pattern: /^\d{4}$/, example: '1000' },
-};
-
 export function ProfileCompletion({ onComplete, userData }: ProfileCompletionProps) {
   const [profileData, setProfileData] = useState({
-    country: userData?.country || '',
-    city: userData?.city || '',
-    postalCode: userData?.postalCode || '',
     age: '',
     gender: '',
     weight: '',
@@ -55,32 +37,6 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
 
-  const validatePostalCode = (countryName: string, code: string): { valid: boolean; message: string } => {
-    if (!code || code.trim() === '') {
-      return { valid: false, message: 'Postal code is required' };
-    }
-
-    const normalizedCountry = countryName.trim().toLowerCase();
-    const countryEntry = Object.entries(postalCodePatterns).find(
-      ([key]) => key.toLowerCase() === normalizedCountry
-    );
-    
-    if (!countryEntry) {
-      return { valid: true, message: '' };
-    }
-
-    const [countryKey, countryPattern] = countryEntry;
-
-    if (!countryPattern.pattern.test(code.trim())) {
-      return { 
-        valid: false, 
-        message: `Invalid postal code for ${countryKey}. Example: ${countryPattern.example}` 
-      };
-    }
-
-    return { valid: true, message: '' };
-  };
-
   const genderOptions = [
     'Male', 'Female', 'Non-binary', 'Prefer not to say'
   ];
@@ -92,26 +48,6 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
-    // Country validation
-    if (!profileData.country) {
-      newErrors.country = 'Country is required';
-    }
-
-    // City validation
-    if (!profileData.city) {
-      newErrors.city = 'City is required';
-    }
-
-    // Postal code validation
-    if (!profileData.postalCode) {
-      newErrors.postalCode = 'Postal code is required';
-    } else if (profileData.country) {
-      const postalValidation = validatePostalCode(profileData.country, profileData.postalCode);
-      if (!postalValidation.valid) {
-        newErrors.postalCode = postalValidation.message;
-      }
-    }
 
     // Age validation
     if (!profileData.age) {
@@ -181,9 +117,6 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 
     const completeUserData: UserData = {
       ...userData!,
-      country: profileData.country,
-      city: profileData.city,
-      postalCode: profileData.postalCode,
       age: profileData.age ? parseInt(profileData.age) : undefined,
       gender: profileData.gender || undefined,
       weight: profileData.weight ? parseFloat(profileData.weight) : undefined,
@@ -216,35 +149,6 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 
         {/* Form */}
         <View style={styles.form}>
-          {/* Location Section */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.sectionTitle}>Location</Text>
-            <CountryCityPicker
-              selectedCountry={profileData.country}
-              selectedCity={profileData.city}
-              onCountryChange={(value) => {
-                setProfileData(prev => ({ ...prev, country: value, city: '' }));
-                if (errors.country) setErrors(prev => ({ ...prev, country: '' }));
-                if (errors.postalCode) setErrors(prev => ({ ...prev, postalCode: '' }));
-              }}
-              onCityChange={(value) => {
-                setProfileData(prev => ({ ...prev, city: value }));
-                if (errors.city) setErrors(prev => ({ ...prev, city: '' }));
-              }}
-              countryError={errors.country}
-              cityError={errors.city}
-            />
-            
-            <Text style={styles.label}>Postal Code</Text>
-            <TextInput
-              style={[styles.input, errors.postalCode && styles.inputError]}
-              placeholder="Enter postal code"
-              value={profileData.postalCode}
-              onChangeText={(value) => handleInputChange('postalCode', value)}
-            />
-            {errors.postalCode && <Text style={styles.errorText}>{errors.postalCode}</Text>}
-          </View>
-
           {/* Age and Gender Row */}
           <View style={styles.row}>
             <View style={styles.halfWidth}>
@@ -461,13 +365,6 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 12,
-    fontFamily: 'Inter',
   },
   label: {
     fontSize: 16,
