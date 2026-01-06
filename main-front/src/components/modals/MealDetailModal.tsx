@@ -264,10 +264,10 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
                   {isAddingToGrocery ? (
                     <ActivityIndicator size="small" color="#6B8E23" />
                   ) : (
-                    <>
+                    <View style={styles.addAllContent}>
                       <Text style={styles.addAllIcon}>🛒</Text>
                       <Text style={styles.addAllText}>Add All</Text>
-                    </>
+                    </View>
                   )}
                 </TouchableOpacity>
               </View>
@@ -336,10 +336,10 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
             {isCooking ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <>
+              <View style={styles.cookButtonContent}>
                 <Text style={styles.cookButtonIcon}>👨‍🍳</Text>
                 <Text style={styles.cookButtonText}>I Cooked This!</Text>
-              </>
+              </View>
             )}
           </TouchableOpacity>
           
@@ -459,6 +459,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+  },
+  addAllContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   addAllIcon: {
@@ -588,6 +592,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#6B8E23',
     paddingVertical: 14,
     borderRadius: 12,
+  },
+  cookButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   cookButtonIcon: {
