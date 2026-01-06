@@ -181,6 +181,9 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 
     const completeUserData: UserData = {
       ...userData!,
+      country: profileData.country,
+      city: profileData.city,
+      postalCode: profileData.postalCode,
       age: profileData.age ? parseInt(profileData.age) : undefined,
       gender: profileData.gender || undefined,
       weight: profileData.weight ? parseFloat(profileData.weight) : undefined,
@@ -213,6 +216,35 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 
         {/* Form */}
         <View style={styles.form}>
+          {/* Location Section */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <CountryCityPicker
+              selectedCountry={profileData.country}
+              selectedCity={profileData.city}
+              onCountryChange={(value) => {
+                setProfileData(prev => ({ ...prev, country: value, city: '' }));
+                if (errors.country) setErrors(prev => ({ ...prev, country: '' }));
+                if (errors.postalCode) setErrors(prev => ({ ...prev, postalCode: '' }));
+              }}
+              onCityChange={(value) => {
+                setProfileData(prev => ({ ...prev, city: value }));
+                if (errors.city) setErrors(prev => ({ ...prev, city: '' }));
+              }}
+              countryError={errors.country}
+              cityError={errors.city}
+            />
+            
+            <Text style={styles.label}>Postal Code</Text>
+            <TextInput
+              style={[styles.input, errors.postalCode && styles.inputError]}
+              placeholder="Enter postal code"
+              value={profileData.postalCode}
+              onChangeText={(value) => handleInputChange('postalCode', value)}
+            />
+            {errors.postalCode && <Text style={styles.errorText}>{errors.postalCode}</Text>}
+          </View>
+
           {/* Age and Gender Row */}
           <View style={styles.row}>
             <View style={styles.halfWidth}>
@@ -429,6 +461,13 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 12,
+    fontFamily: 'Inter',
   },
   label: {
     fontSize: 16,
