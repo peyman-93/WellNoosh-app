@@ -446,15 +446,11 @@ export function OnboardingFlow({ onComplete, onSkip, userData }: OnboardingFlowP
     // Step 1: Allergies & Food Restrictions
     {
       title: "Food Allergies & Restrictions",
-      subtitle: "Help us keep you safe and healthy",
+      subtitle: "Select any food allergies you have",
       icon: '⚠️',
       iconBg: '#DC6B3F',
       content: (
         <View style={styles.stepContent}>
-          <Text style={styles.stepDescription}>
-            Select any food allergies you have
-          </Text>
-
           <View style={styles.gridContainer}>
             {commonAllergies.map((allergy) => (
               <TouchableOpacity
