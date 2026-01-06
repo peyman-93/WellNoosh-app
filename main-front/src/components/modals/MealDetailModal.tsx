@@ -221,34 +221,34 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
             </View>
           </View>
 
-          {(meal.calories || meal.protein_g || meal.carbs_g || meal.fat_g) && (
+          {(meal.calories != null || meal.protein_g != null || meal.carbs_g != null || meal.fat_g != null) ? (
             <View style={styles.nutritionBar}>
-              {meal.calories && (
+              {meal.calories != null && (
                 <View style={styles.nutritionItem}>
                   <Text style={styles.nutritionValue}>{meal.calories}</Text>
                   <Text style={styles.nutritionLabel}>kcal</Text>
                 </View>
               )}
-              {meal.protein_g && (
+              {meal.protein_g != null && (
                 <View style={styles.nutritionItem}>
                   <Text style={styles.nutritionValue}>{meal.protein_g}g</Text>
                   <Text style={styles.nutritionLabel}>protein</Text>
                 </View>
               )}
-              {meal.carbs_g && (
+              {meal.carbs_g != null && (
                 <View style={styles.nutritionItem}>
                   <Text style={styles.nutritionValue}>{meal.carbs_g}g</Text>
                   <Text style={styles.nutritionLabel}>carbs</Text>
                 </View>
               )}
-              {meal.fat_g && (
+              {meal.fat_g != null && (
                 <View style={styles.nutritionItem}>
                   <Text style={styles.nutritionValue}>{meal.fat_g}g</Text>
                   <Text style={styles.nutritionLabel}>fat</Text>
                 </View>
               )}
             </View>
-          )}
+          ) : null}
         </LinearGradient>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
