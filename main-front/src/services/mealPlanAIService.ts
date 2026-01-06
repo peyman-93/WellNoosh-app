@@ -124,7 +124,11 @@ class MealPlanAIService {
         meal_slot: meal.meal_slot,
         recipe_title: meal.custom_title || meal.recipe_title || 'Unnamed Meal',
         notes: meal.notes,
-        servings: meal.servings || 1
+        servings: meal.servings || 1,
+        calories: meal.calories,
+        protein_g: meal.protein_g,
+        carbs_g: meal.carbs_g,
+        fat_g: meal.fat_g
       }));
 
       return {

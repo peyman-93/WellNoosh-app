@@ -184,7 +184,11 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
           meal_slot: meal.meal_slot,
           custom_title: meal.recipe_title,
           notes: meal.notes,
-          servings: meal.servings || 1
+          servings: meal.servings || 1,
+          calories: meal.calories,
+          protein_g: meal.protein_g,
+          carbs_g: meal.carbs_g,
+          fat_g: meal.fat_g
         }))
         
         await mealPlannerService.bulkAddMeals(mealsToSave)
@@ -310,18 +314,18 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
             <TouchableOpacity 
               style={[
                 styles.generateButton,
-                (isGeneratingPlan || messages.length < 2) && styles.generateButtonDisabled
+                isGeneratingPlan && styles.generateButtonDisabled
               ]}
               onPress={generateAndSavePlan}
-              disabled={isGeneratingPlan || messages.length < 2}
+              disabled={isGeneratingPlan}
             >
               {isGeneratingPlan ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <>
+                <View style={styles.generateButtonContent}>
                   <Text style={styles.generateButtonIcon}>✨</Text>
                   <Text style={styles.generateButtonText}>Generate Plan</Text>
-                </>
+                </View>
               )}
             </TouchableOpacity>
 
@@ -465,10 +469,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     marginBottom: 12,
-    gap: 8,
   },
   generateButtonDisabled: {
     backgroundColor: '#D1D5DB',
+  },
+  generateButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   generateButtonIcon: {
     fontSize: 18,

@@ -32,6 +32,10 @@ export interface CreateMealPlanEntry {
   custom_title?: string;
   notes?: string;
   servings?: number;
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
 }
 
 export interface UpdateMealPlanEntry {
@@ -140,7 +144,11 @@ export const mealPlannerService = {
       recipe_image: entry.recipe_image,
       custom_title: entry.custom_title,
       notes: entry.notes,
-      servings: entry.servings || 1
+      servings: entry.servings || 1,
+      calories: entry.calories,
+      protein_g: entry.protein_g,
+      carbs_g: entry.carbs_g,
+      fat_g: entry.fat_g
     }));
 
     const { data, error } = await supabase
