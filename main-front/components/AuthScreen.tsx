@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native'
 import { useAuth } from '../src/context/supabase-provider'
 import { CountryCityPicker } from '../src/components/CountryCityPicker'
-import { validatePostalCode } from '../src/data/postalCodeRules'
+import { validatePostalCode } from './postalCodeRules'
 
 interface AuthScreenProps {
   onAuthenticated: () => void
