@@ -3,6 +3,7 @@ import { View, Text, SafeAreaView, Alert, StyleSheet, ScrollView, TextInput, Tou
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../../src/context/supabase-provider'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
+import { CountryCityPicker } from '../../src/components/CountryCityPicker'
 
 interface SignUpScreenProps {
   navigation: any
@@ -314,37 +315,23 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
 
               {/* Location Fields */}
               <View style={styles.locationContainer}>
-                <View style={styles.locationRow}>
-                  <View style={[styles.inputGroup, styles.locationInputHalf]}>
-                    <Text style={styles.label}>Country</Text>
-                    <View style={styles.inputContainer}>
-                      <TextInput
-                        style={[styles.input, errors.country && styles.inputError]}
-                        placeholder="Country"
-                        value={country}
-                        onChangeText={(value) => handleInputChange('country', value)}
-                        autoCapitalize="words"
-                        placeholderTextColor="#9CA3AF"
-                      />
-                    </View>
-                    {errors.country && <Text style={styles.errorText}>{errors.country}</Text>}
-                  </View>
-
-                  <View style={[styles.inputGroup, styles.locationInputHalf]}>
-                    <Text style={styles.label}>City</Text>
-                    <View style={styles.inputContainer}>
-                      <TextInput
-                        style={[styles.input, errors.city && styles.inputError]}
-                        placeholder="City"
-                        value={city}
-                        onChangeText={(value) => handleInputChange('city', value)}
-                        autoCapitalize="words"
-                        placeholderTextColor="#9CA3AF"
-                      />
-                    </View>
-                    {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
-                  </View>
-                </View>
+                <CountryCityPicker
+                  selectedCountry={country}
+                  selectedCity={city}
+                  onCountryChange={(value) => {
+                    setCountry(value)
+                    setCity('') // Reset city when country changes
+                    if (errors.country) setErrors(prev => ({ ...prev, country: '' }))
+                    // Clear postal code error when country changes to re-validate
+                    if (errors.postalCode) setErrors(prev => ({ ...prev, postalCode: '' }))
+                  }}
+                  onCityChange={(value) => {
+                    setCity(value)
+                    if (errors.city) setErrors(prev => ({ ...prev, city: '' }))
+                  }}
+                  countryError={errors.country}
+                  cityError={errors.city}
+                />
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Postal Code</Text>
