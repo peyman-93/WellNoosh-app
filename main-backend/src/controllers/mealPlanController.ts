@@ -227,7 +227,11 @@ Return your response as valid JSON with this exact structure:
       "date": "YYYY-MM-DD",
       "slot": "breakfast" | "lunch" | "dinner" | "snack",
       "title": "Meal name",
-      "notes": "Optional brief description or cooking tips"
+      "calories": 350,
+      "protein_g": 25,
+      "carbs_g": 30,
+      "fat_g": 15,
+      "notes": "Include ingredients and instructions in this format:\\n\\nIngredients:\\n- 2 eggs\\n- 1 cup spinach\\n- 1/4 avocado\\n- salt and pepper\\n\\nInstructions:\\n1. Heat a pan over medium heat\\n2. Whisk eggs and pour into pan\\n3. Add spinach and cook until wilted\\n4. Top with sliced avocado and season"
     }
   ]
 }
@@ -239,6 +243,8 @@ Important:
 - Make sure all meals respect the user's dietary restrictions and allergies
 - Include variety across the week
 - Consider the user's cooking skill level
+- ALWAYS include the full ingredients list and step-by-step instructions in the notes field
+- Include realistic calorie, protein, carbs, and fat estimates for each meal
 - Return ONLY valid JSON, no markdown or additional text
 `;
 
@@ -268,6 +274,10 @@ Important:
         custom_title: string;
         notes?: string;
         servings: number;
+        calories?: number;
+        protein_g?: number;
+        carbs_g?: number;
+        fat_g?: number;
       }> = [];
       
       if (parsed.meals && Array.isArray(parsed.meals)) {
@@ -280,7 +290,11 @@ Important:
                 meal_slot: slot,
                 custom_title: meal.title,
                 notes: meal.notes || undefined,
-                servings: 1
+                servings: 1,
+                calories: meal.calories || undefined,
+                protein_g: meal.protein_g || undefined,
+                carbs_g: meal.carbs_g || undefined,
+                fat_g: meal.fat_g || undefined
               });
             }
           }
