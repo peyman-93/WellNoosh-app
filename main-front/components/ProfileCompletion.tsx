@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { CountryCityPicker } from '../src/components/CountryCityPicker';
 
 interface UserData {
   fullName: string;
   email: string;
   country: string;
+  city?: string;
   postalCode: string;
   age?: number;
   gender?: string;
@@ -21,8 +23,25 @@ interface ProfileCompletionProps {
   userData: UserData | null;
 }
 
+// Postal code validation patterns by country
+const postalCodePatterns: { [key: string]: { pattern: RegExp; example: string } } = {
+  'United States': { pattern: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
+  'Canada': { pattern: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/, example: 'A1B 2C3' },
+  'United Kingdom': { pattern: /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
+  'Germany': { pattern: /^\d{5}$/, example: '12345' },
+  'France': { pattern: /^\d{5}$/, example: '75001' },
+  'Australia': { pattern: /^\d{4}$/, example: '2000' },
+  'Netherlands': { pattern: /^\d{4}\s?[A-Za-z]{2}$/, example: '1234 AB' },
+  'Italy': { pattern: /^\d{5}$/, example: '00100' },
+  'Spain': { pattern: /^\d{5}$/, example: '28001' },
+  'Belgium': { pattern: /^\d{4}$/, example: '1000' },
+};
+
 export function ProfileCompletion({ onComplete, userData }: ProfileCompletionProps) {
   const [profileData, setProfileData] = useState({
+    country: userData?.country || '',
+    city: userData?.city || '',
+    postalCode: userData?.postalCode || '',
     age: '',
     gender: '',
     weight: '',
@@ -36,6 +55,32 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
 
+  const validatePostalCode = (countryName: string, code: string): { valid: boolean; message: string } => {
+    if (!code || code.trim() === '') {
+      return { valid: false, message: 'Postal code is required' };
+    }
+
+    const normalizedCountry = countryName.trim().toLowerCase();
+    const countryEntry = Object.entries(postalCodePatterns).find(
+      ([key]) => key.toLowerCase() === normalizedCountry
+    );
+    
+    if (!countryEntry) {
+      return { valid: true, message: '' };
+    }
+
+    const [countryKey, countryPattern] = countryEntry;
+
+    if (!countryPattern.pattern.test(code.trim())) {
+      return { 
+        valid: false, 
+        message: `Invalid postal code for ${countryKey}. Example: ${countryPattern.example}` 
+      };
+    }
+
+    return { valid: true, message: '' };
+  };
+
   const genderOptions = [
     'Male', 'Female', 'Non-binary', 'Prefer not to say'
   ];
@@ -47,6 +92,26 @@ export function ProfileCompletion({ onComplete, userData }: ProfileCompletionPro
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+
+    // Country validation
+    if (!profileData.country) {
+      newErrors.country = 'Country is required';
+    }
+
+    // City validation
+    if (!profileData.city) {
+      newErrors.city = 'City is required';
+    }
+
+    // Postal code validation
+    if (!profileData.postalCode) {
+      newErrors.postalCode = 'Postal code is required';
+    } else if (profileData.country) {
+      const postalValidation = validatePostalCode(profileData.country, profileData.postalCode);
+      if (!postalValidation.valid) {
+        newErrors.postalCode = postalValidation.message;
+      }
+    }
 
     // Age validation
     if (!profileData.age) {
