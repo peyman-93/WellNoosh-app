@@ -66,110 +66,125 @@ class UserProfile(BaseModel):
 # DSPy Signatures
 # ============================================================================
 
-class GenerateMealSignature(dspy.Signature):
-    """Generate a complete meal with ingredients and instructions based on user profile."""
+class GenerateDayMealsSignature(dspy.Signature):
+    """You are an EXPERT NUTRITIONIST and REGISTERED DIETITIAN. Generate ALL meals for a single day.
+    
+    CRITICAL ALLERGY RULES - STRICTLY ENFORCE:
+    - NEVER include ANY ingredient that contains or is derived from allergens listed in the user profile
+    - Check EVERY ingredient against the allergy list
+    - Consider cross-contamination risks (e.g., peanut allergies = avoid all tree nuts)
+    - If unsure about an ingredient, DO NOT include it
+    
+    NUTRITION EXPERTISE RULES:
+    - Balance macronutrients across the day based on health goals
+    - For weight loss: higher protein, moderate carbs, lower fat
+    - For muscle gain: high protein, higher carbs, moderate fat
+    - For diabetes: low glycemic index, controlled carbs, high fiber
+    - Ensure adequate vitamins and minerals through varied vegetables
+    
+    VARIETY RULES:
+    - Breakfast CAN repeat similar items across days (eggs, oatmeal, yogurt are acceptable)
+    - Lunch MUST be COMPLETELY DIFFERENT from other days - no repetition of main proteins or cuisines
+    - Dinner MUST be COMPLETELY DIFFERENT from other days - no repetition of main proteins or cuisines
+    - Snacks should vary in type (fruit, nuts, yogurt, vegetables)
+    """
 
-    user_profile: str = dspy.InputField(desc="User health profile as JSON string")
-    meal_slot: str = dspy.InputField(desc="Meal slot: breakfast, lunch, dinner, or snack")
-    plan_date: str = dspy.InputField(desc="Date for the meal in YYYY-MM-DD format")
-    context: str = dspy.InputField(desc="Additional context from user conversation")
-    previous_meals: str = dspy.InputField(desc="Previously generated meals to avoid repetition")
+    user_profile: str = dspy.InputField(desc="User health profile with allergies, diet style, health goals, cooking skill")
+    plan_date: str = dspy.InputField(desc="Date for the meals in YYYY-MM-DD format")
+    context: str = dspy.InputField(desc="User preferences from conversation")
+    previous_days_summary: str = dspy.InputField(desc="Summary of meals from previous days to ensure variety - AVOID these dishes for lunch/dinner")
+    target_calories: int = dspy.InputField(desc="Target total calories for the day")
 
-    meal_json: str = dspy.OutputField(desc="Complete meal as JSON with name, description, cookTime, servings, difficulty, tags, ingredients (with name, amount, category), instructions (as array), and nutrition (calories, protein, carbs, fat)")
-
-
-class CalculateNutritionSignature(dspy.Signature):
-    """Calculate accurate nutritional information for a meal based on ingredients."""
-
-    meal_name: str = dspy.InputField(desc="Name of the meal")
-    ingredients: str = dspy.InputField(desc="List of ingredients with amounts as JSON")
-    servings: int = dspy.InputField(desc="Number of servings the recipe makes")
-
-    nutrition_json: str = dspy.OutputField(desc="Nutrition per serving as JSON: {calories: int, protein: int, carbs: int, fat: int}")
+    day_meals_json: str = dspy.OutputField(desc="JSON array of 3-4 meals (breakfast, lunch, dinner, optional snack). Each meal: {name, description, cookTime, servings, difficulty, tags, ingredients: [{name, amount, category}], instructions: [steps], nutrition: {calories, protein, carbs, fat}, meal_slot}")
 
 
-class PlanMealSlotSignature(dspy.Signature):
-    """Plan what type of meal fits best for a specific slot considering user preferences and nutrition targets."""
-
-    user_profile: str = dspy.InputField(desc="User health profile")
-    meal_slot: str = dspy.InputField(desc="breakfast, lunch, dinner, or snack")
-    daily_calorie_target: int = dspy.InputField(desc="User's daily calorie goal")
-    already_planned_calories: int = dspy.InputField(desc="Calories already planned for this day")
-    user_preferences: str = dspy.InputField(desc="User's stated preferences from conversation")
-
-    meal_concept: str = dspy.OutputField(desc="Concept for the meal: what type of dish, key ingredients to include, target calories for this meal")
 
 
 # ============================================================================
 # DSPy Modules
 # ============================================================================
 
-class MealGenerator(dspy.Module):
-    """Generates a single complete meal with all details"""
+class DayMealGenerator(dspy.Module):
+    """Generates all meals for a single day in one LLM call - much faster!"""
 
     def __init__(self):
         super().__init__()
-        self.generate_meal = dspy.ChainOfThought(GenerateMealSignature)
-        self.calculate_nutrition = dspy.ChainOfThought(CalculateNutritionSignature)
+        self.generate_day = dspy.ChainOfThought(GenerateDayMealsSignature)
 
-    def forward(self, user_profile: UserProfile, meal_slot: str, plan_date: str,
-                context: str = "", previous_meals: List[str] = None) -> GeneratedMeal:
+    def forward(self, user_profile: UserProfile, plan_date: str,
+                context: str = "", previous_days_summary: str = "") -> List[GeneratedMeal]:
 
-        profile_json = json.dumps(user_profile.model_dump())
-        prev_meals_str = json.dumps(previous_meals or [])
+        profile_dict = user_profile.model_dump()
+        
+        # Build allergy warning for strict enforcement
+        allergy_warning = ""
+        if user_profile.allergies:
+            allergy_warning = f"\n\nCRITICAL ALLERGIES TO AVOID: {', '.join(user_profile.allergies)}. NEVER include these or derivatives!"
+            profile_dict["allergy_warning"] = allergy_warning
+        
+        profile_json = json.dumps(profile_dict)
 
-        # Generate the meal
-        result = self.generate_meal(
+        result = self.generate_day(
             user_profile=profile_json,
-            meal_slot=meal_slot,
             plan_date=plan_date,
-            context=context,
-            previous_meals=prev_meals_str
+            context=context + allergy_warning,
+            previous_days_summary=previous_days_summary,
+            target_calories=user_profile.daily_calorie_goal
         )
 
         try:
-            # Parse the generated meal JSON
-            meal_data = json.loads(result.meal_json)
-
-            # Calculate accurate nutrition based on ingredients
-            if meal_data.get('ingredients'):
-                nutrition_result = self.calculate_nutrition(
-                    meal_name=meal_data.get('name', ''),
-                    ingredients=json.dumps(meal_data.get('ingredients', [])),
-                    servings=meal_data.get('servings', 1)
+            meals_data = json.loads(result.day_meals_json)
+            if not isinstance(meals_data, list):
+                meals_data = [meals_data]
+            
+            meals = []
+            for meal_data in meals_data:
+                # Validate and parse nutrition with defaults
+                raw_nutrition = meal_data.get('nutrition', {})
+                if not isinstance(raw_nutrition, dict):
+                    raw_nutrition = {}
+                
+                nutrition = Nutrition(
+                    calories=int(raw_nutrition.get('calories', 400) or 400),
+                    protein=int(raw_nutrition.get('protein', 25) or 25),
+                    carbs=int(raw_nutrition.get('carbs', 40) or 40),
+                    fat=int(raw_nutrition.get('fat', 15) or 15)
                 )
-
-                try:
-                    accurate_nutrition = json.loads(nutrition_result.nutrition_json)
-                    meal_data['nutrition'] = accurate_nutrition
-                except:
-                    pass  # Keep original nutrition if calculation fails
-
-            # Ensure all required fields
-            meal = GeneratedMeal(
-                id=str(uuid.uuid4()),
-                name=meal_data.get('name', 'Delicious Meal'),
-                description=meal_data.get('description', ''),
-                cookTime=meal_data.get('cookTime', '30 mins'),
-                servings=meal_data.get('servings', 2),
-                difficulty=meal_data.get('difficulty', 'Easy'),
-                tags=meal_data.get('tags', []),
-                ingredients=[
-                    Ingredient(**ing) if isinstance(ing, dict) else ing
-                    for ing in meal_data.get('ingredients', [])
-                ],
-                instructions=meal_data.get('instructions', []),
-                nutrition=Nutrition(**meal_data.get('nutrition', {'calories': 400, 'protein': 25, 'carbs': 40, 'fat': 15})),
-                meal_slot=meal_slot,
-                plan_date=plan_date
-            )
-
-            return meal
+                
+                meal = GeneratedMeal(
+                    id=str(uuid.uuid4()),
+                    name=meal_data.get('name', 'Delicious Meal'),
+                    description=meal_data.get('description', ''),
+                    cookTime=meal_data.get('cookTime', '30 mins'),
+                    servings=int(meal_data.get('servings', 2) or 2),
+                    difficulty=meal_data.get('difficulty', 'Easy'),
+                    tags=meal_data.get('tags', []) or [],
+                    ingredients=[
+                        Ingredient(**ing) if isinstance(ing, dict) else Ingredient(name=str(ing), amount="1", category="Other")
+                        for ing in (meal_data.get('ingredients', []) or [])
+                    ],
+                    instructions=meal_data.get('instructions', []) or [],
+                    nutrition=nutrition,
+                    meal_slot=meal_data.get('meal_slot', 'lunch'),
+                    plan_date=plan_date
+                )
+                meals.append(meal)
+            
+            return meals
 
         except Exception as e:
-            print(f"Error parsing meal: {e}")
-            # Return a fallback meal
-            return self._create_fallback_meal(user_profile, meal_slot, plan_date)
+            print(f"Error parsing day meals: {e}")
+            import traceback
+            traceback.print_exc()
+            return self._create_fallback_day(user_profile, plan_date)
+    
+    def _create_fallback_day(self, user_profile: UserProfile, plan_date: str) -> List[GeneratedMeal]:
+        """Create fallback meals for a day if generation fails"""
+        return [
+            self._create_fallback_meal(user_profile, 'breakfast', plan_date),
+            self._create_fallback_meal(user_profile, 'lunch', plan_date),
+            self._create_fallback_meal(user_profile, 'dinner', plan_date)
+        ]
 
     def _create_fallback_meal(self, user_profile: UserProfile, meal_slot: str, plan_date: str) -> GeneratedMeal:
         """Create a simple fallback meal if generation fails"""
@@ -285,66 +300,51 @@ class MealGenerator(dspy.Module):
 
 
 class MealPlanOrchestrator(dspy.Module):
-    """Orchestrates complete meal plan generation for multiple days"""
+    """Orchestrates complete meal plan generation - now batched by day for speed!"""
 
     def __init__(self):
         super().__init__()
-        self.meal_generator = MealGenerator()
-        self.plan_slot = dspy.ChainOfThought(PlanMealSlotSignature)
+        self.day_generator = DayMealGenerator()
 
     def forward(self, user_profile: UserProfile, start_date: str,
                 number_of_days: int = 7, context: str = "") -> Dict[str, Any]:
 
-        meals = []
-        previous_meal_names = []
+        all_meals = []
+        previous_days_summary = []
 
-        # Generate dates
         start = datetime.strptime(start_date, '%Y-%m-%d')
-
-        # Calorie distribution per meal slot
-        calorie_distribution = {
-            'breakfast': 0.25,
-            'lunch': 0.35,
-            'dinner': 0.35,
-            'snack': 0.05
-        }
+        
+        print(f"🍽️ Generating {number_of_days}-day meal plan...")
+        print(f"📋 User profile: diet={user_profile.diet_style}, allergies={user_profile.allergies}")
 
         for day_offset in range(number_of_days):
             current_date = (start + timedelta(days=day_offset)).strftime('%Y-%m-%d')
-            daily_calories_planned = 0
-
-            for meal_slot in ['breakfast', 'lunch', 'dinner', 'snack']:
-                target_calories = int(user_profile.daily_calorie_goal * calorie_distribution[meal_slot])
-
-                # Generate meal concept first
-                try:
-                    concept = self.plan_slot(
-                        user_profile=json.dumps(user_profile.model_dump()),
-                        meal_slot=meal_slot,
-                        daily_calorie_target=user_profile.daily_calorie_goal,
-                        already_planned_calories=daily_calories_planned,
-                        user_preferences=context
-                    )
-                    enhanced_context = f"{context}\nTarget: {concept.meal_concept}"
-                except:
-                    enhanced_context = context
-
-                # Generate the actual meal
-                meal = self.meal_generator(
-                    user_profile=user_profile,
-                    meal_slot=meal_slot,
-                    plan_date=current_date,
-                    context=enhanced_context,
-                    previous_meals=previous_meal_names[-10:]  # Last 10 meals to avoid repetition
-                )
-
-                meals.append(meal)
-                previous_meal_names.append(meal.name)
-                daily_calories_planned += meal.nutrition.calories
+            print(f"  Day {day_offset + 1}: {current_date}")
+            
+            # Build summary of previous days to avoid repetition
+            prev_summary = ""
+            if previous_days_summary:
+                prev_summary = "Previous days' lunch/dinner (AVOID REPEATING): " + "; ".join(previous_days_summary[-6:])
+            
+            # Generate all meals for this day in ONE call
+            day_meals = self.day_generator(
+                user_profile=user_profile,
+                plan_date=current_date,
+                context=context,
+                previous_days_summary=prev_summary
+            )
+            
+            # Track lunch and dinner names for variety enforcement
+            for meal in day_meals:
+                if meal.meal_slot in ['lunch', 'dinner']:
+                    previous_days_summary.append(f"{meal.meal_slot}: {meal.name}")
+            
+            all_meals.extend(day_meals)
+            print(f"    Generated {len(day_meals)} meals for day {day_offset + 1}")
 
         # Calculate summary stats
-        total_meals = len(meals)
-        avg_daily_calories = sum(m.nutrition.calories for m in meals) / number_of_days
+        total_meals = len(all_meals)
+        avg_daily_calories = sum(m.nutrition.calories for m in all_meals) / number_of_days if all_meals else 0
 
         summary = f"Created a {number_of_days}-day meal plan with {total_meals} meals. "
         summary += f"Average daily calories: {int(avg_daily_calories)}. "
@@ -353,10 +353,10 @@ class MealPlanOrchestrator(dspy.Module):
             summary += f"All meals follow your {user_profile.diet_style} diet. "
 
         if user_profile.allergies:
-            summary += f"Avoided allergens: {', '.join(user_profile.allergies)}."
+            summary += f"Strictly avoided allergens: {', '.join(user_profile.allergies)}."
 
         return {
-            'meals': [meal.model_dump() for meal in meals],
+            'meals': [meal.model_dump() for meal in all_meals],
             'summary': summary,
             'stats': {
                 'total_meals': total_meals,
@@ -373,7 +373,7 @@ class MealPlanOrchestrator(dspy.Module):
 class DSPyMealPlannerService:
     """Service wrapper for the DSPy meal planner"""
 
-    def __init__(self, llm_provider: str = None):
+    def __init__(self, llm_provider: Optional[str] = None):
         self.llm_provider = llm_provider or os.getenv('LLM_PROVIDER', 'openai').lower()
         self._configure_dspy()
         self.orchestrator = MealPlanOrchestrator()
@@ -474,15 +474,20 @@ class DSPyMealPlannerService:
             cooking_skill=health_context.get('cookingSkill', 'beginner') or 'beginner'
         )
 
-        meal_generator = MealGenerator()
-        meal = meal_generator(
+        day_generator = DayMealGenerator()
+        meals = day_generator(
             user_profile=user_profile,
-            meal_slot=meal_slot,
             plan_date=plan_date,
-            context=context
+            context=f"Generate only a {meal_slot}. {context}",
+            previous_days_summary=""
         )
-
-        return meal.model_dump()
+        
+        # Return first meal that matches the slot, or first meal if no match
+        for meal in meals:
+            if meal.meal_slot == meal_slot:
+                return meal.model_dump()
+        
+        return meals[0].model_dump() if meals else {}
 
 
 # Create singleton instance

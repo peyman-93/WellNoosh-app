@@ -30,6 +30,9 @@ interface DisplayMessage {
   timestamp: Date
 }
 
+type GenerationMode = 'quick' | 'detailed'
+type DayCount = 3 | 7
+
 export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStartDate }: MealPlanChatModalProps) {
   const { userData } = useUserData()
   const { session } = useAuth()
@@ -38,6 +41,8 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
+  const [generationMode, setGenerationMode] = useState<GenerationMode>('quick')
+  const [dayCount, setDayCount] = useState<DayCount>(7)
   const scrollViewRef = useRef<ScrollView>(null)
 
   const healthContext: UserHealthContext = {
@@ -147,10 +152,14 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
 
     setIsGeneratingPlan(true)
 
+    const modeText = generationMode === 'detailed' 
+      ? `I'm generating your detailed ${dayCount}-day meal plan with full recipes, ingredients, and nutrition info. This uses our advanced AI and may take a bit longer...`
+      : `I'm quickly generating your ${dayCount}-day meal plan based on our conversation...`
+
     const generatingMessage: DisplayMessage = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: "Perfect! I'm now generating your personalized meal plan based on our conversation. This may take a moment...",
+      content: modeText,
       timestamp: new Date()
     }
     setMessages(prev => [...prev, generatingMessage])
@@ -172,7 +181,8 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
         chatHistory,
         healthContext,
         startDate,
-        7
+        dayCount,
+        generationMode
       )
 
       if (result.meals.length > 0) {
@@ -311,6 +321,47 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
           </ScrollView>
 
           <View style={styles.inputSection}>
+            <View style={styles.optionsRow}>
+              <View style={styles.optionGroup}>
+                <Text style={styles.optionLabel}>Days:</Text>
+                <View style={styles.toggleGroup}>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, dayCount === 3 && styles.toggleBtnActive]}
+                    onPress={() => setDayCount(3)}
+                    disabled={isGeneratingPlan}
+                  >
+                    <Text style={[styles.toggleText, dayCount === 3 && styles.toggleTextActive]}>3 days</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, dayCount === 7 && styles.toggleBtnActive]}
+                    onPress={() => setDayCount(7)}
+                    disabled={isGeneratingPlan}
+                  >
+                    <Text style={[styles.toggleText, dayCount === 7 && styles.toggleTextActive]}>7 days</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.optionGroup}>
+                <Text style={styles.optionLabel}>Mode:</Text>
+                <View style={styles.toggleGroup}>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, generationMode === 'quick' && styles.toggleBtnActive]}
+                    onPress={() => setGenerationMode('quick')}
+                    disabled={isGeneratingPlan}
+                  >
+                    <Text style={[styles.toggleText, generationMode === 'quick' && styles.toggleTextActive]}>Quick</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, generationMode === 'detailed' && styles.toggleBtnActive]}
+                    onPress={() => setGenerationMode('detailed')}
+                    disabled={isGeneratingPlan}
+                  >
+                    <Text style={[styles.toggleText, generationMode === 'detailed' && styles.toggleTextActive]}>Detailed</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
             <TouchableOpacity 
               style={[
                 styles.generateButton,
@@ -324,7 +375,7 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
               ) : (
                 <View style={styles.generateButtonContent}>
                   <Text style={styles.generateButtonIcon}>✨</Text>
-                  <Text style={styles.generateButtonText}>Generate Plan</Text>
+                  <Text style={styles.generateButtonText}>Generate {dayCount}-Day Plan</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -460,6 +511,47 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E0E0E0',
     backgroundColor: '#FFFFFF',
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    gap: 12,
+  },
+  optionGroup: {
+    flex: 1,
+  },
+  optionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 6,
+    fontFamily: 'Inter',
+  },
+  toggleGroup: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 2,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  toggleBtnActive: {
+    backgroundColor: '#6B8E23',
+  },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  toggleTextActive: {
+    color: '#FFFFFF',
   },
   generateButton: {
     flexDirection: 'row',

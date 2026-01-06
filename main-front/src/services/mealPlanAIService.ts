@@ -156,13 +156,15 @@ class MealPlanAIService {
     messages: ChatMessage[],
     healthContext: UserHealthContext,
     startDate: Date,
-    numberOfDays: number = 7
+    numberOfDays: number = 7,
+    mode: 'quick' | 'detailed' = 'quick'
   ): Promise<GeneratedMealPlan> {
     try {
-      console.log('🍽️ Generating meal plan with DSPy...');
+      const endpoint = mode === 'detailed' ? 'dspy-generate' : 'ai-generate';
+      console.log(`🍽️ Generating meal plan with ${mode} mode (${endpoint})...`);
 
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_URL}/meal-plans/dspy-generate`, {
+      const response = await fetch(`${API_URL}/meal-plans/${endpoint}`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -170,7 +172,8 @@ class MealPlanAIService {
           messages,
           healthContext,
           startDate: startDate.toISOString().split('T')[0],
-          numberOfDays
+          numberOfDays,
+          mode
         })
       });
 
