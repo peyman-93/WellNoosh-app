@@ -261,12 +261,18 @@ Important:
     });
 
     const content = response.choices[0]?.message?.content;
+    console.log('🍽️ Raw AI response:', content?.substring(0, 500));
+    
     if (!content) {
       throw createError('Failed to generate meal plan', 500);
     }
 
     try {
       const parsed = JSON.parse(content);
+      console.log('🍽️ Parsed meals count:', parsed.meals?.length);
+      if (parsed.meals?.[0]) {
+        console.log('🍽️ First meal example:', JSON.stringify(parsed.meals[0], null, 2));
+      }
       
       const meals: Array<{
         plan_date: string;
