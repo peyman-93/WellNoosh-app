@@ -11,6 +11,7 @@ router.use(requireAuth);
 // AI-powered meal planning (NEW)
 router.post('/ai-chat', mealPlanController.aiChat);
 router.post('/ai-generate', mealPlanController.aiGeneratePlan);
+router.post('/dspy-generate', mealPlanController.aiGeneratePlanDSPy); // DSPy with full recipe details
 
 // Meal plan CRUD operations
 router.get('/', mealPlanController.getMealPlans);

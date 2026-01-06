@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import OpenAI from 'openai';
 import { asyncHandler, createError } from '../middleware/errorHandler';
 
+// Python recommendation API URL (DSPy meal planner)
+const PYTHON_API_URL = process.env.RECOMMENDATION_API_URL || 'http://localhost:8000';
+
 // Support both Replit integration (for Replit environment) and direct OpenAI API key (for local development)
 let openai: OpenAI;
 
@@ -22,6 +25,8 @@ if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
   console.warn('⚠️ No OpenAI API key configured. AI features will not work.');
   openai = new OpenAI({ apiKey: 'dummy' }); // Will fail gracefully when called
 }
+
+console.log('🍽️ Python API URL for DSPy meal planner:', PYTHON_API_URL);
 
 interface UserHealthContext {
   allergies?: string[];
@@ -314,6 +319,84 @@ Important:
     } catch (error) {
       console.error('Error parsing meal plan response:', error);
       throw createError('Failed to parse meal plan response', 500);
+    }
+  });
+
+  // New DSPy-powered meal plan generation with full recipe details
+  aiGeneratePlanDSPy = asyncHandler(async (req: Request, res: Response) => {
+    console.log('🍽️ DSPy AI Generate Plan request received');
+
+    const { messages, healthContext, startDate, numberOfDays = 7 } = req.body as {
+      messages: ChatMessage[];
+      healthContext: UserHealthContext;
+      startDate: string;
+      numberOfDays?: number;
+    };
+
+    console.log('🍽️ DSPy Request params:', { messagesCount: messages?.length, startDate, numberOfDays });
+
+    if (!messages || !Array.isArray(messages)) {
+      throw createError('Messages array is required', 400);
+    }
+
+    if (!startDate) {
+      throw createError('startDate is required', 400);
+    }
+
+    try {
+      // Call the Python DSPy service
+      const response = await fetch(`${PYTHON_API_URL}/api/meal-plans/dspy-generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: req.body.user_id || 'anonymous',
+          messages: messages,
+          healthContext: {
+            allergies: healthContext?.allergies || [],
+            medicalConditions: healthContext?.medicalConditions || [],
+            dietStyle: healthContext?.dietStyle || 'balanced',
+            healthGoals: healthContext?.healthGoals || [],
+            dailyCalorieGoal: healthContext?.dailyCalorieGoal || 2000,
+            cookingSkill: healthContext?.cookingSkill || 'beginner'
+          },
+          startDate: startDate,
+          numberOfDays: numberOfDays
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('DSPy API error:', response.status, errorText);
+        throw createError(`DSPy service error: ${response.status}`, 500);
+      }
+
+      const data = await response.json() as {
+        meals?: any[];
+        summary?: string;
+        stats?: any;
+      };
+      console.log('✅ DSPy Generated', data.meals?.length || 0, 'meals with full details');
+
+      // Return the full meal data with ingredients and instructions
+      res.json({
+        meals: data.meals || [],
+        summary: data.summary || 'Your personalized meal plan is ready!',
+        stats: data.stats
+      });
+
+    } catch (error: any) {
+      console.error('❌ Error calling DSPy service:', error);
+
+      // Fallback to OpenAI if DSPy service is unavailable
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('fetch failed')) {
+        console.log('⚠️ DSPy service unavailable, falling back to OpenAI...');
+        // You could call the existing aiGeneratePlan method here as fallback
+        throw createError('DSPy meal planner service is not available. Please start the Python service.', 503);
+      }
+
+      throw error;
     }
   });
 }

@@ -33,6 +33,48 @@ export interface GeneratedMeal {
   fat_g?: number;
 }
 
+// DSPy Enhanced Meal Types (matching RecommendationCard format)
+export interface DSPyIngredient {
+  name: string;
+  amount: string;
+  category: string;
+}
+
+export interface DSPyNutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface DSPyMeal {
+  id: string;
+  name: string;
+  image?: string;
+  cookTime: string;
+  servings: number;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  rating: number;
+  tags: string[];
+  description: string;
+  ingredients: DSPyIngredient[];
+  instructions: string[];
+  nutrition: DSPyNutrition;
+  meal_slot: MealSlot;
+  plan_date: string;
+}
+
+export interface DSPyMealPlan {
+  meals: DSPyMeal[];
+  summary: string;
+  stats?: {
+    total_meals: number;
+    average_daily_calories: number;
+    days_planned: number;
+  };
+  error?: string;
+}
+
 export interface GeneratedMealPlan {
   meals: GeneratedMeal[];
   summary: string;
@@ -150,6 +192,50 @@ class MealPlanAIService {
     } catch (error) {
       console.error('Meal planner API health check failed:', error);
       return false;
+    }
+  }
+
+  // DSPy Enhanced meal plan generation with full recipe details
+  async generateMealPlanDSPy(
+    userId: string,
+    messages: ChatMessage[],
+    healthContext: UserHealthContext,
+    startDate: Date,
+    numberOfDays: number = 7
+  ): Promise<DSPyMealPlan> {
+    try {
+      console.log('🍽️ Generating DSPy meal plan with full recipe details...');
+
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_URL}/meal-plans/dspy-generate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          user_id: userId,
+          messages,
+          healthContext,
+          startDate: startDate.toISOString().split('T')[0],
+          numberOfDays
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('DSPy Generate API error:', response.status, errorText);
+        throw new Error(`DSPy Generate failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ DSPy Generated meal plan with', data.meals?.length || 0, 'meals');
+
+      return {
+        meals: data.meals || [],
+        summary: data.summary || 'Your personalized meal plan is ready!',
+        stats: data.stats
+      };
+    } catch (error) {
+      console.error('❌ Error generating DSPy meal plan:', error);
+      throw error;
     }
   }
 }

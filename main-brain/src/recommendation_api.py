@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 from langgraph_recommendation_agent import LangGraphRecipeAgent
 from meal_planner_agent import MealPlannerAgent
+from dspy_meal_planner import DSPyMealPlannerService
 
 load_dotenv()
 
@@ -47,6 +48,14 @@ try:
 except Exception as e:
     print(f"Failed to initialize meal planner agent: {e}")
     meal_planner = None
+
+# Initialize the DSPy meal planner (enhanced version with full recipe details)
+try:
+    dspy_meal_planner = DSPyMealPlannerService()
+    print("DSPy meal planner initialized successfully")
+except Exception as e:
+    print(f"Failed to initialize DSPy meal planner: {e}")
+    dspy_meal_planner = None
 
 # Enhanced Request/Response models
 
@@ -182,6 +191,45 @@ class MealPlanGenerateResponse(BaseModel):
     meals: List[GeneratedMeal]
     summary: str
     error: Optional[str] = None
+
+
+# DSPy Enhanced Meal Models (matching RecommendationCard interface)
+class DSPyIngredient(BaseModel):
+    name: str
+    amount: str
+    category: str
+
+class DSPyNutrition(BaseModel):
+    calories: int
+    protein: int
+    carbs: int
+    fat: int
+
+class DSPyMeal(BaseModel):
+    """Complete meal matching RecommendationCard Recipe interface"""
+    id: str
+    name: str
+    image: Optional[str] = None
+    cookTime: str
+    servings: int
+    difficulty: str  # Easy, Medium, Hard
+    rating: float = 4.5
+    tags: List[str]
+    description: str
+    ingredients: List[DSPyIngredient]
+    instructions: List[str]
+    nutrition: DSPyNutrition
+    # Meal plan specific fields
+    meal_slot: str  # breakfast, lunch, dinner, snack
+    plan_date: str  # YYYY-MM-DD
+
+class DSPyMealPlanResponse(BaseModel):
+    """Response with full recipe details for each meal"""
+    meals: List[DSPyMeal]
+    summary: str
+    stats: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
 
 # API Endpoints
 @app.get("/health", response_model=HealthCheckResponse)
@@ -579,6 +627,136 @@ async def generate_meal_plan(request: MealPlanGenerateRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to generate meal plan: {str(e)}")
 
+
+@app.post("/api/meal-plans/dspy-generate", response_model=DSPyMealPlanResponse)
+async def generate_dspy_meal_plan(request: MealPlanGenerateRequest):
+    """
+    Generate a complete meal plan using DSPy with full recipe details.
+    Returns meals with ingredients, instructions, and accurate nutrition.
+    This is the enhanced version that matches the RecommendationCard format.
+    """
+    if not dspy_meal_planner:
+        raise HTTPException(status_code=503, detail="DSPy meal planner service unavailable")
+
+    try:
+        # Convert messages to the format expected by the service
+        messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+
+        # Convert health context to dict
+        health_context = {
+            "allergies": request.healthContext.allergies,
+            "medicalConditions": request.healthContext.medicalConditions,
+            "dietStyle": request.healthContext.dietStyle,
+            "healthGoals": request.healthContext.healthGoals,
+            "dailyCalorieGoal": request.healthContext.dailyCalorieGoal,
+            "cookingSkill": request.healthContext.cookingSkill
+        }
+
+        # Generate the meal plan with DSPy
+        result = dspy_meal_planner.generate_meal_plan(
+            user_id=request.user_id,
+            messages=messages,
+            health_context=health_context,
+            start_date=request.startDate,
+            number_of_days=request.numberOfDays
+        )
+
+        if result.get('error'):
+            return DSPyMealPlanResponse(
+                meals=[],
+                summary=result.get('summary', 'Error generating meal plan'),
+                error=result.get('error')
+            )
+
+        # Convert meals to response format matching RecommendationCard
+        dspy_meals = []
+        for meal in result.get('meals', []):
+            # Process ingredients
+            ingredients = []
+            for ing in meal.get('ingredients', []):
+                if isinstance(ing, dict):
+                    ingredients.append(DSPyIngredient(
+                        name=ing.get('name', ''),
+                        amount=ing.get('amount', ''),
+                        category=ing.get('category', 'Other')
+                    ))
+
+            # Process nutrition
+            nutrition_data = meal.get('nutrition', {})
+            nutrition = DSPyNutrition(
+                calories=nutrition_data.get('calories', 400),
+                protein=nutrition_data.get('protein', 25),
+                carbs=nutrition_data.get('carbs', 40),
+                fat=nutrition_data.get('fat', 15)
+            )
+
+            dspy_meals.append(DSPyMeal(
+                id=meal.get('id', ''),
+                name=meal.get('name', 'Delicious Meal'),
+                image=meal.get('image'),
+                cookTime=meal.get('cookTime', '30 mins'),
+                servings=meal.get('servings', 2),
+                difficulty=meal.get('difficulty', 'Easy'),
+                rating=4.5,
+                tags=meal.get('tags', []),
+                description=meal.get('description', ''),
+                ingredients=ingredients,
+                instructions=meal.get('instructions', []),
+                nutrition=nutrition,
+                meal_slot=meal.get('meal_slot', 'lunch'),
+                plan_date=meal.get('plan_date', '')
+            ))
+
+        return DSPyMealPlanResponse(
+            meals=dspy_meals,
+            summary=result.get('summary', f'Created a {request.numberOfDays}-day meal plan'),
+            stats=result.get('stats')
+        )
+
+    except Exception as e:
+        print(f"Error generating DSPy meal plan: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to generate meal plan: {str(e)}")
+
+
+@app.post("/api/meal-plans/dspy-single-meal")
+async def generate_single_dspy_meal(
+    meal_slot: str,
+    plan_date: str,
+    healthContext: UserHealthContext,
+    context: Optional[str] = ""
+):
+    """
+    Generate a single meal using DSPy (useful for replacing a meal).
+    """
+    if not dspy_meal_planner:
+        raise HTTPException(status_code=503, detail="DSPy meal planner service unavailable")
+
+    try:
+        health_context = {
+            "allergies": healthContext.allergies,
+            "medicalConditions": healthContext.medicalConditions,
+            "dietStyle": healthContext.dietStyle,
+            "healthGoals": healthContext.healthGoals,
+            "dailyCalorieGoal": healthContext.dailyCalorieGoal,
+            "cookingSkill": healthContext.cookingSkill
+        }
+
+        meal = dspy_meal_planner.generate_single_meal(
+            health_context=health_context,
+            meal_slot=meal_slot,
+            plan_date=plan_date,
+            context=context
+        )
+
+        return meal
+
+    except Exception as e:
+        print(f"Error generating single meal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate meal: {str(e)}")
+
+
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
@@ -603,6 +781,8 @@ async def root():
             "personalize_for_cooking": "/api/personalize-for-cooking",
             "meal_plan_chat": "/api/meal-plans/ai-chat",
             "meal_plan_generate": "/api/meal-plans/ai-generate",
+            "dspy_meal_plan": "/api/meal-plans/dspy-generate (enhanced with full recipes)",
+            "dspy_single_meal": "/api/meal-plans/dspy-single-meal",
             "history": "/api/recommendations/{user_id}/history",
             "safety_profile": "/api/user/{user_id}/safety-profile",
             "recipe_analysis": "/api/recipe/{recipe_id}/safety-analysis",
