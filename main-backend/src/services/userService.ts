@@ -9,7 +9,7 @@ class UserService {
       const { data, error } = await client
         .from('user_profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -22,7 +22,7 @@ class UserService {
       }
 
       return {
-        id: data.id,
+        id: data.user_id,
         fullName: data.full_name,
         email: '', // Will be filled from auth.users if needed
         country: data.country,
@@ -68,7 +68,7 @@ class UserService {
       const client = userSupabase || supabaseAdmin;
       
       const insertData = {
-        id: userId,
+        user_id: userId,
         full_name: profileData.fullName || '',
         country: profileData.country || '',
         city: profileData.city || '',
@@ -100,7 +100,7 @@ class UserService {
       // Use UPSERT instead of INSERT to handle existing profiles
       const { data, error } = await client
         .from('user_profiles')
-        .upsert(insertData, { onConflict: 'id' })
+        .upsert(insertData, { onConflict: 'user_id' })
         .select()
         .single();
 
@@ -111,7 +111,7 @@ class UserService {
       }
 
       return {
-        id: data.id,
+        id: data.user_id,
         fullName: data.full_name,
         email: '',
         country: data.country,
@@ -188,7 +188,7 @@ class UserService {
       const { data, error } = await client
         .from('user_profiles')
         .update(updatePayload)
-        .eq('id', userId)
+        .eq('user_id', userId)
         .select()
         .single();
 
@@ -198,7 +198,7 @@ class UserService {
       }
 
       return {
-        id: data.id,
+        id: data.user_id,
         fullName: data.full_name,
         email: updateData.email || '',
         country: data.country,
