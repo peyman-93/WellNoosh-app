@@ -69,6 +69,7 @@ class UserService {
       
       const insertData = {
         user_id: userId,
+        email: profileData.email || '',
         full_name: profileData.fullName || '',
         country: profileData.country || '',
         city: profileData.city || '',
