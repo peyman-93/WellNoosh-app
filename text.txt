@@ -5,3 +5,392 @@ main-front npx expo start --clear
  test456@gmail.com
 
  test457@gmail.com
+
+
+
+ Supabase informations:
+ SELECT table_name, table_type
+  FROM information_schema.tables
+  WHERE table_schema = 'public'
+  ORDER BY table_name;
+
+  ----------------------
+  | table_name              | table_type |
+| ----------------------- | ---------- |
+| challenges              | BASE TABLE |
+| daily_check_ins         | BASE TABLE |
+| daily_wellness          | BASE TABLE |
+| foods_fdc               | BASE TABLE |
+| grocery_items           | BASE TABLE |
+| grocery_list            | BASE TABLE |
+| group_challenges        | BASE TABLE |
+| group_ownership_history | BASE TABLE |
+| groups                  | BASE TABLE |
+| meal_plans              | BASE TABLE |
+| profiles                | BASE TABLE |
+| recipe_events           | BASE TABLE |
+| recipe_ingredients      | BASE TABLE |
+| recipe_nutrients        | BASE TABLE |
+| recipes                 | BASE TABLE |
+| user_challenges         | BASE TABLE |
+| user_circle_members     | VIEW       |
+| user_connections        | BASE TABLE |
+| user_groups             | BASE TABLE |
+| user_health_profiles    | BASE TABLE |
+| user_nutrition_goals    | BASE TABLE |
+| user_profiles           | BASE TABLE |
+| user_recipe_ratings     | BASE TABLE |
+| weight_logs             | BASE TABLE |
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  SELECT table_name, column_name, data_type, is_nullable
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+  ORDER BY table_name, ordinal_position;
+
+  ----------------------------------------------------------
+  | table_name              | column_name             | data_type                | is_nullable |
+| ----------------------- | ----------------------- | ------------------------ | ----------- |
+| challenges              | id                      | uuid                     | NO          |
+| challenges              | name                    | text                     | NO          |
+| challenges              | description             | text                     | YES         |
+| challenges              | start_date              | date                     | NO          |
+| challenges              | end_date                | date                     | NO          |
+| challenges              | created_by              | uuid                     | YES         |
+| challenges              | created_at              | timestamp with time zone | NO          |
+| challenges              | updated_at              | timestamp with time zone | NO          |
+| challenges              | is_active               | boolean                  | NO          |
+| daily_check_ins         | id                      | uuid                     | NO          |
+| daily_check_ins         | user_id                 | uuid                     | NO          |
+| daily_check_ins         | check_in_date           | date                     | YES         |
+| daily_check_ins         | weight_kg               | numeric                  | YES         |
+| daily_check_ins         | water_intake            | integer                  | YES         |
+| daily_check_ins         | sleep_hours             | numeric                  | YES         |
+| daily_check_ins         | exercise_minutes        | integer                  | YES         |
+| daily_check_ins         | cigarettes_per_day      | integer                  | YES         |
+| daily_check_ins         | alcohol_drinks_per_week | integer                  | YES         |
+| daily_check_ins         | coffee_cups_per_day     | integer                  | YES         |
+| daily_check_ins         | stress_level            | integer                  | YES         |
+| daily_check_ins         | energy_level            | integer                  | YES         |
+| daily_check_ins         | mood                    | text                     | YES         |
+| daily_check_ins         | notes                   | text                     | YES         |
+| daily_check_ins         | created_at              | timestamp with time zone | YES         |
+| daily_wellness          | id                      | uuid                     | NO          |
+| daily_wellness          | user_id                 | text                     | NO          |
+| daily_wellness          | date                    | date                     | NO          |
+| daily_wellness          | water_glasses           | integer                  | YES         |
+| daily_wellness          | breathing_exercises     | integer                  | YES         |
+| daily_wellness          | created_at              | timestamp with time zone | YES         |
+| daily_wellness          | updated_at              | timestamp with time zone | YES         |
+| foods_fdc               | fdc_id                  | bigint                   | NO          |
+| foods_fdc               | description             | text                     | NO          |
+| foods_fdc               | data_type               | text                     | YES         |
+| foods_fdc               | brand_owner             | text                     | YES         |
+| foods_fdc               | nutrients               | jsonb                    | YES         |
+| foods_fdc               | portions                | jsonb                    | YES         |
+| foods_fdc               | updated_at              | timestamp with time zone | NO          |
+| grocery_items           | id                      | uuid                     | NO          |
+| grocery_items           | user_id                 | uuid                     | NO          |
+| grocery_items           | name                    | text                     | NO          |
+| grocery_items           | amount                  | text                     | YES         |
+| grocery_items           | category                | text                     | YES         |
+| grocery_items           | completed               | boolean                  | YES         |
+| grocery_items           | created_at              | timestamp with time zone | YES         |
+| grocery_list            | id                      | uuid                     | NO          |
+| grocery_list            | user_id                 | uuid                     | YES         |
+| grocery_list            | name                    | text                     | NO          |
+| grocery_list            | amount                  | text                     | YES         |
+| grocery_list            | category                | text                     | YES         |
+| grocery_list            | from_recipe             | text                     | YES         |
+| grocery_list            | completed               | boolean                  | YES         |
+| grocery_list            | created_at              | timestamp with time zone | YES         |
+| grocery_list            | updated_at              | timestamp with time zone | YES         |
+| group_challenges        | id                      | uuid                     | NO          |
+| group_challenges        | group_id                | uuid                     | NO          |
+| group_challenges        | challenge_id            | uuid                     | NO          |
+| group_challenges        | assigned_at             | timestamp with time zone | NO          |
+| group_challenges        | assigned_by             | uuid                     | YES         |
+| group_ownership_history | id                      | uuid                     | NO          |
+| group_ownership_history | group_id                | uuid                     | NO          |
+| group_ownership_history | old_owner_id            | uuid                     | NO          |
+| group_ownership_history | new_owner_id            | uuid                     | NO          |
+| group_ownership_history | transferred_at          | timestamp with time zone | YES         |
+| group_ownership_history | transferred_by          | uuid                     | NO          |
+| groups                  | id                      | uuid                     | NO          |
+| groups                  | name                    | text                     | NO          |
+| groups                  | owner_id                | uuid                     | NO          |
+| groups                  | description             | text                     | YES         |
+| groups                  | created_at              | timestamp with time zone | NO          |
+| groups                  | updated_at              | timestamp with time zone | NO          |
+| meal_plans              | id                      | uuid                     | NO          |
+| meal_plans              | user_id                 | uuid                     | NO          |
+| meal_plans              | plan_date               | date                     | NO          |
+| meal_plans              | meal_slot               | text                     | NO          |
+| meal_plans              | recipe_id               | text                     | YES         |
+| meal_plans              | recipe_title            | text                     | YES         |
+| meal_plans              | recipe_image            | text                     | YES         |
+| meal_plans              | custom_title            | text                     | YES         |
+| meal_plans              | notes                   | text                     | YES         |
+| meal_plans              | servings                | integer                  | YES         |
+| meal_plans              | created_at              | timestamp with time zone | YES         |
+| meal_plans              | updated_at              | timestamp with time zone | YES         |
+| meal_plans              | calories                | integer                  | YES         |
+| meal_plans              | protein_g               | numeric                  | YES         |
+| meal_plans              | carbs_g                 | numeric                  | YES         |
+| meal_plans              | fat_g                   | numeric                  | YES         |
+| meal_plans              | fiber_g                 | numeric                  | YES         |
+| meal_plans              | is_completed            | boolean                  | YES         |
+| profiles                | id                      | uuid                     | NO          |
+| profiles                | email                   | text                     | YES         |
+| profiles                | full_name               | text                     | YES         |
+| profiles                | avatar_url              | text                     | YES         |
+| profiles                | created_at              | timestamp with time zone | YES         |
+| profiles                | updated_at              | timestamp with time zone | YES         |
+| recipe_events           | id                      | uuid                     | NO          |
+| recipe_events           | user_id                 | uuid                     | NO          |
+| recipe_events           | recipe_id               | uuid                     | NO          |
+| recipe_events           | event                   | text                     | NO          |
+| recipe_events           | created_at              | timestamp with time zone | NO          |
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  SELECT tablename, policyname, cmd
+  FROM pg_policies
+  WHERE schemaname = 'public'
+  ORDER BY tablename;
+  ---------------------------------------
+  | tablename               | policyname                                          | cmd    |
+| ----------------------- | --------------------------------------------------- | ------ |
+| challenges              | Challenge creators can delete their challenges      | DELETE |
+| challenges              | Authenticated users can view active challenges      | SELECT |
+| challenges              | Authenticated users can create challenges           | INSERT |
+| challenges              | Challenge creators can update their challenges      | UPDATE |
+| daily_check_ins         | Users can view own check-ins                        | SELECT |
+| daily_check_ins         | Users can delete own check-ins                      | DELETE |
+| daily_check_ins         | Users can update own check-ins                      | UPDATE |
+| daily_check_ins         | Users can insert own check-ins                      | INSERT |
+| grocery_items           | Users can view own grocery items                    | SELECT |
+| grocery_items           | Users can delete own grocery items                  | DELETE |
+| grocery_items           | Users can update own grocery items                  | UPDATE |
+| grocery_items           | Users can insert own grocery items                  | INSERT |
+| grocery_list            | Users can view their own grocery items              | SELECT |
+| grocery_list            | Users can delete their own grocery items            | DELETE |
+| grocery_list            | Users can insert own grocery items                  | INSERT |
+| grocery_list            | Users can insert their own grocery items            | INSERT |
+| grocery_list            | Users can update their own grocery items            | UPDATE |
+| grocery_list            | Users can update own grocery items                  | UPDATE |
+| grocery_list            | Users can delete own grocery items                  | DELETE |
+| grocery_list            | Users can view own grocery items                    | SELECT |
+| group_challenges        | Group owners can remove group challenges            | DELETE |
+| group_challenges        | Users can view group challenges                     | SELECT |
+| group_challenges        | Group owners can assign challenges                  | INSERT |
+| group_ownership_history | Group members can view transfer history             | SELECT |
+| groups                  | Users can view groups they belong to                | SELECT |
+| groups                  | insert_groups                                       | INSERT |
+| groups                  | update_groups                                       | UPDATE |
+| groups                  | delete_groups                                       | DELETE |
+| groups                  | select_groups                                       | SELECT |
+| meal_plans              | Users can delete their own meal plans               | DELETE |
+| meal_plans              | Users can view their own meal plans                 | SELECT |
+| meal_plans              | Users can insert their own meal plans               | INSERT |
+| meal_plans              | Users can update their own meal plans               | UPDATE |
+| profiles                | Users can update own profile                        | UPDATE |
+| profiles                | Profiles are viewable by authenticated users        | SELECT |
+| recipe_events           | Users can view their own recipe events              | SELECT |
+| recipe_events           | Users can insert their own recipe events            | INSERT |
+| recipe_events           | Users can delete their own recipe events            | DELETE |
+| recipes                 | Enable read access for authenticated users          | SELECT |
+| user_challenges         | Users can leave challenges                          | DELETE |
+| user_challenges         | Users can view challenge participations             | SELECT |
+| user_challenges         | Users can join challenges                           | INSERT |
+| user_challenges         | Users can update their own challenge status         | UPDATE |
+| user_connections        | Users can delete their connections                  | DELETE |
+| user_connections        | Users can send connection requests                  | INSERT |
+| user_connections        | Users can view their connections                    | SELECT |
+| user_connections        | Users can update connection requests to them        | UPDATE |
+| user_groups             | Users can leave groups or owners can remove members | DELETE |
+| user_groups             | select_user_groups                                  | SELECT |
+| user_groups             | update_user_groups                                  | UPDATE |
+| user_groups             | delete_user_groups                                  | DELETE |
+| user_groups             | insert_user_groups                                  | INSERT |
+| user_health_profiles    | Users can insert own health profile                 | INSERT |
+| user_health_profiles    | Users can view own health profile                   | SELECT |
+| user_health_profiles    | Users can delete own health profile                 | DELETE |
+| user_health_profiles    | Users can update own health profile                 | UPDATE |
+| user_nutrition_goals    | Users can update own nutrition goals                | UPDATE |
+| user_nutrition_goals    | Users can view own nutrition goals                  | SELECT |
+| user_nutrition_goals    | Users can insert own nutrition goals                | INSERT |
+| user_profiles           | Users can delete own profile                        | DELETE |
+| user_profiles           | Users can view own profile                          | SELECT |
+| user_profiles           | Users can insert own profile                        | INSERT |
+| user_profiles           | Users can update own profile                        | UPDATE |
+| user_profiles           | Service role has full access                        | ALL    |
+| user_recipe_ratings     | Users can update own ratings                        | UPDATE |
+| user_recipe_ratings     | Users can insert own ratings                        | INSERT |
+| user_recipe_ratings     | Users can view own ratings                          | SELECT |
+| user_recipe_ratings     | Users can delete own ratings                        | DELETE |
+| weight_logs             | Users can insert own weight logs                    | INSERT |
+| weight_logs             | Users can view own weight logs                      | SELECT |
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  SELECT tablename, rowsecurity
+  FROM pg_tables
+  WHERE schemaname = 'public';
+  -------------------------------
+  | tablename               | rowsecurity |
+| ----------------------- | ----------- |
+| recipe_ingredients      | true        |
+| foods_fdc               | true        |
+| recipes                 | true        |
+| recipe_nutrients        | true        |
+| recipe_events           | true        |
+| user_recipe_ratings     | true        |
+| challenges              | true        |
+| user_challenges         | true        |
+| group_challenges        | true        |
+| groups                  | true        |
+| user_groups             | true        |
+| daily_wellness          | false       |
+| user_connections        | true        |
+| grocery_list            | true        |
+| meal_plans              | true        |
+| user_profiles           | true        |
+| profiles                | true        |
+| group_ownership_history | true        |
+| daily_check_ins         | true        |
+| weight_logs             | true        |
+| grocery_items           | true        |
+| user_nutrition_goals    | true        |
+| user_health_profiles    | true        |
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  SELECT tablename, policyname, permissive, roles, cmd, qual, with_check
+  FROM pg_policies
+  WHERE schemaname = 'public'
+  ORDER BY tablename, policyname;
+  ---------------------------------------------------------------------------
+  | tablename               | policyname                                          | permissive | roles           | cmd    | qual                                                                                                                                                                                                                        | with_check                                                                                                                     |
+| ----------------------- | --------------------------------------------------- | ---------- | --------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| challenges              | Authenticated users can create challenges           | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = created_by)                                                                                                      |
+| challenges              | Authenticated users can view active challenges      | PERMISSIVE | {public}        | SELECT | ((auth.uid() IS NOT NULL) AND (is_active = true))                                                                                                                                                                           | null                                                                                                                           |
+| challenges              | Challenge creators can delete their challenges      | PERMISSIVE | {public}        | DELETE | (auth.uid() = created_by)                                                                                                                                                                                                   | null                                                                                                                           |
+| challenges              | Challenge creators can update their challenges      | PERMISSIVE | {public}        | UPDATE | (auth.uid() = created_by)                                                                                                                                                                                                   | (auth.uid() = created_by)                                                                                                      |
+| daily_check_ins         | Users can delete own check-ins                      | PERMISSIVE | {public}        | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| daily_check_ins         | Users can insert own check-ins                      | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| daily_check_ins         | Users can update own check-ins                      | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| daily_check_ins         | Users can view own check-ins                        | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_items           | Users can delete own grocery items                  | PERMISSIVE | {public}        | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_items           | Users can insert own grocery items                  | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| grocery_items           | Users can update own grocery items                  | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_items           | Users can view own grocery items                    | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_list            | Users can delete own grocery items                  | PERMISSIVE | {public}        | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_list            | Users can delete their own grocery items            | PERMISSIVE | {public}        | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_list            | Users can insert own grocery items                  | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| grocery_list            | Users can insert their own grocery items            | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| grocery_list            | Users can update own grocery items                  | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_list            | Users can update their own grocery items            | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_list            | Users can view own grocery items                    | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| grocery_list            | Users can view their own grocery items              | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| group_challenges        | Group owners can assign challenges                  | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | ((auth.uid() = assigned_by) AND (group_id IN ( SELECT groups.id
+   FROM groups
+  WHERE (groups.owner_id = auth.uid()))))       |
+| group_challenges        | Group owners can remove group challenges            | PERMISSIVE | {public}        | DELETE | (group_id IN ( SELECT groups.id
+   FROM groups
+  WHERE (groups.owner_id = auth.uid())))                                                                                                                                     | null                                                                                                                           |
+| group_challenges        | Users can view group challenges                     | PERMISSIVE | {public}        | SELECT | (group_id IN ( SELECT user_groups.group_id
+   FROM user_groups
+  WHERE (user_groups.user_id = auth.uid())))                                                                                                                 | null                                                                                                                           |
+| group_ownership_history | Group members can view transfer history             | PERMISSIVE | {authenticated} | SELECT | (group_id IN ( SELECT user_groups.group_id
+   FROM user_groups
+  WHERE (user_groups.user_id = auth.uid())))                                                                                                                 | null                                                                                                                           |
+| groups                  | Users can view groups they belong to                | PERMISSIVE | {public}        | SELECT | (auth.uid() IN ( SELECT user_groups.user_id
+   FROM user_groups
+  WHERE (user_groups.group_id = groups.id)))                                                                                                                | null                                                                                                                           |
+| groups                  | delete_groups                                       | PERMISSIVE | {authenticated} | DELETE | (owner_id = auth.uid())                                                                                                                                                                                                     | null                                                                                                                           |
+| groups                  | insert_groups                                       | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                                        | (owner_id = auth.uid())                                                                                                        |
+| groups                  | select_groups                                       | PERMISSIVE | {authenticated} | SELECT | true                                                                                                                                                                                                                        | null                                                                                                                           |
+| groups                  | update_groups                                       | PERMISSIVE | {authenticated} | UPDATE | (owner_id = auth.uid())                                                                                                                                                                                                     | (owner_id = auth.uid())                                                                                                        |
+| meal_plans              | Users can delete their own meal plans               | PERMISSIVE | {public}        | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| meal_plans              | Users can insert their own meal plans               | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| meal_plans              | Users can update their own meal plans               | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| meal_plans              | Users can view their own meal plans                 | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| profiles                | Profiles are viewable by authenticated users        | PERMISSIVE | {authenticated} | SELECT | true                                                                                                                                                                                                                        | null                                                                                                                           |
+| profiles                | Users can update own profile                        | PERMISSIVE | {authenticated} | UPDATE | (auth.uid() = id)                                                                                                                                                                                                           | (auth.uid() = id)                                                                                                              |
+| recipe_events           | Users can delete their own recipe events            | PERMISSIVE | {authenticated} | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| recipe_events           | Users can insert their own recipe events            | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| recipe_events           | Users can view their own recipe events              | PERMISSIVE | {authenticated} | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| recipes                 | Enable read access for authenticated users          | PERMISSIVE | {authenticated} | SELECT | true                                                                                                                                                                                                                        | null                                                                                                                           |
+| user_challenges         | Users can join challenges                           | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| user_challenges         | Users can leave challenges                          | PERMISSIVE | {public}        | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| user_challenges         | Users can update their own challenge status         | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | (auth.uid() = user_id)                                                                                                         |
+| user_challenges         | Users can view challenge participations             | PERMISSIVE | {public}        | SELECT | ((auth.uid() = user_id) OR (user_id IN ( SELECT ug.user_id
+   FROM user_groups ug
+  WHERE (ug.group_id IN ( SELECT user_groups.group_id
+           FROM user_groups
+          WHERE (user_groups.user_id = auth.uid())))))) | null                                                                                                                           |
+| user_connections        | Users can delete their connections                  | PERMISSIVE | {public}        | DELETE | ((requester_id = auth.uid()) OR (addressee_id = auth.uid()))                                                                                                                                                                | null                                                                                                                           |
+| user_connections        | Users can send connection requests                  | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (requester_id = auth.uid())                                                                                                    |
+| user_connections        | Users can update connection requests to them        | PERMISSIVE | {public}        | UPDATE | (addressee_id = auth.uid())                                                                                                                                                                                                 | (addressee_id = auth.uid())                                                                                                    |
+| user_connections        | Users can view their connections                    | PERMISSIVE | {public}        | SELECT | ((requester_id = auth.uid()) OR (addressee_id = auth.uid()))                                                                                                                                                                | null                                                                                                                           |
+| user_groups             | Users can leave groups or owners can remove members | PERMISSIVE | {public}        | DELETE | ((auth.uid() = user_id) OR (auth.uid() IN ( SELECT groups.owner_id
+   FROM groups
+  WHERE (groups.id = user_groups.group_id))))                                                                                             | null                                                                                                                           |
+| user_groups             | delete_user_groups                                  | PERMISSIVE | {authenticated} | DELETE | ((user_id = auth.uid()) OR (( SELECT groups.owner_id
+   FROM groups
+  WHERE (groups.id = user_groups.group_id)) = auth.uid()))                                                                                              | null                                                                                                                           |
+| user_groups             | insert_user_groups                                  | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                                        | ((user_id = auth.uid()) OR (( SELECT groups.owner_id
+   FROM groups
+  WHERE (groups.id = user_groups.group_id)) = auth.uid())) |
+| user_groups             | select_user_groups                                  | PERMISSIVE | {authenticated} | SELECT | true                                                                                                                                                                                                                        | null                                                                                                                           |
+| user_groups             | update_user_groups                                  | PERMISSIVE | {authenticated} | UPDATE | (( SELECT groups.owner_id
+   FROM groups
+  WHERE (groups.id = user_groups.group_id)) = auth.uid())                                                                                                                          | (( SELECT groups.owner_id
+   FROM groups
+  WHERE (groups.id = user_groups.group_id)) = auth.uid())                             |
+| user_health_profiles    | Users can delete own health profile                 | PERMISSIVE | {public}        | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| user_health_profiles    | Users can insert own health profile                 | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| user_health_profiles    | Users can update own health profile                 | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| user_health_profiles    | Users can view own health profile                   | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| user_nutrition_goals    | Users can insert own nutrition goals                | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| user_nutrition_goals    | Users can update own nutrition goals                | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| user_nutrition_goals    | Users can view own nutrition goals                  | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| user_profiles           | Service role has full access                        | PERMISSIVE | {public}        | ALL    | ((auth.jwt() ->> 'role'::text) = 'service_role'::text)                                                                                                                                                                      | null                                                                                                                           |
+| user_profiles           | Users can delete own profile                        | PERMISSIVE | {public}        | DELETE | ((auth.uid() = id) OR (auth.uid() = user_id))                                                                                                                                                                               | null                                                                                                                           |
+| user_profiles           | Users can insert own profile                        | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | ((auth.uid() = id) OR (auth.uid() = user_id))                                                                                  |
+| user_profiles           | Users can update own profile                        | PERMISSIVE | {public}        | UPDATE | ((auth.uid() = id) OR (auth.uid() = user_id))                                                                                                                                                                               | null                                                                                                                           |
+| user_profiles           | Users can view own profile                          | PERMISSIVE | {public}        | SELECT | ((auth.uid() = id) OR (auth.uid() = user_id))                                                                                                                                                                               | null                                                                                                                           |
+| user_recipe_ratings     | Users can delete own ratings                        | PERMISSIVE | {public}        | DELETE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| user_recipe_ratings     | Users can insert own ratings                        | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| user_recipe_ratings     | Users can update own ratings                        | PERMISSIVE | {public}        | UPDATE | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| user_recipe_ratings     | Users can view own ratings                          | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+| weight_logs             | Users can insert own weight logs                    | PERMISSIVE | {public}        | INSERT | null                                                                                                                                                                                                                        | (auth.uid() = user_id)                                                                                                         |
+| weight_logs             | Users can view own weight logs                      | PERMISSIVE | {public}        | SELECT | (auth.uid() = user_id)                                                                                                                                                                                                      | null                                                                                                                           |
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  SELECT column_name, data_type, is_nullable, column_default
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'user_profiles'
+  ORDER BY ordinal_position;
+  ------------------------------------------------
+  | column_name       | data_type                | is_nullable | column_default     |
+| ----------------- | ------------------------ | ----------- | ------------------ |
+| id                | uuid                     | NO          | uuid_generate_v4() |
+| user_id           | uuid                     | NO          | null               |
+| full_name         | character varying        | YES         | null               |
+| email             | character varying        | NO          | null               |
+| postal_code       | character varying        | YES         | null               |
+| country           | character varying        | YES         | null               |
+| created_at        | timestamp with time zone | YES         | now()              |
+| updated_at        | timestamp with time zone | YES         | now()              |
+| city              | text                     | YES         | null               |
+| weight_unit       | text                     | YES         | 'kg'::text         |
+| height_unit       | text                     | YES         | 'cm'::text         |
+| height_feet       | integer                  | YES         | null               |
+| height_inches     | integer                  | YES         | null               |
+| custom_diet_style | text                     | YES         | null               |
+| food_restrictions | ARRAY                    | YES         | null               |
+| meal_preference   | text                     | YES         | null               |
+| subscription_tier | text                     | YES         | 'free'::text       |
+| daily_swipes_used | integer                  | YES         | 0                  |
+| last_swipe_date   | date                     | YES         | null               |
+| favorite_recipes  | ARRAY                    | YES         | null               |
+| selected_recipes  | ARRAY                    | YES         | null               |
