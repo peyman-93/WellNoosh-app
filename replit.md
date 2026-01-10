@@ -203,6 +203,17 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
   - Directs users to click Generate button for preview + approval workflow
   - Ensures consistent confirmation flow across chat and button interactions
 
+- **Recipe UI Improvements**:
+  - Removed difficulty badge and cook time from recipe detail view
+  - Added "Add All to Grocery List" button in ingredients section header
+  - Simplified recipe stats to show only nutrition information
+  - When recipe is marked as cooked, nutrition is now logged to daily summary
+
+- **Recipe Nutrition Logging**:
+  - Cooked recipes now automatically log nutrition to Home screen metrics
+  - Uses `logCookedMealNutrition` service for consistent tracking
+  - Nutrition data appears immediately on Home screen after cooking
+
 - **Meal Plan Confirmation Flow**:
   - Users now preview generated meals before adding to calendar
   - "Add to Calendar" and "Regenerate" buttons for approval/modification
