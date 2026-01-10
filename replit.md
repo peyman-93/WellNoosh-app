@@ -184,6 +184,16 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
 ## Recent Changes
 
 ### January 2026 (Latest)
+- **Meal Plan Confirmation Flow**:
+  - Users now preview generated meals before adding to calendar
+  - "Add to Calendar" and "Regenerate" buttons for approval/modification
+  - Meal preview shows all meals grouped by day
+  - WellNoosh logo replaces robot emoji in meal assistant header
+
+- **Max Token Limit**:
+  - Added `DSPY_MAX_TOKENS` environment variable (default: 2000)
+  - Controls AI generation output size for consistency
+
 - **Modular AI Agents Architecture**:
   - Created `main-brain/src/agents/` folder with Host Agent orchestrating specialized agents
   - Host Agent routes requests to Meal Planner, Recipe Recommendation, and other agents
@@ -193,12 +203,17 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
   - Added ALLERGEN_DERIVATIVES mapping with 60+ derivatives per allergen type
   - Dairy allergy now blocks: milk, yogurt, cheese, butter, cream, whey, casein, etc.
   - Allergen validation now scans ingredients, instructions, notes, and titles
-  - Fallback safe meals generated when violations detected
+  - **Final validation** before returning meals to frontend catches any escaped allergens
+  - Safe fallback meals automatically replace any meal with allergen violations
+  
+- **Health Goals Awareness**:
+  - AI now explicitly logs and considers user health goals during meal generation
+  - Health goals passed to DSPy UserProfile for personalized recommendations
   
 - **Daily Nutrition Logging**:
   - Added `logCookedMealNutrition` function in nutritionTrackingService
   - MealDetailModal now logs nutrition data when meals are marked as cooked
-  - Created `daily_nutrition_summary` and `nutrition_meal_logs` tables (SQL in `main-backend/supabase/daily_nutrition_tables.sql`)
+  - Uses `daily_nutrition_summary` and `nutrition_meal_logs` tables in Supabase
   
 - **Meal Plan Chat Improvements**:
   - Removed Quick/Detailed mode toggle (now only detailed mode)
