@@ -343,13 +343,20 @@ RULES:
                     fat=int(raw_nutrition.get('fat', 15) or 15)
                 )
                 
+                # Safely convert cookTime to string (AI might return integer like 10 instead of "10 mins")
+                raw_cook_time = meal_data.get('cookTime', '30 mins')
+                if isinstance(raw_cook_time, (int, float)):
+                    cook_time = f"{int(raw_cook_time)} mins"
+                else:
+                    cook_time = str(raw_cook_time) if raw_cook_time else '30 mins'
+                
                 meal = GeneratedMeal(
                     id=str(uuid.uuid4()),
-                    name=meal_data.get('name', 'Delicious Meal'),
-                    description=meal_data.get('description', ''),
-                    cookTime=meal_data.get('cookTime', '30 mins'),
+                    name=str(meal_data.get('name', 'Delicious Meal')),
+                    description=str(meal_data.get('description', '')),
+                    cookTime=cook_time,
                     servings=int(meal_data.get('servings', 2) or 2),
-                    difficulty=meal_data.get('difficulty', 'Easy'),
+                    difficulty=str(meal_data.get('difficulty', 'Easy')),
                     tags=meal_data.get('tags', []) or [],
                     ingredients=[
                         Ingredient(
