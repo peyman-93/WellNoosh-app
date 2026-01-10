@@ -183,7 +183,27 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
 
 ## Recent Changes
 
-### January 2026
+### January 2026 (Latest)
+- **Modular AI Agents Architecture**:
+  - Created `main-brain/src/agents/` folder with Host Agent orchestrating specialized agents
+  - Host Agent routes requests to Meal Planner, Recipe Recommendation, and other agents
+  - Meal Planner Agent moved to `agents/meal_planner/dspy_meal_planner.py`
+  
+- **Super Strict Allergy Enforcement**:
+  - Added ALLERGEN_DERIVATIVES mapping with 60+ derivatives per allergen type
+  - Dairy allergy now blocks: milk, yogurt, cheese, butter, cream, whey, casein, etc.
+  - Allergen validation now scans ingredients, instructions, notes, and titles
+  - Fallback safe meals generated when violations detected
+  
+- **Daily Nutrition Logging**:
+  - Added `logCookedMealNutrition` function in nutritionTrackingService
+  - MealDetailModal now logs nutrition data when meals are marked as cooked
+  - Created `daily_nutrition_summary` and `nutrition_meal_logs` tables (SQL in `main-backend/supabase/daily_nutrition_tables.sql`)
+  
+- **Meal Plan Chat Improvements**:
+  - Removed Quick/Detailed mode toggle (now only detailed mode)
+  - Changed day options from [7] to [1, 3, 5, 7] days
+
 - Enhanced Meal Planner with WellNoosh Meals Planner:
   - Removed AI Plan button/picture from header
   - Added beautiful WellNoosh Meals Planner card that connects to AI chat

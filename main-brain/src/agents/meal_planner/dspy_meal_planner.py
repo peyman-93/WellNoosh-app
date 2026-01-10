@@ -5,6 +5,7 @@ Generates personalized meal plans with accurate nutrition, ingredients, and inst
 
 import os
 import json
+import re
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
@@ -108,14 +109,55 @@ def contains_allergen(ingredient_name: str, forbidden_ingredients: List[str]) ->
 
 
 def validate_meal_allergens(meal_data: dict, forbidden_ingredients: List[str]) -> tuple[bool, List[str]]:
-    """Validate that a meal doesn't contain any allergens. Returns (is_safe, violations)"""
+    """
+    Validate that a meal doesn't contain any allergens.
+    Checks ingredients, instructions, notes, and title.
+    Returns (is_safe, violations)
+    """
     violations = []
+    
+    # Check ingredients
     ingredients = meal_data.get('ingredients', [])
     for ing in ingredients:
         ing_name = ing.get('name', '') if isinstance(ing, dict) else str(ing)
         if contains_allergen(ing_name, forbidden_ingredients):
-            violations.append(ing_name)
+            violations.append(f"ingredient: {ing_name}")
+    
+    # Check instructions for allergen mentions
+    instructions = meal_data.get('instructions', [])
+    for instruction in instructions:
+        instruction_text = instruction.get('instruction', '') if isinstance(instruction, dict) else str(instruction)
+        for forbidden in forbidden_ingredients:
+            if forbidden.lower() in instruction_text.lower():
+                violations.append(f"instruction mentions: {forbidden}")
+                break
+    
+    # Check notes/description
+    notes = meal_data.get('notes', '') or meal_data.get('description', '')
+    if notes:
+        for forbidden in forbidden_ingredients:
+            if forbidden.lower() in notes.lower():
+                violations.append(f"notes mentions: {forbidden}")
+                break
+    
+    # Check title
+    title = meal_data.get('title', '') or meal_data.get('name', '')
+    if title:
+        for forbidden in forbidden_ingredients:
+            if forbidden.lower() in title.lower():
+                violations.append(f"title contains: {forbidden}")
+                break
+    
     return len(violations) == 0, violations
+
+
+def sanitize_meal_text(text: str, forbidden_ingredients: List[str]) -> str:
+    """Remove allergen mentions from text by replacing with safe alternatives"""
+    result = text
+    for forbidden in forbidden_ingredients:
+        pattern = re.compile(re.escape(forbidden), re.IGNORECASE)
+        result = pattern.sub("[removed allergen]", result)
+    return result
 
 
 # ============================================================================

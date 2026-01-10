@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { MealPlanEntry } from '../../services/mealPlannerService'
 import { groceryListService } from '../../services/groceryListService'
+import { logCookedMealNutrition } from '../../services/nutritionTrackingService'
 
 interface Ingredient {
   name: string
@@ -157,10 +158,41 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
   const handleCookMeal = async () => {
     setIsCooking(true)
     try {
+      // Log nutrition data to daily summary
+      // Handle both Date objects and ISO strings for plan_date
+      // Use local date to avoid UTC timezone drift
+      let planDateStr: string
+      if (typeof meal.plan_date === 'string') {
+        planDateStr = meal.plan_date.split('T')[0]
+      } else {
+        const d = new Date(meal.plan_date)
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        planDateStr = `${year}-${month}-${day}`
+      }
+      
+      if (meal.calories || meal.protein_g || meal.carbs_g || meal.fat_g) {
+        const nutritionResult = await logCookedMealNutrition({
+          mealId: meal.id,
+          mealSlot: meal.meal_slot as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+          mealName: mealTitle,
+          calories: meal.calories || 0,
+          protein_g: meal.protein_g || 0,
+          carbs_g: meal.carbs_g || 0,
+          fat_g: meal.fat_g || 0,
+          date: planDateStr
+        })
+
+        if (!nutritionResult.success) {
+          console.warn('Could not log nutrition:', nutritionResult.error)
+        }
+      }
+
       if (onMealCooked) {
         onMealCooked(meal.id)
       }
-      Alert.alert('Meal Cooked!', `Great job cooking ${mealTitle}! It has been added to your cook history.`)
+      Alert.alert('Meal Cooked!', `Great job cooking ${mealTitle}! Nutrition logged for today.`)
       onClose()
     } catch (error) {
       console.error('Error marking meal as cooked:', error)

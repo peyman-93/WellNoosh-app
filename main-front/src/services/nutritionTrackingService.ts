@@ -352,7 +352,12 @@ const calculateNutritionTrends = (dailyData: DailyNutritionData[]) => {
 
   // Calculate trends (simple linear trend)
   const caloriesTrend = calculateLinearTrend(dailyData.map(d => d.total_calories))
-  const completionTrend = calculateLinearTrend(dailyData.map(d => d.completion_percentage))
+  const completionTrendRaw = calculateLinearTrend(dailyData.map(d => d.completion_percentage))
+  
+  // Map to expected completion trend values
+  const completionTrend: 'improving' | 'declining' | 'stable' = 
+    completionTrendRaw === 'increasing' ? 'improving' :
+    completionTrendRaw === 'decreasing' ? 'declining' : 'stable'
 
   return {
     avg_calories: Math.round(avgCalories),
@@ -474,5 +479,151 @@ export const getBatchNutritionData = async (
   } catch (error) {
     console.error('💥 Error in getBatchNutritionData:', error)
     throw error
+  }
+}
+
+// ================================================================================================
+// DAILY NUTRITION LOGGING (When meals are cooked)
+// ================================================================================================
+
+export interface LogMealNutritionInput {
+  mealId: string
+  mealSlot: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  mealName: string
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  fiber_g?: number
+  date?: string // Defaults to today
+}
+
+/**
+ * Log nutrition when a meal is marked as cooked.
+ * This updates the daily_nutrition_summary table.
+ */
+export const logCookedMealNutrition = async (
+  input: LogMealNutritionInput
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    const logDate = input.date || new Date().toISOString().split('T')[0]
+    console.log('📝 Logging cooked meal nutrition:', input.mealName, 'for date:', logDate)
+
+    // First, check if there's already a daily_nutrition_summary entry for today
+    const { data: existingSummary, error: fetchError } = await supabase
+      .from('daily_nutrition_summary')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('log_date', logDate)
+      .single()
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('❌ Error fetching existing summary:', fetchError)
+      return { success: false, error: fetchError.message }
+    }
+
+    if (existingSummary) {
+      // Update existing summary by adding the new meal's nutrition
+      const { error: updateError } = await supabase
+        .from('daily_nutrition_summary')
+        .update({
+          total_calories: existingSummary.total_calories + input.calories,
+          total_protein_g: existingSummary.total_protein_g + input.protein_g,
+          total_carbs_g: existingSummary.total_carbs_g + input.carbs_g,
+          total_fat_g: existingSummary.total_fat_g + input.fat_g,
+          total_fiber_g: (existingSummary.total_fiber_g || 0) + (input.fiber_g || 0),
+          completed_meals_count: existingSummary.completed_meals_count + 1,
+          completion_percentage: Math.round(
+            ((existingSummary.completed_meals_count + 1) / (existingSummary.planned_meals_count || 4)) * 100
+          ),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingSummary.id)
+
+      if (updateError) {
+        console.error('❌ Error updating daily summary:', updateError)
+        return { success: false, error: updateError.message }
+      }
+
+      console.log('✅ Updated daily nutrition summary for:', logDate)
+    } else {
+      // Create new summary for today
+      const { error: insertError } = await supabase
+        .from('daily_nutrition_summary')
+        .insert({
+          user_id: user.id,
+          log_date: logDate,
+          total_calories: input.calories,
+          total_protein_g: input.protein_g,
+          total_carbs_g: input.carbs_g,
+          total_fat_g: input.fat_g,
+          total_fiber_g: input.fiber_g || 0,
+          completed_meals_count: 1,
+          planned_meals_count: 4, // Default assumption: breakfast, lunch, dinner, snack
+          completion_percentage: 25, // 1 out of 4 meals
+          total_entries_count: 1
+        })
+
+      if (insertError) {
+        console.error('❌ Error creating daily summary:', insertError)
+        return { success: false, error: insertError.message }
+      }
+
+      console.log('✅ Created new daily nutrition summary for:', logDate)
+    }
+
+    // Also log individual meal entry for detailed tracking
+    const { error: mealLogError } = await supabase
+      .from('nutrition_meal_logs')
+      .insert({
+        user_id: user.id,
+        log_date: logDate,
+        meal_slot: input.mealSlot,
+        meal_name: input.mealName,
+        meal_plan_entry_id: input.mealId,
+        calories: input.calories,
+        protein_g: input.protein_g,
+        carbs_g: input.carbs_g,
+        fat_g: input.fat_g,
+        fiber_g: input.fiber_g || 0,
+        logged_at: new Date().toISOString()
+      })
+
+    if (mealLogError) {
+      // Non-critical - summary was updated, just log the error
+      console.warn('⚠️ Could not log individual meal entry:', mealLogError)
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('💥 Error in logCookedMealNutrition:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }
+  }
+}
+
+/**
+ * Get today's nutrition summary for the current user
+ */
+export const getTodayNutritionSummary = async (): Promise<DailyNutritionData | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      console.log('No user authenticated')
+      return null
+    }
+
+    const today = new Date().toISOString().split('T')[0]
+    return await getDailyNutritionSummary(user.id, today)
+  } catch (error) {
+    console.error('💥 Error in getTodayNutritionSummary:', error)
+    return null
   }
 }
