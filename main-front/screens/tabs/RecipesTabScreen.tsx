@@ -8,6 +8,7 @@ import RecipeDetailScreen from '../RecipeDetailScreen'
 import { recipeCacheService, CachedRecipe } from '../../src/services/recipeCacheService'
 import { recommendationService } from '../../src/services/recommendationService'
 import { cookedRecipeService } from '../../src/services/cookedRecipeService'
+import { logCookedMealNutrition } from '../../src/services/nutritionTrackingService'
 
 interface Recipe {
   id: string
@@ -421,6 +422,23 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
               console.error('Failed to save cooked recipe to Supabase:', result.error)
               Alert.alert('Error', 'Could not save to your cooked list. Please try again.')
               return
+            }
+
+            // Log nutrition when recipe is cooked
+            const nutritionResult = await logCookedMealNutrition({
+              mealId: recipe.id,
+              mealSlot: 'dinner', // Default to dinner for recipes
+              mealName: recipe.name,
+              calories: recipe.calories || 0,
+              protein_g: recipe.protein || 0,
+              carbs_g: recipe.carbs || 0,
+              fat_g: recipe.fat || 0
+            })
+            
+            if (!nutritionResult.success) {
+              console.warn('Could not log nutrition for recipe:', nutritionResult.error)
+            } else {
+              console.log('✅ Nutrition logged for recipe:', recipe.name)
             }
 
             // Also save to local cache for offline access

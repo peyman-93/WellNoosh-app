@@ -182,6 +182,27 @@ export default function RecipeDetailScreen({
     }
   }
 
+  // Add ALL ingredients to grocery list
+  const handleAddAllToGroceryList = async () => {
+    setIsAddingToGroceryList(true)
+    try {
+      const ingredientsToAdd = recipe.ingredients.map(ingredient => ({
+        name: ingredient.name,
+        amount: `${getAdjustedAmount(ingredient.amount)} ${ingredient.unit}`,
+        category: ingredient.category || 'Other',
+        from_recipe: recipe.name
+      }))
+      
+      await groceryListService.addMultipleItems(ingredientsToAdd)
+      Alert.alert('Success', `Added all ${ingredientsToAdd.length} ingredients to your grocery list!`)
+    } catch (error) {
+      console.error('Error adding all ingredients to grocery list:', error)
+      Alert.alert('Error', 'Failed to add ingredients to grocery list')
+    } finally {
+      setIsAddingToGroceryList(false)
+    }
+  }
+
   // Get count of missing (unavailable) ingredients
   const missingIngredientsCount = recipe.ingredients.filter(
     ingredient => !checkIngredientAvailability(ingredient.name)
@@ -230,9 +251,6 @@ export default function RecipeDetailScreen({
                   <Text style={styles.recipeEmoji}>{recipe.image}</Text>
                 )}
                 <View style={styles.heroOverlay}>
-                  <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(recipe.difficulty) }]}>
-                    <Text style={styles.difficultyText}>{recipe.difficulty}</Text>
-                  </View>
                   <View style={styles.ratingContainer}>
                     <Text style={styles.ratingText}>⭐ {recipe.rating}</Text>
                   </View>
@@ -246,10 +264,6 @@ export default function RecipeDetailScreen({
                 {/* Recipe Stats and Tags Combined */}
                 <View style={styles.recipeMetaContainer}>
                   <View style={styles.recipeStats}>
-                    <View style={styles.recipeStat}>
-                      <Text style={styles.recipeStatEmoji}>⏱️</Text>
-                      <Text style={styles.recipeStatText}>{recipe.cookTime}</Text>
-                    </View>
                     <TouchableOpacity 
                       style={styles.recipeStat}
                       onPress={() => setShowNutritionModal(true)}
@@ -304,14 +318,18 @@ export default function RecipeDetailScreen({
             <View style={styles.ingredientsSection}>
               <View style={styles.ingredientsHeader}>
                 <Text style={styles.sectionTitle}>Ingredients</Text>
-                {missingIngredientsCount > 0 && (
-                  <Text style={styles.missingCount}>
-                    {missingIngredientsCount} missing
+                <TouchableOpacity
+                  style={[styles.addAllButton, isAddingToGroceryList && { opacity: 0.6 }]}
+                  onPress={handleAddAllToGroceryList}
+                  disabled={isAddingToGroceryList}
+                >
+                  <Text style={styles.addAllText}>
+                    {isAddingToGroceryList ? '⏳' : '🛒'} Add All
                   </Text>
-                )}
+                </TouchableOpacity>
               </View>
               <Text style={styles.ingredientHint}>
-                Tap items you don't have to select them for your grocery list
+                Tap items to select, or add all ingredients at once
               </Text>
               {recipe.ingredients.map((ingredient, index) => {
                 const isAvailable = checkIngredientAvailability(ingredient.name)
