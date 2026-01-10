@@ -14,7 +14,8 @@ from dotenv import load_dotenv
 
 from langgraph_recommendation_agent import LangGraphRecipeAgent
 from meal_planner_agent import MealPlannerAgent
-from dspy_meal_planner import DSPyMealPlannerService
+from agents.meal_planner import DSPyMealPlannerService, dspy_meal_planner as dspy_meal_planner_instance
+from agents import host_agent
 
 load_dotenv()
 
@@ -49,13 +50,9 @@ except Exception as e:
     print(f"Failed to initialize meal planner agent: {e}")
     meal_planner = None
 
-# Initialize the DSPy meal planner (enhanced version with full recipe details)
-try:
-    dspy_meal_planner = DSPyMealPlannerService()
-    print("DSPy meal planner initialized successfully")
-except Exception as e:
-    print(f"Failed to initialize DSPy meal planner: {e}")
-    dspy_meal_planner = None
+# Use the DSPy meal planner from the agents module
+dspy_meal_planner = dspy_meal_planner_instance
+print("DSPy meal planner initialized successfully")
 
 # Enhanced Request/Response models
 
