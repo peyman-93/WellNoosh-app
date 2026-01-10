@@ -9,12 +9,15 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  Image
 } from 'react-native'
 import { useUserData } from '../../context/user-data-provider'
 import { useAuth } from '../../context/supabase-provider'
-import { mealPlanAIService, ChatMessage, UserHealthContext } from '../../services/mealPlanAIService'
+import { mealPlanAIService, ChatMessage, UserHealthContext, GeneratedMeal } from '../../services/mealPlanAIService'
 import { mealPlannerService } from '../../services/mealPlannerService'
+
+const logoImage = require('../../../assets/logo.jpeg')
 
 interface MealPlanChatModalProps {
   visible: boolean
@@ -42,6 +45,11 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
   const [dayCount, setDayCount] = useState<DayCount>(7)
   const scrollViewRef = useRef<ScrollView>(null)
+  const [pendingMeals, setPendingMeals] = useState<GeneratedMeal[]>([])
+  const [pendingSummary, setPendingSummary] = useState<string>('')
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [isSavingPlan, setIsSavingPlan] = useState(false)
+  const [pendingStartDate, setPendingStartDate] = useState<Date | null>(null)
 
   const healthContext: UserHealthContext = {
     allergies: userData?.allergies,
@@ -145,7 +153,7 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
     }
   }
 
-  const generateAndSavePlan = async () => {
+  const generateAndPreviewPlan = async () => {
     if (isGeneratingPlan) return
 
     setIsGeneratingPlan(true)
@@ -182,35 +190,18 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
       )
 
       if (result.meals.length > 0) {
-        await mealPlannerService.clearWeek(startDate)
-        
-        // Map generated meals to the format expected by the service
-        const mealsToSave = result.meals.map(meal => ({
-          plan_date: meal.plan_date,
-          meal_slot: meal.meal_slot,
-          custom_title: meal.recipe_title,
-          notes: meal.notes,
-          servings: meal.servings || 1,
-          calories: meal.calories,
-          protein_g: meal.protein_g,
-          carbs_g: meal.carbs_g,
-          fat_g: meal.fat_g
-        }))
-        
-        await mealPlannerService.bulkAddMeals(mealsToSave)
+        setPendingMeals(result.meals)
+        setPendingSummary(result.summary)
+        setPendingStartDate(startDate)
+        setShowConfirmation(true)
 
-        const successMessage: DisplayMessage = {
+        const previewMessage: DisplayMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: `Your meal plan has been saved! ${result.summary}\n\nI've added ${result.meals.length} meals to your weekly planner. You can view and edit them in the Meal Planner tab.`,
+          content: `I've generated ${result.meals.length} meals for your ${dayCount}-day plan! Please review the suggestions below and let me know if you're happy with them or would like me to regenerate.`,
           timestamp: new Date()
         }
-        setMessages(prev => [...prev, successMessage])
-
-        setTimeout(() => {
-          onPlanGenerated()
-          handleClose()
-        }, 2000)
+        setMessages(prev => [...prev, previewMessage])
       } else {
         const noMealsMessage: DisplayMessage = {
           id: (Date.now() + 1).toString(),
@@ -234,11 +225,110 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
     }
   }
 
+  const confirmAndSavePlan = async () => {
+    if (isSavingPlan || !pendingStartDate) return
+    
+    setIsSavingPlan(true)
+    
+    try {
+      await mealPlannerService.clearWeek(pendingStartDate)
+      
+      const mealsToSave = pendingMeals.map(meal => ({
+        plan_date: meal.plan_date,
+        meal_slot: meal.meal_slot,
+        custom_title: meal.recipe_title || meal.name,
+        notes: meal.notes,
+        servings: meal.servings || 1,
+        calories: meal.calories,
+        protein_g: meal.protein_g,
+        carbs_g: meal.carbs_g,
+        fat_g: meal.fat_g
+      }))
+      
+      await mealPlannerService.bulkAddMeals(mealsToSave)
+
+      const successMessage: DisplayMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Your meal plan has been saved! ${pendingSummary}\n\nI've added ${pendingMeals.length} meals to your weekly planner.`,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, successMessage])
+      
+      setShowConfirmation(false)
+      setPendingMeals([])
+      setPendingSummary('')
+      setPendingStartDate(null)
+
+      setTimeout(() => {
+        onPlanGenerated()
+        handleClose()
+      }, 2000)
+    } catch (error) {
+      console.error('Error saving meal plan:', error)
+      const errorMessage: DisplayMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: "I'm sorry, I encountered an error while saving your meal plan. Please try again.",
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsSavingPlan(false)
+    }
+  }
+
+  const regeneratePlan = () => {
+    setShowConfirmation(false)
+    setPendingMeals([])
+    setPendingSummary('')
+    setPendingStartDate(null)
+    
+    const regenMessage: DisplayMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: "No problem! Tell me what you'd like to change, or I can generate a completely new plan with the same preferences.",
+      timestamp: new Date()
+    }
+    setMessages(prev => [...prev, regenMessage])
+  }
+
+  const formatMealPreview = (meals: GeneratedMeal[]): string => {
+    const groupedByDate: { [date: string]: GeneratedMeal[] } = {}
+    meals.forEach(meal => {
+      if (!groupedByDate[meal.plan_date]) {
+        groupedByDate[meal.plan_date] = []
+      }
+      groupedByDate[meal.plan_date].push(meal)
+    })
+    
+    let preview = ''
+    const dates = Object.keys(groupedByDate).sort()
+    
+    dates.forEach((date, idx) => {
+      const d = new Date(date + 'T12:00:00')
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      preview += `\n${dayName}:\n`
+      
+      groupedByDate[date].forEach(meal => {
+        const name = meal.recipe_title || meal.name || 'Unnamed meal'
+        preview += `  • ${meal.meal_slot}: ${name}\n`
+      })
+    })
+    
+    return preview
+  }
+
   const handleClose = () => {
     setMessages([])
     setInputText('')
     setIsLoading(false)
     setIsGeneratingPlan(false)
+    setShowConfirmation(false)
+    setPendingMeals([])
+    setPendingSummary('')
+    setPendingStartDate(null)
+    setIsSavingPlan(false)
     onClose()
   }
 
@@ -266,7 +356,7 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
         <View style={styles.modal}>
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <Text style={styles.headerIcon}>🤖</Text>
+              <Image source={logoImage} style={styles.headerLogo} />
               <View>
                 <Text style={styles.title}>Meal Plan Assistant</Text>
                 <Text style={styles.subtitle}>Let's plan your meals together</Text>
@@ -314,6 +404,15 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
                 <ActivityIndicator size="small" color="#6B8E23" />
               </View>
             )}
+
+            {showConfirmation && pendingMeals.length > 0 && (
+              <View style={styles.mealPreviewContainer}>
+                <Text style={styles.mealPreviewTitle}>Your Meal Plan Preview:</Text>
+                <Text style={styles.mealPreviewText}>
+                  {formatMealPreview(pendingMeals)}
+                </Text>
+              </View>
+            )}
           </ScrollView>
 
           <View style={styles.inputSection}>
@@ -353,23 +452,46 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
               </View>
             </View>
 
-            <TouchableOpacity 
-              style={[
-                styles.generateButton,
-                isGeneratingPlan && styles.generateButtonDisabled
-              ]}
-              onPress={generateAndSavePlan}
-              disabled={isGeneratingPlan}
-            >
-              {isGeneratingPlan ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <View style={styles.generateButtonContent}>
-                  <Text style={styles.generateButtonIcon}>✨</Text>
-                  <Text style={styles.generateButtonText}>Generate {dayCount}-Day Plan</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            {showConfirmation ? (
+              <View style={styles.confirmationButtons}>
+                <TouchableOpacity 
+                  style={styles.regenerateButton}
+                  onPress={regeneratePlan}
+                  disabled={isSavingPlan}
+                >
+                  <Text style={styles.regenerateButtonText}>Regenerate</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.approveButton, isSavingPlan && styles.generateButtonDisabled]}
+                  onPress={confirmAndSavePlan}
+                  disabled={isSavingPlan}
+                >
+                  {isSavingPlan ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.approveButtonText}>Add to Calendar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={[
+                  styles.generateButton,
+                  isGeneratingPlan && styles.generateButtonDisabled
+                ]}
+                onPress={generateAndPreviewPlan}
+                disabled={isGeneratingPlan}
+              >
+                {isGeneratingPlan ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <View style={styles.generateButtonContent}>
+                    <Text style={styles.generateButtonIcon}>✨</Text>
+                    <Text style={styles.generateButtonText}>Generate {dayCount}-Day Plan</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
 
             <View style={styles.inputContainer}>
               <TextInput
@@ -426,9 +548,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  headerIcon: {
-    fontSize: 32,
   },
   title: {
     fontSize: 20,
@@ -601,6 +720,67 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+  headerLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  confirmationButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  regenerateButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  regenerateButtonText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+  approveButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6B8E23',
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  approveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+  mealPreviewContainer: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#6B8E23',
+  },
+  mealPreviewTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    fontFamily: 'Inter',
+  },
+  mealPreviewText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#4A4A4A',
     fontFamily: 'Inter',
   },
 })

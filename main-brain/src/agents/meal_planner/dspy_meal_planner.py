@@ -682,23 +682,26 @@ class DSPyMealPlannerService:
         print(f"DSPyMealPlannerService initialized with {self.llm_provider}")
 
     def _configure_dspy(self):
-        """Configure DSPy with the appropriate LLM"""
+        """Configure DSPy with the appropriate LLM and max tokens"""
+        max_tokens = int(os.getenv('DSPY_MAX_TOKENS', '2000'))
+        
         if self.llm_provider == 'gemini':
             api_key = os.getenv('GOOGLE_API_KEY')
             if not api_key:
                 raise ValueError("GOOGLE_API_KEY not set")
-            lm = dspy.LM('google/gemini-1.5-flash', api_key=api_key)
+            lm = dspy.LM('google/gemini-1.5-flash', api_key=api_key, max_tokens=max_tokens)
         else:
             api_key = os.getenv('AI_INTEGRATIONS_OPENAI_API_KEY') or os.getenv('OPENAI_API_KEY')
             base_url = os.getenv('AI_INTEGRATIONS_OPENAI_BASE_URL')
             if not api_key:
                 raise ValueError("OPENAI_API_KEY not set")
             if base_url:
-                lm = dspy.LM('openai/gpt-4o-mini', api_key=api_key, api_base=base_url)
+                lm = dspy.LM('openai/gpt-4o-mini', api_key=api_key, api_base=base_url, max_tokens=max_tokens)
             else:
-                lm = dspy.LM('openai/gpt-4o-mini', api_key=api_key)
+                lm = dspy.LM('openai/gpt-4o-mini', api_key=api_key, max_tokens=max_tokens)
 
         dspy.configure(lm=lm)
+        print(f"  - Max tokens per request: {max_tokens}")
 
     def generate_meal_plan(
         self,
@@ -716,11 +719,17 @@ class DSPyMealPlannerService:
         print(f"User: {user_id}, Days: {number_of_days}, Start: {start_date}")
 
         # Build user profile from health context
+        allergies = health_context.get('allergies', []) or []
+        health_goals = health_context.get('healthGoals', []) or []
+        
+        print(f"📋 User allergies: {allergies}")
+        print(f"🎯 User health goals: {health_goals}")
+        
         user_profile = UserProfile(
-            allergies=health_context.get('allergies', []) or [],
+            allergies=allergies,
             medical_conditions=health_context.get('medicalConditions', []) or [],
             diet_style=health_context.get('dietStyle', 'balanced') or 'balanced',
-            health_goals=health_context.get('healthGoals', []) or [],
+            health_goals=health_goals,
             daily_calorie_goal=health_context.get('dailyCalorieGoal', 2000) or 2000,
             cooking_skill=health_context.get('cookingSkill', 'beginner') or 'beginner',
             preferences=self._extract_preferences(messages)
