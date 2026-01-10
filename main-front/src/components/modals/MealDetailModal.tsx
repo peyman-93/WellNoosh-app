@@ -28,11 +28,14 @@ interface MealDetailModalProps {
   onMealRemoved?: (mealId: string) => void
 }
 
-const MEAL_SLOT_ICONS: Record<string, string> = {
-  breakfast: '🌅',
-  lunch: '☀️',
-  dinner: '🌙',
-  snack: '🍎'
+const MEAL_SLOT_LABELS: Record<string, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+  snack_am: 'Morning Snack',
+  snack_pm: 'Afternoon Snack',
+  snack_evening: 'Evening Snack'
 }
 
 interface StructuredIngredient {
@@ -137,7 +140,7 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
   const mealTitle = meal.custom_title || meal.recipe_title || 'Meal'
   const ingredients = parseIngredients(meal)
   const instructions = parseInstructions(meal.notes)
-  const mealIcon = MEAL_SLOT_ICONS[meal.meal_slot] || '🍽️'
+  const mealSlotLabel = MEAL_SLOT_LABELS[meal.meal_slot] || meal.meal_slot.charAt(0).toUpperCase() + meal.meal_slot.slice(1)
   const mealDate = new Date(meal.plan_date).toLocaleDateString('en-US', { 
     weekday: 'long', 
     month: 'short', 
@@ -208,9 +211,11 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
       
       // Also log nutrition data to daily_nutrition_summary for detailed tracking
       if (meal.calories || meal.protein_g || meal.carbs_g || meal.fat_g) {
+        // Normalize snack variants to base slot for nutrition logging
+        const normalizedSlot = meal.meal_slot.startsWith('snack') ? 'snack' : meal.meal_slot
         const nutritionResult = await logCookedMealNutrition({
           mealId: meal.id,
-          mealSlot: meal.meal_slot as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+          mealSlot: normalizedSlot as 'breakfast' | 'lunch' | 'dinner' | 'snack',
           mealName: mealTitle,
           calories: meal.calories || 0,
           protein_g: meal.protein_g || 0,
@@ -279,10 +284,9 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
           </TouchableOpacity>
           
           <View style={styles.headerContent}>
-            <Text style={styles.mealIcon}>{mealIcon}</Text>
             <Text style={styles.mealTitle}>{mealTitle}</Text>
             <View style={styles.mealMeta}>
-              <Text style={styles.mealSlot}>{meal.meal_slot.charAt(0).toUpperCase() + meal.meal_slot.slice(1)}</Text>
+              <Text style={styles.mealSlot}>{mealSlotLabel}</Text>
               <Text style={styles.metaDot}>•</Text>
               <Text style={styles.mealDate}>{mealDate}</Text>
             </View>

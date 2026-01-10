@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useFocusEffect } from '@react-navigation/native'
 import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 import { groceryListService, GroceryItem } from '../../src/services/groceryListService'
 
@@ -161,9 +162,12 @@ export default function GroceryListScreen() {
 
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    loadGroceryList()
-  }, [])
+  // Refresh grocery list when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadGroceryList()
+    }, [])
+  )
 
   const loadGroceryList = async () => {
     try {

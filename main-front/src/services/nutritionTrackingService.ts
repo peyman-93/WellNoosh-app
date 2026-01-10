@@ -488,7 +488,7 @@ export const getBatchNutritionData = async (
 
 export interface LogMealNutritionInput {
   mealId: string
-  mealSlot: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  mealSlot: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snack_am' | 'snack_pm' | 'snack_evening'
   mealName: string
   calories: number
   protein_g: number
