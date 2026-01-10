@@ -754,6 +754,114 @@ async def generate_single_dspy_meal(
         raise HTTPException(status_code=500, detail=f"Failed to generate meal: {str(e)}")
 
 
+class PersonalizedRecipeRequest(BaseModel):
+    healthContext: UserHealthContext
+    meal_type: Optional[str] = "dinner"
+    preferences: Optional[str] = ""
+    count: Optional[int] = 1
+
+class PersonalizedRecipeItem(BaseModel):
+    id: str
+    name: str
+    description: str
+    servings: int
+    tags: List[str]
+    ingredients: List[DSPyIngredient]
+    instructions: List[str]
+    nutrition: DSPyNutrition
+    personalization_notes: str
+
+class PersonalizedRecipeApiResponse(BaseModel):
+    success: bool
+    recipes: List[PersonalizedRecipeItem]
+    error: Optional[str] = None
+
+
+@app.post("/api/recipes/personalized", response_model=PersonalizedRecipeApiResponse)
+async def generate_personalized_recipes(request: PersonalizedRecipeRequest):
+    """
+    Generate personalized recipes based on user profile and preferences.
+    Routes through HostAgent for consistent orchestration.
+    """
+    try:
+        health_context = {
+            "allergies": request.healthContext.allergies,
+            "medicalConditions": request.healthContext.medicalConditions,
+            "dietStyle": request.healthContext.dietStyle,
+            "healthGoals": request.healthContext.healthGoals,
+            "dailyCalorieGoal": request.healthContext.dailyCalorieGoal,
+            "cookingSkill": request.healthContext.cookingSkill
+        }
+        
+        payload = {
+            "health_context": health_context,
+            "meal_type": request.meal_type,
+            "preferences": request.preferences,
+            "count": request.count
+        }
+        
+        result = await host_agent.host_agent.route_request(
+            user_id="api_user",
+            request_type="recipe",
+            payload=payload
+        )
+        
+        if not result.get("success"):
+            return PersonalizedRecipeApiResponse(
+                success=False,
+                recipes=[],
+                error=result.get("error", "Unknown error")
+            )
+        
+        data = result.get("data")
+        recipe_items = []
+        
+        recipes_data = data if isinstance(data, list) else [data]
+        
+        for r in recipes_data:
+            ingredients = []
+            for ing in r.get('ingredients', []):
+                if isinstance(ing, dict):
+                    ingredients.append(DSPyIngredient(
+                        name=ing.get('name', ''),
+                        amount=ing.get('amount', ''),
+                        category=ing.get('category', 'Other')
+                    ))
+            
+            nutrition_data = r.get('nutrition', {})
+            recipe_items.append(PersonalizedRecipeItem(
+                id=r.get('id', ''),
+                name=r.get('name', 'Recipe'),
+                description=r.get('description', ''),
+                servings=r.get('servings', 2),
+                tags=r.get('tags', []),
+                ingredients=ingredients,
+                instructions=r.get('instructions', []),
+                nutrition=DSPyNutrition(
+                    calories=nutrition_data.get('calories', 400),
+                    protein=nutrition_data.get('protein', 25),
+                    carbs=nutrition_data.get('carbs', 40),
+                    fat=nutrition_data.get('fat', 15)
+                ),
+                personalization_notes=r.get('personalization_notes', '')
+            ))
+        
+        return PersonalizedRecipeApiResponse(
+            success=True,
+            recipes=recipe_items
+        )
+        
+    except Exception as e:
+        print(f"Error generating personalized recipes: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return PersonalizedRecipeApiResponse(
+            success=False,
+            recipes=[],
+            error=str(e)
+        )
+
+
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
@@ -780,6 +888,7 @@ async def root():
             "meal_plan_generate": "/api/meal-plans/ai-generate",
             "dspy_meal_plan": "/api/meal-plans/dspy-generate (enhanced with full recipes)",
             "dspy_single_meal": "/api/meal-plans/dspy-single-meal",
+            "personalized_recipes": "/api/recipes/personalized",
             "history": "/api/recommendations/{user_id}/history",
             "safety_profile": "/api/user/{user_id}/safety-profile",
             "recipe_analysis": "/api/recipe/{recipe_id}/safety-analysis",

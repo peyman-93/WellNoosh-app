@@ -108,6 +108,31 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
     return greeting
   }
 
+  const shouldTriggerGeneration = (message: string): boolean => {
+    const generateTriggers = [
+      'create my plan',
+      'generate my plan',
+      'make my plan',
+      'create a plan',
+      'generate a plan',
+      'make a meal plan',
+      'create meal plan',
+      'generate meals',
+      'plan my meals',
+      "let's go",
+      'go ahead',
+      'yes please',
+      'yes, create',
+      'sounds good',
+      'do it',
+      'make it',
+      'start planning',
+      'ready to plan'
+    ]
+    const lowerMessage = message.toLowerCase()
+    return generateTriggers.some(trigger => lowerMessage.includes(trigger))
+  }
+
   const sendMessage = async () => {
     if (!inputText.trim() || isLoading) return
 
@@ -119,15 +144,29 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
     }
 
     setMessages(prev => [...prev, userMessage])
+    const messageText = inputText.trim()
     setInputText('')
     setIsLoading(true)
 
     try {
+      // Check if user wants to generate a plan - trigger generation with confirmation
+      if (shouldTriggerGeneration(messageText)) {
+        setIsLoading(false)
+        const confirmMessage: DisplayMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Great! I'll generate a ${dayCount}-day meal plan for you based on our conversation. Click the "Generate ${dayCount}-Day Plan" button below to start, and you'll be able to preview the meals before adding them to your calendar.`,
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, confirmMessage])
+        return
+      }
+
       const chatHistory: ChatMessage[] = messages.map(m => ({
         role: m.role,
         content: m.content
       }))
-      chatHistory.push({ role: 'user', content: userMessage.content })
+      chatHistory.push({ role: 'user', content: messageText })
 
       const response = await mealPlanAIService.chat(userId, chatHistory, healthContext)
 

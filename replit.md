@@ -184,6 +184,25 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
 ## Recent Changes
 
 ### January 2026 (Latest)
+- **PersonalizedRecipeAgent**:
+  - New DSPy-powered agent for generating personalized recipes
+  - Recipes include proper ingredient units (2 tbsp, 1 cup, 200g)
+  - Step-by-step cooking instructions
+  - Accurate nutrition metrics (calories, protein, carbs, fat)
+  - Super strict allergen enforcement with 100+ derivatives across 9 allergen categories
+  - Double validation: both generate_recipe and generate_multiple_recipes validate allergens
+  - Safe fallback recipes automatically replace unsafe ones
+  - API endpoint: `/api/recipes/personalized`
+
+- **Home Screen Nutrition Refresh**:
+  - Added useFocusEffect to refresh nutrition data when Home tab becomes focused
+  - Fixes issue where cooked meal nutrition wasn't showing immediately
+
+- **Chat Confirmation Flow Enhancement**:
+  - Chat now detects generation intent keywords ("create my plan", "let's go", etc.)
+  - Directs users to click Generate button for preview + approval workflow
+  - Ensures consistent confirmation flow across chat and button interactions
+
 - **Meal Plan Confirmation Flow**:
   - Users now preview generated meals before adding to calendar
   - "Add to Calendar" and "Regenerate" buttons for approval/modification

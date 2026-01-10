@@ -50,6 +50,13 @@ class HostAgent:
             print("  - Meal Planner Agent: Ready")
         except Exception as e:
             print(f"  - Meal Planner Agent: Failed to load ({e})")
+        
+        try:
+            from .recipe_recommendation import personalized_recipe_agent
+            self._agents[AgentType.RECIPE_RECOMMENDATION] = personalized_recipe_agent
+            print("  - Recipe Recommendation Agent: Ready")
+        except Exception as e:
+            print(f"  - Recipe Recommendation Agent: Failed to load ({e})")
 
     def get_agent(self, agent_type: AgentType) -> Any:
         """Get a specific agent by type"""
@@ -161,11 +168,40 @@ class HostAgent:
         payload: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Handle recipe recommendation requests"""
-        return {
-            "success": False,
-            "error": "Recipe Recommendation Agent not yet implemented",
-            "agent": "recipe_recommendation"
-        }
+        agent = self.get_agent(AgentType.RECIPE_RECOMMENDATION)
+        if not agent:
+            return {
+                "success": False,
+                "error": "Recipe Recommendation Agent not available",
+                "agent": "recipe_recommendation"
+            }
+        
+        try:
+            health_context = payload.get('health_context', {})
+            meal_type = payload.get('meal_type', 'dinner')
+            preferences = payload.get('preferences', '')
+            count = payload.get('count', 1)
+            
+            if count > 1:
+                recipes = agent.generate_multiple_recipes(health_context, count)
+                return {
+                    "success": True,
+                    "agent": "recipe_recommendation",
+                    "data": [r.model_dump() for r in recipes]
+                }
+            else:
+                recipe = agent.generate_recipe(health_context, meal_type, preferences)
+                return {
+                    "success": True,
+                    "agent": "recipe_recommendation",
+                    "data": recipe.model_dump()
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "agent": "recipe_recommendation"
+            }
 
     def get_available_agents(self) -> List[str]:
         """Get list of available agents"""

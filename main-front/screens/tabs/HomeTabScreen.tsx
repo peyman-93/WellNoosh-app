@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert, TouchableOpacity, Modal, TextInput, Dimensions, RefreshControl } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { CommonActions } from '@react-navigation/native'
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg'
 import { useAuth } from '../../src/context/supabase-provider'
@@ -214,6 +214,14 @@ export default function DashboardScreen() {
   useEffect(() => {
     loadTodaysData()
   }, [loadTodaysData])
+
+  // Refresh data when screen becomes focused (e.g., after marking meals as cooked)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🏠 Home screen focused - refreshing data')
+      loadTodaysData()
+    }, [loadTodaysData])
+  )
 
   // Generate meal plan for today - opens AI chatbot
   const handleGenerateMealPlan = () => {
