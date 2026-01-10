@@ -1,0 +1,22 @@
+ LOG  ✅ Loaded meals: 0 Nutrition: {"goals": {"calorie_goal": 2000, "carbs_goal_g": 250, "fat_goal_g": 65, "fiber_goal_g": 25, "protein_goal_g": 50}, "totals": {"calories": 0, "carbs_g": 0, "completedMeals": 0, "fat_g": 0, "fiber_g": 0, "protein_g": 0, "totalMeals": 0}} Wellness: null
+ LOG  🍽️ Generating meal plan with detailed mode (dspy-generate)...
+ LOG  📊 Settings: 3 meals/day, fasting: none
+ LOG  ✅ Generated DSPy meal plan with 3 meals
+ LOG  ✅ Marked meal as completed in meal_plans: 17b13fde-72cc-4f6d-950e-5d514bb1582d
+ LOG  📝 Logging cooked meal nutrition: Healthy Oatmeal Bowl for date: 2026-01-09
+ LOG  ✅ Created new daily nutrition summary for: 2026-01-09
+ LOG  🏠 Home screen focused - refreshing data
+ LOG  🔄 Loading meals and nutrition for today
+ LOG  ✅ Loaded meals: 0 Nutrition: {"goals": {"calorie_goal": 2000, "carbs_goal_g": 250, "fat_goal_g": 65, "fiber_goal_g": 25, "protein_goal_g": 50}, "totals": {"calories": 0, "carbs_g": 0, "completedMeals": 0, "fat_g": 0, "fiber_g": 0, "protein_g": 0, "totalMeals": 0}} Wellness: null
+ LOG  ✅ Marked meal as completed in meal_plans: fae3e904-ba5c-4088-b2ce-08251801c336
+ LOG  📝 Logging cooked meal nutrition: Grilled Chicken Salad for date: 2026-01-09
+ LOG  ✅ Updated daily nutrition summary for: 2026-01-09
+ LOG  🏠 Home screen focused - refreshing data
+ LOG  🔄 Loading meals and nutrition for today
+ LOG  ✅ Loaded meals: 0 Nutrition: {"goals": {"calorie_goal": 2000, "carbs_goal_g": 250, "fat_goal_g": 65, "fiber_goal_g": 25, "protein_goal_g": 50}, "totals": {"calories": 0, "carbs_g": 0, "completedMeals": 0, "fat_g": 0, "fiber_g": 0, "protein_g": 0, "totalMeals": 0}} Wellness: null
+ LOG  ✅ Marked meal as completed in meal_plans: f4fa1b12-4c50-4993-af7f-f80c155516a4
+ LOG  📝 Logging cooked meal nutrition: Baked Salmon with Vegetables for date: 2026-01-09
+ LOG  ✅ Updated daily nutrition summary for: 2026-01-09
+ LOG  🏠 Home screen focused - refreshing data
+ LOG  🔄 Loading meals and nutrition for today
+ LOG  ✅ Loaded meals: 0 Nutrition: {"goals": {"calorie_goal": 2000, "carbs_goal_g": 250, "fat_goal_g": 65, "fiber_goal_g": 25, "protein_goal_g": 50}, "totals": {"calories": 0, "carbs_g": 0, "completedMeals": 0, "fat_g": 0, "fiber_g": 0, "protein_g": 0, "totalMeals": 0}} Wellness: null

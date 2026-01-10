@@ -352,7 +352,11 @@ RULES:
                     difficulty=meal_data.get('difficulty', 'Easy'),
                     tags=meal_data.get('tags', []) or [],
                     ingredients=[
-                        Ingredient(**ing) if isinstance(ing, dict) else Ingredient(name=str(ing), amount="1", category="Other")
+                        Ingredient(
+                            name=str(ing.get('name', 'ingredient')),
+                            amount=str(ing.get('amount', '1')),  # Ensure amount is always a string
+                            category=str(ing.get('category', 'Other'))
+                        ) if isinstance(ing, dict) else Ingredient(name=str(ing), amount="1", category="Other")
                         for ing in (meal_data.get('ingredients', []) or [])
                     ],
                     instructions=meal_data.get('instructions', []) or [],
