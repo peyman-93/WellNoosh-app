@@ -256,12 +256,21 @@ class DayMealGenerator(dspy.Module):
         self.generate_day = dspy.ChainOfThought(GenerateDayMealsSignature)
 
     def forward(self, user_profile: UserProfile, plan_date: str,
-                context: str = "", previous_days_summary: str = "") -> List[GeneratedMeal]:
+                context: str = "", previous_days_summary: str = "",
+                meal_slots: List[str] = None) -> List[GeneratedMeal]:
+        
+        # Default meal slots if not provided
+        if meal_slots is None:
+            meal_slots = ['breakfast', 'lunch', 'dinner']
 
         profile_dict = user_profile.model_dump()
         
         # Get comprehensive list of forbidden ingredients based on allergies
         forbidden_ingredients = get_forbidden_ingredients(user_profile.allergies) if user_profile.allergies else []
+        
+        # Build meal slots instruction
+        meal_slots_str = ', '.join(meal_slots)
+        slots_instruction = f"\n🍽️ GENERATE EXACTLY THESE MEALS: {meal_slots_str}\n"
         
         # Build SUPER STRICT allergy warning with specific derivatives
         allergy_warning = ""
@@ -288,12 +297,14 @@ RULES:
             profile_dict["allergy_warning"] = allergy_warning
             profile_dict["forbidden_ingredients"] = forbidden_ingredients
         
+        # Add meal slots to profile for clarity
+        profile_dict["requested_meal_slots"] = meal_slots
         profile_json = json.dumps(profile_dict)
 
         result = self.generate_day(
             user_profile=profile_json,
             plan_date=plan_date,
-            context=context + allergy_warning,
+            context=context + slots_instruction + allergy_warning,
             previous_days_summary=previous_days_summary,
             target_calories=user_profile.daily_calorie_goal
         )
@@ -607,17 +618,58 @@ class MealPlanOrchestrator(dspy.Module):
     def __init__(self):
         super().__init__()
         self.day_generator = DayMealGenerator()
+    
+    def _get_meal_slots(self, meals_per_day: int, fasting_option: str) -> List[str]:
+        """Determine which meal slots to generate based on fasting option and meals per day.
+        Uses unique slot identifiers like 'snack_am' and 'snack_pm' for multiple snacks."""
+        
+        # OMAD (One Meal A Day) - only dinner
+        if fasting_option == 'omad':
+            return ['dinner']
+        
+        # 20:4 fasting - eating window 2pm-6pm, only 2 meals
+        if fasting_option == '20:4':
+            return ['lunch', 'dinner']
+        
+        # 18:6 fasting - eating window 1pm-7pm, skip breakfast
+        if fasting_option == '18:6':
+            if meals_per_day >= 3:
+                return ['lunch', 'snack_pm', 'dinner']
+            return ['lunch', 'dinner']
+        
+        # 16:8 fasting - eating window 12pm-8pm, skip breakfast
+        if fasting_option == '16:8':
+            if meals_per_day >= 4:
+                return ['lunch', 'snack_pm', 'dinner', 'snack_evening']
+            elif meals_per_day >= 3:
+                return ['lunch', 'snack_pm', 'dinner']
+            return ['lunch', 'dinner']
+        
+        # No fasting - generate based on meals per day
+        if meals_per_day == 5:
+            return ['breakfast', 'snack_am', 'lunch', 'snack_pm', 'dinner']
+        elif meals_per_day == 4:
+            return ['breakfast', 'lunch', 'snack_pm', 'dinner']
+        elif meals_per_day == 3:
+            return ['breakfast', 'lunch', 'dinner']
+        else:
+            return ['breakfast', 'lunch', 'dinner']
 
     def forward(self, user_profile: UserProfile, start_date: str,
-                number_of_days: int = 7, context: str = "") -> Dict[str, Any]:
+                number_of_days: int = 7, context: str = "",
+                meals_per_day: int = 3, fasting_option: str = 'none') -> Dict[str, Any]:
 
         all_meals = []
         previous_days_summary = []
 
         start = datetime.strptime(start_date, '%Y-%m-%d')
         
+        # Determine meal slots based on fasting option
+        meal_slots = self._get_meal_slots(meals_per_day, fasting_option)
+        
         print(f"🍽️ Generating {number_of_days}-day meal plan...")
         print(f"📋 User profile: diet={user_profile.diet_style}, allergies={user_profile.allergies}")
+        print(f"🕐 Fasting: {fasting_option}, Meals per day: {meals_per_day}, Slots: {meal_slots}")
 
         for day_offset in range(number_of_days):
             current_date = (start + timedelta(days=day_offset)).strftime('%Y-%m-%d')
@@ -633,7 +685,8 @@ class MealPlanOrchestrator(dspy.Module):
                 user_profile=user_profile,
                 plan_date=current_date,
                 context=context,
-                previous_days_summary=prev_summary
+                previous_days_summary=prev_summary,
+                meal_slots=meal_slots
             )
             
             # Track lunch and dinner names for variety enforcement
@@ -709,7 +762,9 @@ class DSPyMealPlannerService:
         messages: List[Dict],
         health_context: Dict,
         start_date: str,
-        number_of_days: int = 7
+        number_of_days: int = 7,
+        meals_per_day: int = 3,
+        fasting_option: str = 'none'
     ) -> Dict[str, Any]:
         """Generate a complete meal plan"""
 
@@ -717,6 +772,7 @@ class DSPyMealPlannerService:
         print(f"DSPy Meal Plan Generation")
         print(f"{'='*60}")
         print(f"User: {user_id}, Days: {number_of_days}, Start: {start_date}")
+        print(f"🍽️ Meals per day: {meals_per_day}, Fasting: {fasting_option}")
 
         # Build user profile from health context
         allergies = health_context.get('allergies', []) or []
@@ -725,6 +781,23 @@ class DSPyMealPlannerService:
         print(f"📋 User allergies: {allergies}")
         print(f"🎯 User health goals: {health_goals}")
         
+        # Build fasting context for the prompt
+        fasting_context = ""
+        if fasting_option and fasting_option != 'none':
+            fasting_info = {
+                '16:8': "User follows 16:8 intermittent fasting (eating window 12pm-8pm). Skip breakfast, focus on lunch and dinner.",
+                '18:6': "User follows 18:6 intermittent fasting (eating window 1pm-7pm). Skip breakfast, lunch and dinner only.",
+                '20:4': "User follows 20:4 intermittent fasting (eating window 2pm-6pm). Only 2 meals in a 4-hour window.",
+                'omad': "User follows OMAD (One Meal A Day). Create ONE substantial, nutrient-dense meal per day."
+            }
+            fasting_context = fasting_info.get(fasting_option, "")
+            print(f"🕐 Fasting context: {fasting_context}")
+        
+        # Add fasting info to preferences
+        preferences = self._extract_preferences(messages)
+        if fasting_context:
+            preferences = f"{preferences} | FASTING: {fasting_context}"
+        
         user_profile = UserProfile(
             allergies=allergies,
             medical_conditions=health_context.get('medicalConditions', []) or [],
@@ -732,18 +805,20 @@ class DSPyMealPlannerService:
             health_goals=health_goals,
             daily_calorie_goal=health_context.get('dailyCalorieGoal', 2000) or 2000,
             cooking_skill=health_context.get('cookingSkill', 'beginner') or 'beginner',
-            preferences=self._extract_preferences(messages)
+            preferences=preferences
         )
 
         # Extract conversation context
-        context = self._extract_preferences(messages)
+        context = preferences
 
         try:
             result = self.orchestrator(
                 user_profile=user_profile,
                 start_date=start_date,
                 number_of_days=number_of_days,
-                context=context
+                context=context,
+                meals_per_day=meals_per_day,
+                fasting_option=fasting_option
             )
 
             print(f"Generated {len(result['meals'])} meals")

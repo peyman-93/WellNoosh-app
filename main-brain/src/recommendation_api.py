@@ -158,6 +158,8 @@ class UserHealthContext(BaseModel):
     healthGoals: Optional[List[str]] = []
     dailyCalorieGoal: Optional[int] = 2000
     cookingSkill: Optional[str] = 'beginner'
+    fastingSchedule: Optional[str] = None
+    mealsPerDay: Optional[int] = 3
 
 class MealPlanChatRequest(BaseModel):
     user_id: str
@@ -170,10 +172,12 @@ class MealPlanGenerateRequest(BaseModel):
     healthContext: UserHealthContext
     startDate: str  # YYYY-MM-DD format
     numberOfDays: Optional[int] = 7
+    mealsPerDay: Optional[int] = 3
+    fastingOption: Optional[str] = 'none'
 
 class GeneratedMeal(BaseModel):
     plan_date: str
-    meal_slot: str  # 'breakfast', 'lunch', 'dinner', 'snack'
+    meal_slot: str  # 'breakfast', 'lunch', 'dinner', 'snack', 'snack_am', 'snack_pm', 'snack_evening'
     recipe_id: Optional[str] = None
     recipe_title: str
     recipe_image: Optional[str] = None
@@ -638,15 +642,23 @@ async def generate_dspy_meal_plan(request: MealPlanGenerateRequest):
     try:
         # Convert messages to the format expected by the service
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+        
+        # Get fasting and meals per day settings
+        fasting_option = request.fastingOption or 'none'
+        meals_per_day = request.mealsPerDay or request.healthContext.mealsPerDay or 3
+        
+        print(f"🍽️ DSPy Generation settings: {meals_per_day} meals/day, fasting: {fasting_option}")
 
-        # Convert health context to dict
+        # Convert health context to dict including fasting info
         health_context = {
             "allergies": request.healthContext.allergies,
             "medicalConditions": request.healthContext.medicalConditions,
             "dietStyle": request.healthContext.dietStyle,
             "healthGoals": request.healthContext.healthGoals,
             "dailyCalorieGoal": request.healthContext.dailyCalorieGoal,
-            "cookingSkill": request.healthContext.cookingSkill
+            "cookingSkill": request.healthContext.cookingSkill,
+            "fastingSchedule": fasting_option if fasting_option != 'none' else None,
+            "mealsPerDay": meals_per_day
         }
 
         # Generate the meal plan with DSPy
@@ -655,7 +667,9 @@ async def generate_dspy_meal_plan(request: MealPlanGenerateRequest):
             messages=messages,
             health_context=health_context,
             start_date=request.startDate,
-            number_of_days=request.numberOfDays
+            number_of_days=request.numberOfDays,
+            meals_per_day=meals_per_day,
+            fasting_option=fasting_option
         )
 
         if result.get('error'):

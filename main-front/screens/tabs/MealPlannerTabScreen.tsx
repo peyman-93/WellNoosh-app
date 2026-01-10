@@ -8,8 +8,11 @@ import { MealDetailModal } from '../../src/components/modals/MealDetailModal'
 
 const MEAL_SLOTS: { key: MealSlot; label: string; icon: string }[] = [
   { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
+  { key: 'snack_am', label: 'Morning Snack', icon: '🍎' },
   { key: 'lunch', label: 'Lunch', icon: '☀️' },
+  { key: 'snack_pm', label: 'Afternoon Snack', icon: '🍇' },
   { key: 'dinner', label: 'Dinner', icon: '🌙' },
+  { key: 'snack_evening', label: 'Evening Snack', icon: '🍿' },
   { key: 'snack', label: 'Snack', icon: '🍎' },
 ]
 

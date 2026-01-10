@@ -34,6 +34,16 @@ interface DisplayMessage {
 }
 
 type DayCount = 1 | 3 | 5 | 7
+type MealsPerDay = 3 | 4 | 5
+type FastingOption = 'none' | '16:8' | '18:6' | '20:4' | 'omad'
+
+const FASTING_OPTIONS: { value: FastingOption; label: string; description: string }[] = [
+  { value: 'none', label: 'None', description: 'No fasting - eat throughout the day' },
+  { value: '16:8', label: '16:8', description: 'Fast 16 hours, eat within 8 hours' },
+  { value: '18:6', label: '18:6', description: 'Fast 18 hours, eat within 6 hours' },
+  { value: '20:4', label: '20:4', description: 'Fast 20 hours, eat within 4 hours' },
+  { value: 'omad', label: 'OMAD', description: 'One Meal A Day' }
+]
 
 export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStartDate }: MealPlanChatModalProps) {
   const { userData } = useUserData()
@@ -44,6 +54,8 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
   const [isLoading, setIsLoading] = useState(false)
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
   const [dayCount, setDayCount] = useState<DayCount>(7)
+  const [mealsPerDay, setMealsPerDay] = useState<MealsPerDay>(3)
+  const [fastingOption, setFastingOption] = useState<FastingOption>('none')
   const scrollViewRef = useRef<ScrollView>(null)
   const [pendingMeals, setPendingMeals] = useState<GeneratedMeal[]>([])
   const [pendingSummary, setPendingSummary] = useState<string>('')
@@ -98,12 +110,11 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
       greeting += "\n"
     }
 
-    greeting += "To create your perfect meal plan, please tell me:\n\n"
-    greeting += "1. How many meals per day? (2-4)\n"
-    greeting += "2. Any special requirements or preferences?\n"
-    greeting += "   (e.g., quick meals, budget-friendly, meal prep)\n"
-    greeting += "3. Any specific cuisines you prefer?\n\n"
-    greeting += "Or just say 'create my plan' and I'll use your profile to make a balanced 7-day meal plan!"
+    greeting += "Configure your plan using the options below:\n"
+    greeting += "• Select how many days to plan\n"
+    greeting += "• Choose meals per day (3, 4, or 5)\n"
+    greeting += "• Pick a fasting schedule if desired\n\n"
+    greeting += "Then tell me about any special preferences (cuisines, budget, quick meals, etc.) or just click Generate!"
 
     return greeting
   }
@@ -219,13 +230,22 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
         return today
       })()
 
+      // Build enhanced context with fasting info
+      const enhancedContext: UserHealthContext = {
+        ...healthContext,
+        fastingSchedule: fastingOption !== 'none' ? fastingOption : undefined,
+        mealsPerDay: mealsPerDay
+      }
+
       const result = await mealPlanAIService.generateMealPlan(
         userId,
         chatHistory,
-        healthContext,
+        enhancedContext,
         startDate,
         dayCount,
-        'detailed'
+        'detailed',
+        mealsPerDay,
+        fastingOption
       )
 
       if (result.meals.length > 0) {
@@ -368,6 +388,8 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
     setPendingSummary('')
     setPendingStartDate(null)
     setIsSavingPlan(false)
+    setMealsPerDay(3)
+    setFastingOption('none')
     onClose()
   }
 
@@ -487,6 +509,53 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
                   >
                     <Text style={[styles.toggleText, dayCount === 7 && styles.toggleTextActive]}>7 days</Text>
                   </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.optionsRow}>
+              <View style={styles.optionGroup}>
+                <Text style={styles.optionLabel}>Meals per Day:</Text>
+                <View style={styles.toggleGroup}>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, mealsPerDay === 3 && styles.toggleBtnActive]}
+                    onPress={() => setMealsPerDay(3)}
+                    disabled={isGeneratingPlan}
+                  >
+                    <Text style={[styles.toggleText, mealsPerDay === 3 && styles.toggleTextActive]}>3 meals</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, mealsPerDay === 4 && styles.toggleBtnActive]}
+                    onPress={() => setMealsPerDay(4)}
+                    disabled={isGeneratingPlan}
+                  >
+                    <Text style={[styles.toggleText, mealsPerDay === 4 && styles.toggleTextActive]}>4 meals</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, mealsPerDay === 5 && styles.toggleBtnActive]}
+                    onPress={() => setMealsPerDay(5)}
+                    disabled={isGeneratingPlan}
+                  >
+                    <Text style={[styles.toggleText, mealsPerDay === 5 && styles.toggleTextActive]}>5 meals</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.optionsRow}>
+              <View style={styles.optionGroup}>
+                <Text style={styles.optionLabel}>Fasting Schedule:</Text>
+                <View style={styles.toggleGroup}>
+                  {FASTING_OPTIONS.map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[styles.toggleBtn, fastingOption === option.value && styles.toggleBtnActive]}
+                      onPress={() => setFastingOption(option.value)}
+                      disabled={isGeneratingPlan}
+                    >
+                      <Text style={[styles.toggleText, fastingOption === option.value && styles.toggleTextActive]}>{option.label}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
             </View>

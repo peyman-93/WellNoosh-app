@@ -184,6 +184,19 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
 ## Recent Changes
 
 ### January 2026 (Latest)
+- **Fasting & Meals Per Day Integration**:
+  - Added meals per day selector (3, 4, 5 meals) to MealPlanChatModal
+  - Added fasting option selector with 5 presets: None, 16:8, 18:6, 20:4, OMAD
+  - Fasting options include eating window descriptions (e.g., "16:8 = 12pm-8pm")
+  - Full pipeline integration: Frontend -> Backend -> Python API -> DSPy
+  - MealPlanOrchestrator dynamically selects meal slots based on fasting schedule
+  - OMAD generates only dinner, 20:4 generates lunch+dinner, 16:8/18:6 skip breakfast
+  - DayMealGenerator accepts custom meal_slots parameter
+  - Fasting context added to AI prompts for proper meal timing
+  - Unique snack slot identifiers: `snack_am`, `snack_pm`, `snack_evening` for proper scheduling
+  - MealSlot type updated across frontend to support new snack variants
+  - MealPlannerTabScreen displays labeled snack slots (Morning/Afternoon/Evening Snack)
+
 - **PersonalizedRecipeAgent**:
   - New DSPy-powered agent for generating personalized recipes
   - Recipes include proper ingredient units (2 tbsp, 1 cup, 200g)

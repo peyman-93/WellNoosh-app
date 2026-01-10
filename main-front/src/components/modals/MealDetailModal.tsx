@@ -10,7 +10,7 @@ import {
   ActivityIndicator
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { MealPlanEntry } from '../../services/mealPlannerService'
+import { MealPlanEntry, mealPlannerService } from '../../services/mealPlannerService'
 import { groceryListService } from '../../services/groceryListService'
 import { logCookedMealNutrition } from '../../services/nutritionTrackingService'
 
@@ -35,7 +35,37 @@ const MEAL_SLOT_ICONS: Record<string, string> = {
   snack: '🍎'
 }
 
-const parseIngredients = (notes: string | undefined): Ingredient[] => {
+interface StructuredIngredient {
+  name: string
+  amount?: string | number
+  unit?: string
+  category?: string
+}
+
+const parseIngredients = (meal: MealPlanEntry): Ingredient[] => {
+  // First, try to get ingredients from structured data (ingredients_json or generated_recipe)
+  const mealAny = meal as any
+  
+  // Check for ingredients_json field (common for AI-generated meals)
+  if (mealAny.ingredients_json && Array.isArray(mealAny.ingredients_json)) {
+    return mealAny.ingredients_json.map((ing: StructuredIngredient) => ({
+      name: ing.name || '',
+      amount: ing.amount ? `${ing.amount}${ing.unit ? ' ' + ing.unit : ''}` : '1',
+      category: ing.category || 'General'
+    })).filter((ing: Ingredient) => ing.name)
+  }
+  
+  // Check for generated_recipe.ingredients
+  if (mealAny.generated_recipe?.ingredients && Array.isArray(mealAny.generated_recipe.ingredients)) {
+    return mealAny.generated_recipe.ingredients.map((ing: StructuredIngredient) => ({
+      name: ing.name || '',
+      amount: ing.amount ? `${ing.amount}${ing.unit ? ' ' + ing.unit : ''}` : '1',
+      category: ing.category || 'General'
+    })).filter((ing: Ingredient) => ing.name)
+  }
+  
+  // Fallback: Try to parse from notes field
+  const notes = meal.notes
   if (!notes) return []
   
   const ingredients: Ingredient[] = []
@@ -105,7 +135,7 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
   if (!meal) return null
 
   const mealTitle = meal.custom_title || meal.recipe_title || 'Meal'
-  const ingredients = parseIngredients(meal.notes)
+  const ingredients = parseIngredients(meal)
   const instructions = parseInstructions(meal.notes)
   const mealIcon = MEAL_SLOT_ICONS[meal.meal_slot] || '🍽️'
   const mealDate = new Date(meal.plan_date).toLocaleDateString('en-US', { 
@@ -158,7 +188,6 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
   const handleCookMeal = async () => {
     setIsCooking(true)
     try {
-      // Log nutrition data to daily summary
       // Handle both Date objects and ISO strings for plan_date
       // Use local date to avoid UTC timezone drift
       let planDateStr: string
@@ -172,6 +201,12 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
         planDateStr = `${year}-${month}-${day}`
       }
       
+      // CRITICAL: Mark the meal as completed in meal_plans table
+      // This is what the nutrition dashboard reads from
+      await mealPlannerService.markMealAsCooked(meal.id)
+      console.log('✅ Marked meal as completed in meal_plans:', meal.id)
+      
+      // Also log nutrition data to daily_nutrition_summary for detailed tracking
       if (meal.calories || meal.protein_g || meal.carbs_g || meal.fat_g) {
         const nutritionResult = await logCookedMealNutrition({
           mealId: meal.id,

@@ -10,6 +10,8 @@ export interface UserHealthContext {
   healthGoals?: string[];
   dailyCalorieGoal?: number;
   cookingSkill?: string;
+  fastingSchedule?: string;
+  mealsPerDay?: number;
 }
 
 export interface ChatMessage {
@@ -17,7 +19,7 @@ export interface ChatMessage {
   content: string;
 }
 
-export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snack_am' | 'snack_pm' | 'snack_evening';
 
 export interface Ingredient {
   name: string;
@@ -157,11 +159,14 @@ class MealPlanAIService {
     healthContext: UserHealthContext,
     startDate: Date,
     numberOfDays: number = 7,
-    mode: 'quick' | 'detailed' = 'quick'
+    mode: 'quick' | 'detailed' = 'quick',
+    mealsPerDay: number = 3,
+    fastingOption: string = 'none'
   ): Promise<GeneratedMealPlan> {
     try {
       const endpoint = mode === 'detailed' ? 'dspy-generate' : 'ai-generate';
       console.log(`🍽️ Generating meal plan with ${mode} mode (${endpoint})...`);
+      console.log(`📊 Settings: ${mealsPerDay} meals/day, fasting: ${fastingOption}`);
 
       const headers = await this.getAuthHeaders();
       const response = await fetch(`${API_URL}/meal-plans/${endpoint}`, {
@@ -173,7 +178,9 @@ class MealPlanAIService {
           healthContext,
           startDate: startDate.toISOString().split('T')[0],
           numberOfDays,
-          mode
+          mode,
+          mealsPerDay,
+          fastingOption
         })
       });
 

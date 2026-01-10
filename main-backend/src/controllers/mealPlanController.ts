@@ -35,6 +35,8 @@ interface UserHealthContext {
   healthGoals?: string[];
   dailyCalorieGoal?: number;
   cookingSkill?: string;
+  fastingSchedule?: string;
+  mealsPerDay?: number;
 }
 
 interface ChatMessage {
@@ -42,9 +44,9 @@ interface ChatMessage {
   content: string;
 }
 
-type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snack_am' | 'snack_pm' | 'snack_evening';
 
-const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+const MEAL_SLOTS: MealSlot[] = ['breakfast', 'snack_am', 'lunch', 'snack_pm', 'dinner', 'snack_evening', 'snack'];
 
 function buildSystemPrompt(healthContext: UserHealthContext): string {
   const parts = [
@@ -326,14 +328,29 @@ Important:
   aiGeneratePlanDSPy = asyncHandler(async (req: Request, res: Response) => {
     console.log('🍽️ DSPy AI Generate Plan request received');
 
-    const { messages, healthContext, startDate, numberOfDays = 7 } = req.body as {
+    const { 
+      messages, 
+      healthContext, 
+      startDate, 
+      numberOfDays = 7,
+      mealsPerDay = 3,
+      fastingOption = 'none'
+    } = req.body as {
       messages: ChatMessage[];
       healthContext: UserHealthContext;
       startDate: string;
       numberOfDays?: number;
+      mealsPerDay?: number;
+      fastingOption?: string;
     };
 
-    console.log('🍽️ DSPy Request params:', { messagesCount: messages?.length, startDate, numberOfDays });
+    console.log('🍽️ DSPy Request params:', { 
+      messagesCount: messages?.length, 
+      startDate, 
+      numberOfDays,
+      mealsPerDay,
+      fastingOption
+    });
 
     if (!messages || !Array.isArray(messages)) {
       throw createError('Messages array is required', 400);
@@ -359,10 +376,14 @@ Important:
             dietStyle: healthContext?.dietStyle || 'balanced',
             healthGoals: healthContext?.healthGoals || [],
             dailyCalorieGoal: healthContext?.dailyCalorieGoal || 2000,
-            cookingSkill: healthContext?.cookingSkill || 'beginner'
+            cookingSkill: healthContext?.cookingSkill || 'beginner',
+            fastingSchedule: fastingOption !== 'none' ? fastingOption : undefined,
+            mealsPerDay: mealsPerDay
           },
           startDate: startDate,
-          numberOfDays: numberOfDays
+          numberOfDays: numberOfDays,
+          mealsPerDay: mealsPerDay,
+          fastingOption: fastingOption
         })
       });
 

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snack_am' | 'snack_pm' | 'snack_evening';
 
 export interface MealPlanEntry {
   id: string;
