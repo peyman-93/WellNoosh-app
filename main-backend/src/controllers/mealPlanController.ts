@@ -208,19 +208,24 @@ class MealPlanController {
       throw createError('startDate must be in YYYY-MM-DD format', 400);
     }
 
-    const start = new Date(startDate);
-    if (isNaN(start.getTime())) {
-      throw createError('startDate is not a valid date', 400);
-    }
+    // Helper to add days to a YYYY-MM-DD string without timezone conversion
+    const addDaysToDateString = (dateStr: string, days: number): string => {
+      const parts = dateStr.split('-').map(Number);
+      const year = parts[0] || 2026;
+      const month = parts[1] || 1;
+      const day = parts[2] || 1;
+      const date = new Date(year, month - 1, day + days);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
 
     const systemPrompt = buildSystemPrompt(healthContext || {});
 
     const dates: string[] = [];
     for (let i = 0; i < numberOfDays; i++) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0] as string;
-      dates.push(dateStr);
+      dates.push(addDaysToDateString(startDate, i));
     }
 
     const generationPrompt = `

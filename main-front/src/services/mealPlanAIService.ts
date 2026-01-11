@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getLocalDateString } from './nutritionService';
 
 // Use relative URL on Replit (proxy handles it), use env var or localhost for local dev
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '/api';
@@ -176,7 +177,7 @@ class MealPlanAIService {
           user_id: userId,
           messages,
           healthContext,
-          startDate: startDate.toISOString().split('T')[0],
+          startDate: getLocalDateString(startDate),
           numberOfDays,
           mode,
           mealsPerDay,
@@ -275,7 +276,7 @@ class MealPlanAIService {
           user_id: userId,
           messages,
           healthContext,
-          startDate: startDate.toISOString().split('T')[0],
+          startDate: getLocalDateString(startDate),
           numberOfDays
         })
       });
