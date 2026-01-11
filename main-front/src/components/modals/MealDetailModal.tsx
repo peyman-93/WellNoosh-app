@@ -12,7 +12,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { MealPlanEntry, mealPlannerService } from '../../services/mealPlannerService'
 import { groceryListService } from '../../services/groceryListService'
-import { logCookedMealNutrition } from '../../services/nutritionTrackingService'
 
 interface Ingredient {
   name: string
@@ -204,30 +203,11 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
         planDateStr = `${year}-${month}-${day}`
       }
       
-      // CRITICAL: Mark the meal as completed in meal_plans table
-      // This is what the nutrition dashboard reads from
+      // Mark the meal as completed in meal_plans table
+      // The nutrition dashboard reads from meal_plans table (is_completed = true)
+      // No need to log to daily_nutrition_summary since meal_plans already has the nutrition data
       await mealPlannerService.markMealAsCooked(meal.id)
       console.log('✅ Marked meal as completed in meal_plans:', meal.id)
-      
-      // Also log nutrition data to daily_nutrition_summary for detailed tracking
-      if (meal.calories || meal.protein_g || meal.carbs_g || meal.fat_g) {
-        // Normalize snack variants to base slot for nutrition logging
-        const normalizedSlot = meal.meal_slot.startsWith('snack') ? 'snack' : meal.meal_slot
-        const nutritionResult = await logCookedMealNutrition({
-          mealId: meal.id,
-          mealSlot: normalizedSlot as 'breakfast' | 'lunch' | 'dinner' | 'snack',
-          mealName: mealTitle,
-          calories: meal.calories || 0,
-          protein_g: meal.protein_g || 0,
-          carbs_g: meal.carbs_g || 0,
-          fat_g: meal.fat_g || 0,
-          date: planDateStr
-        })
-
-        if (!nutritionResult.success) {
-          console.warn('Could not log nutrition:', nutritionResult.error)
-        }
-      }
 
       if (onMealCooked) {
         onMealCooked(meal.id)

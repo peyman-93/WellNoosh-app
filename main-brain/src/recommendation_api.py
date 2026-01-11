@@ -16,6 +16,7 @@ from langgraph_recommendation_agent import LangGraphRecipeAgent
 from meal_planner_agent import MealPlannerAgent
 from agents.meal_planner import DSPyMealPlannerService, dspy_meal_planner as dspy_meal_planner_instance
 from agents import host_agent
+from agents.nutrition_goals import nutrition_goals_agent, calculate_nutrition_goals
 
 load_dotenv()
 
@@ -876,6 +877,57 @@ async def generate_personalized_recipes(request: PersonalizedRecipeRequest):
         )
 
 
+class NutritionGoalsRequest(BaseModel):
+    """Request model for calculating personalized nutrition goals"""
+    user_id: str
+    age: Optional[int] = 30
+    sex: Optional[str] = "female"
+    weight_kg: Optional[float] = None
+    weight: Optional[float] = 70.0  # Alias for weight_kg
+    height_cm: Optional[float] = None
+    height: Optional[float] = 165.0  # Alias for height_cm
+    activity_level: Optional[str] = "moderate"
+    health_goal: Optional[str] = "maintain"
+    goal: Optional[str] = None  # Alias for health_goal
+    diet_style: Optional[str] = "balanced"
+
+
+@app.post("/api/nutrition/calculate-goals")
+async def calculate_user_nutrition_goals(request: NutritionGoalsRequest):
+    """
+    Calculate personalized daily nutrition goals based on user profile.
+    
+    Uses Mifflin-St Jeor equation for BMR and adjusts macros based on:
+    - Health goal (weight loss, muscle gain, maintain, etc.)
+    - Activity level (sedentary to very active)
+    - Diet style (balanced, keto, high-protein, etc.)
+    
+    Returns:
+        Personalized daily targets for calories, protein, carbs, fat, fiber, and water.
+    """
+    try:
+        profile_data = {
+            "age": request.age,
+            "sex": request.sex,
+            "weight_kg": request.weight_kg or request.weight,
+            "height_cm": request.height_cm or request.height,
+            "activity_level": request.activity_level,
+            "health_goal": request.health_goal or request.goal or "maintain",
+            "diet_style": request.diet_style
+        }
+        
+        goals = calculate_nutrition_goals(profile_data)
+        
+        return {
+            "success": True,
+            "user_id": request.user_id,
+            "goals": goals,
+            "message": "Nutrition goals calculated successfully based on your profile"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate nutrition goals: {str(e)}")
+
+
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
@@ -891,7 +943,8 @@ async def root():
             "Cooking skill level adaptation",
             "Ingredient substitution suggestions",
             "AI-powered meal planning chat",
-            "Automated weekly meal plan generation"
+            "Automated weekly meal plan generation",
+            "Personalized nutrition goals calculation"
         ],
         "endpoints": {
             "health": "/health",
@@ -903,6 +956,7 @@ async def root():
             "dspy_meal_plan": "/api/meal-plans/dspy-generate (enhanced with full recipes)",
             "dspy_single_meal": "/api/meal-plans/dspy-single-meal",
             "personalized_recipes": "/api/recipes/personalized",
+            "nutrition_goals": "/api/nutrition/calculate-goals",
             "history": "/api/recommendations/{user_id}/history",
             "safety_profile": "/api/user/{user_id}/safety-profile",
             "recipe_analysis": "/api/recipe/{recipe_id}/safety-analysis",

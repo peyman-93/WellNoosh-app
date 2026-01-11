@@ -226,17 +226,21 @@ class GenerateDayMealsSignature(dspy.Signature):
     - For diabetes: low glycemic index, controlled carbs, high fiber
     - Ensure adequate vitamins and minerals through varied vegetables
     
-    VARIETY RULES:
+    VARIETY RULES - CRITICAL FOR USER SATISFACTION:
+    - Use the variety_seed to inspire DIFFERENT meal styles (Asian, Mediterranean, Mexican, Indian, American, etc.)
     - Breakfast CAN repeat similar items across days (eggs, oatmeal, yogurt are acceptable)
-    - Lunch MUST be COMPLETELY DIFFERENT from other days - no repetition of main proteins or cuisines
-    - Dinner MUST be COMPLETELY DIFFERENT from other days - no repetition of main proteins or cuisines
+    - Lunch MUST be COMPLETELY DIFFERENT from previous days - try different cuisines and proteins
+    - Dinner MUST be COMPLETELY DIFFERENT from previous days - try different cuisines and proteins
+    - NEVER repeat the exact same meal name within a week
     - Snacks should vary in type (fruit, nuts, yogurt, vegetables)
+    - Each regeneration should produce COMPLETELY NEW and CREATIVE meal ideas
     """
 
     user_profile: str = dspy.InputField(desc="User health profile with allergies, diet style, health goals, cooking skill")
     plan_date: str = dspy.InputField(desc="Date for the meals in YYYY-MM-DD format")
     context: str = dspy.InputField(desc="User preferences from conversation")
-    previous_days_summary: str = dspy.InputField(desc="Summary of meals from previous days to ensure variety - AVOID these dishes for lunch/dinner")
+    previous_days_summary: str = dspy.InputField(desc="Summary of meals from previous days to ensure variety - STRICTLY AVOID these dishes")
+    variety_seed: str = dspy.InputField(desc="Random cuisine/style hint for variety: e.g., 'Mediterranean focus', 'Asian-inspired', 'Mexican flavors'")
     target_calories: int = dspy.InputField(desc="Target total calories for the day")
 
     day_meals_json: str = dspy.OutputField(desc="JSON array of 3-4 meals (breakfast, lunch, dinner, optional snack). Each meal: {name, description, cookTime, servings, difficulty, tags, ingredients: [{name, amount, category}], instructions: [steps], nutrition: {calories, protein, carbs, fat}, meal_slot}")
@@ -248,6 +252,23 @@ class GenerateDayMealsSignature(dspy.Signature):
 # DSPy Modules
 # ============================================================================
 
+CUISINE_VARIETY_SEEDS = [
+    "Mediterranean focus - olive oil, fresh herbs, grilled vegetables, feta, hummus",
+    "Asian-inspired - soy sauce, ginger, garlic, sesame, rice, stir-fry",
+    "Mexican flavors - cumin, lime, cilantro, beans, peppers, avocado",
+    "Indian cuisine - turmeric, curry, lentils, chickpeas, basmati rice",
+    "Italian style - tomatoes, basil, pasta alternatives, olive oil, parmesan",
+    "Middle Eastern - tahini, za'atar, falafel, tabbouleh, pita",
+    "American comfort - classic proteins, grilled meats, potatoes, greens",
+    "Thai-inspired - lemongrass, coconut, peanuts, thai basil, fish sauce",
+    "Japanese fusion - miso, seaweed, edamame, teriyaki, sushi bowls",
+    "Greek focus - olives, feta, oregano, lemon, grilled lamb or chicken",
+    "Caribbean vibes - jerk seasoning, tropical fruits, rice and peas",
+    "Korean-inspired - gochujang, kimchi, sesame oil, bibimbap style",
+    "Moroccan flavors - harissa, couscous, tagine, preserved lemons",
+    "Vietnamese fresh - pho, banh mi style, fresh herbs, rice noodles",
+]
+
 class DayMealGenerator(dspy.Module):
     """Generates all meals for a single day in one LLM call - much faster!"""
 
@@ -257,11 +278,17 @@ class DayMealGenerator(dspy.Module):
 
     def forward(self, user_profile: UserProfile, plan_date: str,
                 context: str = "", previous_days_summary: str = "",
-                meal_slots: List[str] = None) -> List[GeneratedMeal]:
+                meal_slots: List[str] = None, variety_seed: str = None) -> List[GeneratedMeal]:
         
         # Default meal slots if not provided
         if meal_slots is None:
             meal_slots = ['breakfast', 'lunch', 'dinner']
+        
+        # Generate random variety seed for meal diversity
+        import random
+        if variety_seed is None:
+            variety_seed = random.choice(CUISINE_VARIETY_SEEDS)
+        print(f"🎲 Variety seed: {variety_seed}")
 
         profile_dict = user_profile.model_dump()
         
@@ -306,6 +333,7 @@ RULES:
             plan_date=plan_date,
             context=context + slots_instruction + allergy_warning,
             previous_days_summary=previous_days_summary,
+            variety_seed=variety_seed,
             target_calories=user_profile.daily_calorie_goal
         )
 
@@ -682,6 +710,10 @@ class MealPlanOrchestrator(dspy.Module):
         print(f"📋 User profile: diet={user_profile.diet_style}, allergies={user_profile.allergies}")
         print(f"🕐 Fasting: {fasting_option}, Meals per day: {meals_per_day}, Slots: {meal_slots}")
 
+        # Shuffle cuisine seeds for variety across days
+        import random
+        shuffled_cuisines = random.sample(CUISINE_VARIETY_SEEDS, min(len(CUISINE_VARIETY_SEEDS), number_of_days + 3))
+        
         for day_offset in range(number_of_days):
             current_date = (start + timedelta(days=day_offset)).strftime('%Y-%m-%d')
             print(f"  Day {day_offset + 1}: {current_date}")
@@ -691,13 +723,17 @@ class MealPlanOrchestrator(dspy.Module):
             if previous_days_summary:
                 prev_summary = "Previous days' lunch/dinner (AVOID REPEATING): " + "; ".join(previous_days_summary[-6:])
             
+            # Use different cuisine style for each day
+            day_variety_seed = shuffled_cuisines[day_offset % len(shuffled_cuisines)]
+            
             # Generate all meals for this day in ONE call
             day_meals = self.day_generator(
                 user_profile=user_profile,
                 plan_date=current_date,
                 context=context,
                 previous_days_summary=prev_summary,
-                meal_slots=meal_slots
+                meal_slots=meal_slots,
+                variety_seed=day_variety_seed
             )
             
             # Track lunch and dinner names for variety enforcement

@@ -186,7 +186,7 @@ if DSPY_AVAILABLE:
         description: str = dspy.OutputField(desc="Brief 1-2 sentence description of the dish")
         servings: int = dspy.OutputField(desc="Number of servings (usually 2)")
         tags: str = dspy.OutputField(desc="Comma-separated tags like 'healthy,quick,vegetarian'")
-        ingredients_json: str = dspy.OutputField(desc='JSON array of ingredients with format: [{"name": "chicken breast", "amount": "200g", "category": "Protein"}]')
+        ingredients_json: str = dspy.OutputField(desc='JSON array of ingredients with UNITS in amount field. Format: [{"name": "chicken breast", "amount": "200g", "category": "Protein"}, {"name": "olive oil", "amount": "2 tbsp", "category": "Oil"}]. IMPORTANT: amount MUST include unit like "2 cups", "100g", "1 tbsp", "3 cloves"')
         instructions_json: str = dspy.OutputField(desc='JSON array of step-by-step instructions: ["Step 1...", "Step 2..."]')
         calories: int = dspy.OutputField(desc="Estimated total calories")
         protein: int = dspy.OutputField(desc="Estimated protein in grams")
