@@ -183,7 +183,28 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
 
 ## Recent Changes
 
-### January 2026 (Latest)
+### January 2026 - Session 2 (Latest)
+- **Fixed double-counting in nutrition tracking**:
+  - Meal plan meals: Only use `meal_plans.is_completed` flag (no longer logs to daily_nutrition_summary)
+  - Standalone recipes: Continue using `daily_nutrition_summary` 
+  - getDailyNutritionTotals now correctly SUMS both sources without overlap
+  
+- **Improved meal variety**:
+  - Added 14 cuisine variety seeds (Mediterranean, Asian, Mexican, Indian, etc.)
+  - Each day gets a different random variety seed for diverse cuisine
+  - Regenerating meal plan now produces genuinely different meals
+  
+- **Recipe ingredient units fix**:
+  - DSPy prompt now explicitly requires units in amount field ("2 cups", "100g", etc.)
+  
+- **Created NutritionGoalsAgent**:
+  - Uses Mifflin-St Jeor equation for BMR calculation
+  - Adjusts calories based on health goal (-500 for weight loss, +300 for muscle gain)
+  - Calculates macros based on diet style (balanced, keto, high-protein)
+  - API endpoint: `/api/nutrition/calculate-goals`
+  - Frontend: `calculateAndSaveNutritionGoals()` in nutritionService
+
+### January 2026
 - **Fasting & Meals Per Day Integration**:
   - Added meals per day selector (3, 4, 5 meals) to MealPlanChatModal
   - Added fasting option selector with 5 presets: None, 16:8, 18:6, 20:4, OMAD
