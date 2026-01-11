@@ -234,10 +234,18 @@ export const mealPlannerService = {
   },
 
   async markMealAsCooked(id: string): Promise<void> {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const cookedDate = `${year}-${month}-${day}`
+    
     const { error } = await supabase
       .from('meal_plans')
       .update({ 
-        is_completed: true, 
+        is_completed: true,
+        cooked_date: cookedDate,
+        cooked_at: new Date().toISOString(),
         updated_at: new Date().toISOString() 
       })
       .eq('id', id);

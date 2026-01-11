@@ -82,15 +82,15 @@ export const updateUserNutritionGoals = async (userId: string, goals: Partial<Nu
 
 export const getDailyNutritionTotals = async (userId: string, date: string): Promise<DailyNutritionTotals> => {
   try {
-    console.log('📊 getDailyNutritionTotals - querying for date:', date, 'userId:', userId)
+    console.log('📊 getDailyNutritionTotals - querying for cooked_date:', date, 'userId:', userId)
     
-    // Fetch from both meal_plans (completed meals) and daily_nutrition_summary (cooked recipes)
+    // Fetch from both meal_plans (completed meals by cooked_date) and daily_nutrition_summary (cooked recipes)
     const [mealPlansResult, summaryResult] = await Promise.all([
       supabase
         .from('meal_plans')
-        .select('calories, protein_g, carbs_g, fat_g, fiber_g, is_completed')
+        .select('calories, protein_g, carbs_g, fat_g, fiber_g, is_completed, cooked_date')
         .eq('user_id', userId)
-        .eq('plan_date', date),
+        .eq('cooked_date', date),
       supabase
         .from('daily_nutrition_summary')
         .select('total_calories, total_protein_g, total_carbs_g, total_fat_g, total_fiber_g, completed_meals_count')
