@@ -1,5 +1,14 @@
 import { supabase } from './supabase'
 
+// Helper to get local date string in YYYY-MM-DD format (timezone-safe)
+export const getLocalDateString = (date?: Date): string => {
+  const d = date || new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export interface NutritionGoals {
   calorie_goal: number
   protein_goal_g: number
@@ -82,15 +91,23 @@ export const updateUserNutritionGoals = async (userId: string, goals: Partial<Nu
 
 export const getDailyNutritionTotals = async (userId: string, date: string): Promise<DailyNutritionTotals> => {
   try {
-    console.log('📊 getDailyNutritionTotals - querying for cooked_date:', date, 'userId:', userId)
+    console.log('📊 getDailyNutritionTotals - querying for date:', date, 'userId:', userId)
     
-    // Fetch from both meal_plans (completed meals by cooked_date) and daily_nutrition_summary (cooked recipes)
-    const [mealPlansResult, summaryResult] = await Promise.all([
+    // Fetch from:
+    // 1. meal_plans by cooked_date (meals cooked today, regardless of when planned)
+    // 2. meal_plans by plan_date (to get total planned meals for today)
+    // 3. daily_nutrition_summary (standalone recipes cooked)
+    const [cookedMealsResult, plannedMealsResult, summaryResult] = await Promise.all([
       supabase
         .from('meal_plans')
         .select('calories, protein_g, carbs_g, fat_g, fiber_g, is_completed, cooked_date')
         .eq('user_id', userId)
         .eq('cooked_date', date),
+      supabase
+        .from('meal_plans')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('plan_date', date),
       supabase
         .from('daily_nutrition_summary')
         .select('total_calories, total_protein_g, total_carbs_g, total_fat_g, total_fiber_g, completed_meals_count')
@@ -99,12 +116,11 @@ export const getDailyNutritionTotals = async (userId: string, date: string): Pro
         .single()
     ])
 
-    // Get completed meals from meal_plans
-    const meals = mealPlansResult.data || []
-    console.log('📊 meal_plans query result:', meals.length, 'meals found, error:', mealPlansResult.error)
-    console.log('📊 Meals data:', JSON.stringify(meals))
-    const completedMeals = meals.filter(m => m.is_completed)
-    console.log('📊 Completed meals:', completedMeals.length)
+    // Get completed meals (cooked today)
+    const cookedMeals = cookedMealsResult.data || []
+    const plannedMeals = plannedMealsResult.data || []
+    console.log('📊 Cooked meals today:', cookedMeals.length, 'Planned meals today:', plannedMeals.length)
+    const completedMeals = cookedMeals.filter(m => m.is_completed)
     
     const mealPlanNutrition = {
       calories: completedMeals.reduce((sum, m) => sum + (m.calories || 0), 0),
@@ -138,7 +154,7 @@ export const getDailyNutritionTotals = async (userId: string, date: string): Pro
       fat_g: mealPlanNutrition.fat_g + summaryNutrition.fat_g,
       fiber_g: mealPlanNutrition.fiber_g + summaryNutrition.fiber_g,
       completedMeals: mealPlanNutrition.completedMeals + summaryNutrition.completedMeals,
-      totalMeals: meals.length || 4 // Default to 4 meals if no meal plan
+      totalMeals: plannedMeals.length || 4 // Total meals planned for today (or default 4)
     }
   } catch (error) {
     console.error('Error fetching daily nutrition:', error)
@@ -155,7 +171,7 @@ export const getDailyNutritionTotals = async (userId: string, date: string): Pro
 }
 
 export const getNutritionDashboard = async (userId: string, date?: string): Promise<NutritionDashboard> => {
-  const targetDate = date || new Date().toISOString().split('T')[0]
+  const targetDate = date || getLocalDateString()
   
   const [totals, goals] = await Promise.all([
     getDailyNutritionTotals(userId, targetDate),
@@ -167,12 +183,24 @@ export const getNutritionDashboard = async (userId: string, date?: string): Prom
 
 export const markMealCompleted = async (mealId: string, completed: boolean): Promise<boolean> => {
   try {
+    const cookedDate = getLocalDateString()
+    
+    const updateData: Record<string, unknown> = { 
+      is_completed: completed,
+      updated_at: new Date().toISOString()
+    }
+    
+    if (completed) {
+      updateData.cooked_date = cookedDate
+      updateData.cooked_at = new Date().toISOString()
+    } else {
+      updateData.cooked_date = null
+      updateData.cooked_at = null
+    }
+    
     const { error } = await supabase
       .from('meal_plans')
-      .update({ 
-        is_completed: completed,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', mealId)
 
     if (error) {

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getLocalDateString } from './nutritionService';
 
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snack_am' | 'snack_pm' | 'snack_evening';
 
@@ -234,11 +235,7 @@ export const mealPlannerService = {
   },
 
   async markMealAsCooked(id: string): Promise<void> {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    const cookedDate = `${year}-${month}-${day}`
+    const cookedDate = getLocalDateString()
     
     const { error } = await supabase
       .from('meal_plans')
