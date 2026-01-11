@@ -183,7 +183,16 @@ By default, the app uses Replit's OpenAI integration. To use your own OpenAI API
 
 ## Recent Changes
 
-### January 2026 - Session 2 (Latest)
+### January 2026 - Session 3 (Latest)
+- **Fixed nutrition date tracking with cooked_date column**:
+  - Added `cooked_date` and `cooked_at` columns to meal_plans table
+  - Meals planned for future dates now show nutrition on the day they're actually cooked
+  - Created `getLocalDateString()` helper for timezone-safe date formatting
+  - `markMealAsCooked` and `markMealCompleted` both set cooked_date to today's local date
+  - `getDailyNutritionTotals` queries by cooked_date for nutrition, plan_date for total meals
+  - Both mealPlannerService and nutritionService use the same helper function
+
+### January 2026 - Session 2
 - **Fixed double-counting in nutrition tracking**:
   - Meal plan meals: Only use `meal_plans.is_completed` flag (no longer logs to daily_nutrition_summary)
   - Standalone recipes: Continue using `daily_nutrition_summary` 
