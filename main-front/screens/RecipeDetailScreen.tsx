@@ -39,6 +39,7 @@ interface Recipe {
   protein: number
   carbs: number
   fat: number
+  fiber?: number
 }
 
 interface FridgeItem {
@@ -638,7 +639,24 @@ export default function RecipeDetailScreen({
                   ]}
                   onPress={() => {
                     if (cookedRating > 0 && onMarkAsCooked) {
-                      onMarkAsCooked(recipe, cookedRating)
+                      // Pass adjusted nutrition values based on current serving count
+                      // Keep baseServings unchanged, adjust only the total nutrition values
+                      const perServing = {
+                        calories: recipe.calories / recipe.baseServings,
+                        protein: recipe.protein / recipe.baseServings,
+                        carbs: recipe.carbs / recipe.baseServings,
+                        fat: recipe.fat / recipe.baseServings,
+                        fiber: (recipe.fiber || 0) / recipe.baseServings
+                      }
+                      const adjustedRecipe = {
+                        ...recipe,
+                        calories: Math.round(perServing.calories * servings),
+                        protein: Math.round(perServing.protein * servings),
+                        carbs: Math.round(perServing.carbs * servings),
+                        fat: Math.round(perServing.fat * servings),
+                        fiber: Math.round(perServing.fiber * servings)
+                      }
+                      onMarkAsCooked(adjustedRecipe, cookedRating)
                       setShowRatingModal(false)
                       setCookedRating(0)
                     }

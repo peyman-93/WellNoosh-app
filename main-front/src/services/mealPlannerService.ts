@@ -58,8 +58,8 @@ export const mealPlannerService = {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    const startDateStr = getLocalDateString(startDate);
+    const endDateStr = getLocalDateString(endDate);
 
     const { data, error } = await supabase
       .from('meal_plans')
@@ -83,7 +83,7 @@ export const mealPlannerService = {
       throw new Error('User not authenticated');
     }
 
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(date);
 
     const { data, error } = await supabase
       .from('meal_plans')
@@ -198,8 +198,8 @@ export const mealPlannerService = {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    const startDateStr = getLocalDateString(startDate);
+    const endDateStr = getLocalDateString(endDate);
 
     const { error } = await supabase
       .from('meal_plans')
@@ -220,7 +220,7 @@ export const mealPlannerService = {
       throw new Error('User not authenticated');
     }
 
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(date);
 
     const { error } = await supabase
       .from('meal_plans')
