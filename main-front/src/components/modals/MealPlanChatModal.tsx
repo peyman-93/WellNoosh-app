@@ -62,6 +62,36 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isSavingPlan, setIsSavingPlan] = useState(false)
   const [pendingStartDate, setPendingStartDate] = useState<Date | null>(null)
+  const [selectedStartDate, setSelectedStartDate] = useState<Date>(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
+  })
+
+  const getSelectableDates = (): Date[] => {
+    const dates: Date[] = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    for (let i = 0; i < 14; i++) {
+      const date = new Date(today)
+      date.setDate(today.getDate() + i)
+      dates.push(date)
+    }
+    return dates
+  }
+
+  const formatDateOption = (date: Date): string => {
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  }
+
+  const getDateRangeText = (): string => {
+    const endDate = new Date(selectedStartDate)
+    endDate.setDate(selectedStartDate.getDate() + dayCount - 1)
+    if (dayCount === 1) {
+      return formatDateOption(selectedStartDate)
+    }
+    return `${formatDateOption(selectedStartDate)} - ${formatDateOption(endDate)}`
+  }
 
   const healthContext: UserHealthContext = {
     allergies: userData?.allergies,
@@ -113,7 +143,8 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
     greeting += "Configure your plan using the options below:\n"
     greeting += "• Select how many days to plan\n"
     greeting += "• Choose meals per day (3, 4, or 5)\n"
-    greeting += "• Pick a fasting schedule if desired\n\n"
+    greeting += "• Pick a fasting schedule if desired\n"
+    greeting += "• Select your start date\n\n"
     greeting += "Then tell me about any special preferences (cuisines, budget, quick meals, etc.) or just click Generate!"
 
     return greeting
@@ -166,7 +197,7 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
         const confirmMessage: DisplayMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: `Great! I'll generate a ${dayCount}-day meal plan for you based on our conversation. Click the "Generate ${dayCount}-Day Plan" button below to start, and you'll be able to preview the meals before adding them to your calendar.`,
+          content: `Great! I'll generate a ${dayCount}-day meal plan starting ${formatDateOption(selectedStartDate)} based on our conversation. Click the "Generate Plan" button below to start, and you'll be able to preview the meals before adding them to your calendar.`,
           timestamp: new Date()
         }
         setMessages(prev => [...prev, confirmMessage])
@@ -224,11 +255,8 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
         content: m.content
       }))
 
-      const startDate = weekStartDate ? new Date(weekStartDate) : (() => {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        return today
-      })()
+      const startDate = new Date(selectedStartDate)
+      startDate.setHours(0, 0, 0, 0)
 
       // Build enhanced context with fasting info
       const enhancedContext: UserHealthContext = {
@@ -560,6 +588,42 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
               </View>
             </View>
 
+            <View style={styles.optionsRow}>
+              <View style={styles.optionGroup}>
+                <Text style={styles.optionLabel}>Start Date:</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.dateScrollView}
+                  contentContainerStyle={styles.dateScrollContent}
+                >
+                  {getSelectableDates().map((date) => {
+                    const isSelected = date.toDateString() === selectedStartDate.toDateString()
+                    const isToday = date.toDateString() === new Date().toDateString()
+                    return (
+                      <TouchableOpacity
+                        key={date.toISOString()}
+                        style={[styles.dateBtn, isSelected && styles.dateBtnActive, showConfirmation && styles.dateBtnDisabled]}
+                        onPress={() => setSelectedStartDate(date)}
+                        disabled={isGeneratingPlan || showConfirmation}
+                      >
+                        <Text style={[styles.dateDayText, isSelected && styles.dateDayTextActive]}>
+                          {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                        </Text>
+                        <Text style={[styles.dateNumText, isSelected && styles.dateNumTextActive]}>
+                          {date.getDate()}
+                        </Text>
+                        {isToday && <Text style={styles.todayLabel}>Today</Text>}
+                      </TouchableOpacity>
+                    )
+                  })}
+                </ScrollView>
+                <Text style={styles.dateRangeText}>
+                  Plan dates: {getDateRangeText()}
+                </Text>
+              </View>
+            </View>
+
             {showConfirmation ? (
               <View style={styles.confirmationButtons}>
                 <TouchableOpacity 
@@ -595,7 +659,7 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
                 ) : (
                   <View style={styles.generateButtonContent}>
                     <Text style={styles.generateButtonIcon}>✨</Text>
-                    <Text style={styles.generateButtonText}>Generate {dayCount}-Day Plan</Text>
+                    <Text style={styles.generateButtonText}>Generate Plan for {getDateRangeText()}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -770,6 +834,62 @@ const styles = StyleSheet.create({
   },
   toggleTextActive: {
     color: '#FFFFFF',
+  },
+  dateScrollView: {
+    marginBottom: 8,
+  },
+  dateScrollContent: {
+    paddingRight: 12,
+    gap: 8,
+  },
+  dateBtn: {
+    width: 56,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  dateBtnActive: {
+    backgroundColor: '#6B8E23',
+    borderColor: '#4A6D1A',
+  },
+  dateBtnDisabled: {
+    opacity: 0.5,
+  },
+  dateDayText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    marginBottom: 2,
+  },
+  dateDayTextActive: {
+    color: '#FFFFFF',
+  },
+  dateNumText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    fontFamily: 'Inter',
+  },
+  dateNumTextActive: {
+    color: '#FFFFFF',
+  },
+  todayLabel: {
+    fontSize: 8,
+    fontWeight: '600',
+    color: '#6B8E23',
+    fontFamily: 'Inter',
+    marginTop: 2,
+  },
+  dateRangeText: {
+    fontSize: 12,
+    color: '#4A6D1A',
+    fontFamily: 'Inter',
+    fontWeight: '500',
   },
   generateButton: {
     flexDirection: 'row',
