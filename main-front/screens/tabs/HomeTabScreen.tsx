@@ -76,10 +76,10 @@ function CircularProgress({
         </G>
       </Svg>
       <View style={[styles.progressContent, { width: size, height: size }]}>
-        <Text style={styles.progressValue}>{Math.round(value)}</Text>
-        <Text style={styles.progressUnit}>{unit}</Text>
+        <Text style={[styles.progressValue, { fontSize: size < 70 ? 14 : 32, lineHeight: size < 70 ? 18 : 44.8 }]}>{Math.round(value)}</Text>
+        <Text style={[styles.progressUnit, { fontSize: size < 70 ? 8 : 14, marginTop: size < 70 ? -1 : -2 }]}>{unit}</Text>
       </View>
-      <Text style={styles.progressLabel}>{label}</Text>
+      <Text style={[styles.progressLabel, { fontSize: size < 70 ? 10 : 14 }]}>{label}</Text>
     </View>
   )
 }
@@ -537,8 +537,8 @@ export default function DashboardScreen() {
                 <CircularProgress
                   value={data.completed}
                   maxValue={data.goal}
-                  size={100}
-                  strokeWidth={8}
+                  size={Math.min(60, (screenWidth - 80) / 5)}
+                  strokeWidth={5}
                   primaryColor={color}
                   secondaryColor={`${color}20`}
                   label={wheelId.charAt(0).toUpperCase() + wheelId.slice(1)}
@@ -874,12 +874,12 @@ const styles = StyleSheet.create({
   // Nutrition Wheels
   wheelsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 16,
+    paddingBottom: 8,
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
     borderWidth: 1,
