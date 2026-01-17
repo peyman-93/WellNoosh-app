@@ -11,7 +11,7 @@ import RecipesTabScreen from './tabs/RecipesTabScreen'
 import MealPlannerTabScreen from './tabs/MealPlannerTabScreen'
 import CommunityTabScreen from './tabs/CommunityTabScreen'
 import GroceryListTabScreen from './tabs/GroceryListTabScreen'
-import PantryTabScreen from './tabs/PantryTabScreen'
+// PantryTabScreen removed from navigation
 import ProfileScreen from './ProfileScreen'
 import TrackerScreen from './TrackerScreen'
 import FoodDetectionScreen from './FoodDetectionScreen'
@@ -57,14 +57,7 @@ const GroceryIcon = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 )
 
-const FridgeIcon = ({ color, size }: { color: string; size: number }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M7 2C5.9 2 5 2.9 5 4V19C5 20.1 5.9 21 7 21V22H9V21H15V22H17V21C18.1 21 19 20.1 19 19V4C19 2.9 18.1 2 17 2H7ZM7 4H17V9H7V4ZM7 11H17V19H7V11ZM9 5V8H11V5H9ZM9 12V15H11V12H9Z"
-      fill={color}
-    />
-  </Svg>
-)
+// FridgeIcon removed - Pantry tab no longer used
 
 const ProfileIcon = ({ color, size }: { color: string; size: number }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
@@ -227,13 +220,6 @@ export default function MainTabs() {
           tabPress: () => {
             clearGroceryBadge();
           },
-        }}
-      />
-      <Tab.Screen
-        name="Pantry"
-        component={PantryTabScreen}
-        options={{
-          tabBarIcon: FridgeIcon,
         }}
       />
       <Tab.Screen

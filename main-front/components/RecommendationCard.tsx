@@ -63,7 +63,7 @@ export function RecommendationCard({
 }: RecommendationCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [ingredientChecklist, setIngredientChecklist] = useState<{[index: number]: boolean}>({});
-  const [currentServings, setCurrentServings] = useState(recipe.servings);
+  const [currentServings, setCurrentServings] = useState(1);
 
   // Animation refs for swipe gestures
   const translateX = useRef(new Animated.Value(0)).current;
@@ -338,7 +338,6 @@ export function RecommendationCard({
         </View>
 
         <View style={styles.nutritionSection}>
-          <Text style={styles.sectionTitle}>Nutrition per serving</Text>
           <View style={styles.nutritionGrid}>
             <View style={[styles.nutritionItem, { backgroundColor: '#dcfce7' }]}>
               <Text style={styles.nutritionValue}>{getScaledNutrition().calories}</Text>

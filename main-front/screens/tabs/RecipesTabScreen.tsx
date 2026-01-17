@@ -100,13 +100,26 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
 
       const personalizedRecipe = result.recipe
 
+      // Extract numeric amount and unit from combined amount string
+      const parseAmountWithUnit = (amountStr: string): { amount: string; unit: string } => {
+        if (!amountStr || amountStr === '-') return { amount: amountStr, unit: '' }
+        const match = amountStr.match(/^([\d.\/]+)\s*(.*)$/)
+        if (match) {
+          return { amount: match[1], unit: match[2] || '' }
+        }
+        return { amount: amountStr, unit: '' }
+      }
+
       // Convert adapted ingredients to DetailRecipe format
-      const adaptedIngredients = personalizedRecipe.adapted_ingredients?.map(ing => ({
-        name: ing.name,
-        amount: ing.amount,
-        unit: '',
-        category: ing.reason || 'Ingredient'
-      })) || detailRecipe.ingredients
+      const adaptedIngredients = personalizedRecipe.adapted_ingredients?.map(ing => {
+        const parsed = parseAmountWithUnit(ing.amount)
+        return {
+          name: ing.name,
+          amount: parsed.amount,
+          unit: parsed.unit,
+          category: ing.reason || 'Ingredient'
+        }
+      }) || detailRecipe.ingredients
 
       // Convert adapted instructions to string array with tips
       const adaptedInstructions = personalizedRecipe.structured_instructions?.map(s =>
@@ -169,13 +182,26 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
       return emojiMap[category || ''] || '🍽️'
     }
 
+    // Extract numeric amount and unit from combined amount string (e.g., "2 cups" -> { amount: "2", unit: "cups" })
+    const parseAmountWithUnit = (amountStr: string): { amount: string; unit: string } => {
+      if (!amountStr || amountStr === '-') return { amount: amountStr, unit: '' }
+      const match = amountStr.match(/^([\d.\/]+)\s*(.*)$/)
+      if (match) {
+        return { amount: match[1], unit: match[2] || '' }
+      }
+      return { amount: amountStr, unit: '' }
+    }
+
     const ingredients = recipe.ingredients && recipe.ingredients.length > 0
-      ? recipe.ingredients.map(ing => ({
-          name: ing.name,
-          amount: ing.amount,
-          unit: '',
-          category: ing.category || 'Other'
-        }))
+      ? recipe.ingredients.map(ing => {
+          const parsed = parseAmountWithUnit(ing.amount)
+          return {
+            name: ing.name,
+            amount: parsed.amount,
+            unit: parsed.unit,
+            category: ing.category || 'Other'
+          }
+        })
       : [{ name: 'See full recipe for ingredients', amount: '-', unit: '', category: 'Info' }]
 
     const calories = typeof recipe.calories === 'number' ? recipe.calories : parseInt(String(recipe.calories) || '400')

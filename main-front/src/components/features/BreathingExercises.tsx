@@ -191,6 +191,11 @@ export function BreathingExercises({
   // Auto-start is now handled by showing the start screen instead of immediately starting
   
   const getPhaseInstruction = () => {
+    // During initial 3-second countdown, show "Starting in"
+    if (breathingState.totalTime > 30) {
+      return 'Starting in'
+    }
+    
     switch (breathingState.currentPhase) {
       case 'inhale':
         return 'Breathe In'

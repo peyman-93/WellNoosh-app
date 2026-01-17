@@ -74,7 +74,7 @@ export default function RecipeDetailScreen({
   onMarkAsCooked,
   userRating = 0
 }: RecipeDetailScreenProps) {
-  const [servings, setServings] = useState(recipe.baseServings)
+  const [servings, setServings] = useState(1)
   const [showNutritionModal, setShowNutritionModal] = useState(false)
   const [currentUserRating, setCurrentUserRating] = useState(userRating)
   const [showCookingSteps, setShowCookingSteps] = useState(false)
@@ -92,10 +92,35 @@ export default function RecipeDetailScreen({
     )
   }
 
+  // Parse fraction strings like "1/2" or "1 1/2" to numeric values
+  const parseFraction = (str: string): number | null => {
+    if (!str || str === '-') return null
+    const trimmed = str.trim()
+    
+    // Handle mixed fractions like "1 1/2"
+    const mixedMatch = trimmed.match(/^(\d+)\s+(\d+)\/(\d+)$/)
+    if (mixedMatch) {
+      const whole = parseInt(mixedMatch[1])
+      const num = parseInt(mixedMatch[2])
+      const denom = parseInt(mixedMatch[3])
+      return whole + (num / denom)
+    }
+    
+    // Handle simple fractions like "1/2"
+    const fractionMatch = trimmed.match(/^(\d+)\/(\d+)$/)
+    if (fractionMatch) {
+      return parseInt(fractionMatch[1]) / parseInt(fractionMatch[2])
+    }
+    
+    // Handle decimals and integers
+    const num = parseFloat(trimmed)
+    return isNaN(num) ? null : num
+  }
+
   // Calculate adjusted ingredient amounts
   const getAdjustedAmount = (amount: string) => {
-    const numericAmount = parseFloat(amount)
-    if (!isNaN(numericAmount)) {
+    const numericAmount = parseFraction(amount)
+    if (numericAmount !== null) {
       const adjusted = numericAmount * servingMultiplier
       return adjusted % 1 === 0 ? adjusted.toString() : adjusted.toFixed(1)
     }

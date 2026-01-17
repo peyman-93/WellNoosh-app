@@ -77,7 +77,7 @@ function CircularProgress({
       </Svg>
       <View style={[styles.progressContent, { width: size, height: size }]}>
         <Text style={styles.progressValue}>{Math.round(value)}</Text>
-        <Text style={styles.progressUnit}>/{maxValue}{unit}</Text>
+        <Text style={styles.progressUnit}>{unit}</Text>
       </View>
       <Text style={styles.progressLabel}>{label}</Text>
     </View>
@@ -133,7 +133,7 @@ export default function DashboardScreen() {
   const [showAddMeal, setShowAddMeal] = useState(false)
   const [showMealPlanChat, setShowMealPlanChat] = useState(false)
   // Customizable nutrition wheels
-  const [selectedWheels, setSelectedWheels] = useState(['calories', 'protein', 'fiber'])
+  const [selectedWheels, setSelectedWheels] = useState(['calories', 'protein', 'fiber', 'carbs', 'fat'])
   const [showNutritionModal, setShowNutritionModal] = useState(false)
   const [showAllMeals, setShowAllMeals] = useState(false)
   
@@ -636,28 +636,6 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Food Detection Section */}
-        <View style={styles.foodDetectionSection}>
-          <TouchableOpacity 
-            style={styles.foodDetectionButton}
-            onPress={() => navigation.navigate('FoodDetection' as never)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.foodDetectionButtonContent}>
-              <View style={styles.foodDetectionIconContainer}>
-                <Text style={styles.foodDetectionIcon}>📸</Text>
-              </View>
-              <View style={styles.foodDetectionTextContent}>
-                <Text style={styles.foodDetectionButtonTitle}>Log Your Meal</Text>
-                <Text style={styles.foodDetectionButtonSubtitle}>Scan food to track nutrition instantly</Text>
-              </View>
-              <View style={styles.foodDetectionArrow}>
-                <Text style={styles.foodDetectionArrowIcon}>→</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </View>
-
         {/* Quick Actions */}
         <View style={styles.section}>
           {/* Reflect Button - Wide */}
@@ -669,24 +647,6 @@ export default function DashboardScreen() {
               <View style={styles.reflectTextContainer}>
                 <Text style={styles.reflectLabel}>Daily Reflection</Text>
                 <Text style={styles.reflectSubtitle}>Track your wellness journey</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-          
-          
-          {/* Health Tracker Button */}
-          <TouchableOpacity style={styles.healthTrackerButton} onPress={() => navigation.navigate('TrackerScreen' as never)}>
-            <View style={styles.healthTrackerContent}>
-              <View style={styles.healthTrackerIconContainer}>
-                <Text style={styles.healthTrackerIcon}>📊</Text>
-              </View>
-              <View style={styles.healthTrackerTextContainer}>
-                <Text style={styles.healthTrackerLabel}>Health Tracker</Text>
-                <Text style={styles.healthTrackerSubtitle}>Monitor your wellness journey</Text>
-              </View>
-              <View style={styles.healthTrackerStats}>
-                <Text style={styles.healthTrackerValue}>74.1</Text>
-                <Text style={styles.healthTrackerUnit}>kg</Text>
               </View>
             </View>
           </TouchableOpacity>
