@@ -9,7 +9,7 @@ import { useBadge } from '../src/context/BadgeContext'
 import HomeTabScreen from './tabs/HomeTabScreen'
 import RecipesTabScreen from './tabs/RecipesTabScreen'
 import MealPlannerTabScreen from './tabs/MealPlannerTabScreen'
-import CommunityTabScreen from './tabs/CommunityTabScreen'
+import DailyReflectionTabScreen from './tabs/DailyReflectionTabScreen'
 import GroceryListTabScreen from './tabs/GroceryListTabScreen'
 // PantryTabScreen removed from navigation
 import ProfileScreen from './ProfileScreen'
@@ -39,10 +39,10 @@ const PlannerIcon = ({ color, size }: { color: string; size: number }) => (
   <MealPlannerIcon width={size} height={size} color={color} />
 )
 
-const CommunityIcon = ({ color, size }: { color: string; size: number }) => (
+const ReflectionIcon = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
-      d="M16 17V19C16 20.1046 15.1046 21 14 21H5C3.89543 21 3 20.1046 3 19V17C3 15.3431 4.34315 14 6 14H13C14.6569 14 16 15.3431 16 17ZM9.5 3C11.7091 3 13.5 4.79086 13.5 7C13.5 9.20914 11.7091 11 9.5 11C7.29086 11 5.5 9.20914 5.5 7C5.5 4.79086 7.29086 3 9.5 3ZM18 6H21V8H18V11H16V8H13V6H16V3H18V6Z"
+      d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z"
       fill={color}
     />
   </Svg>
@@ -196,10 +196,10 @@ export default function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Community"
-        component={CommunityTabScreen}
+        name="Reflect"
+        component={DailyReflectionTabScreen}
         options={{
-          tabBarIcon: CommunityIcon,
+          tabBarIcon: ReflectionIcon,
         }}
       />
       <Tab.Screen

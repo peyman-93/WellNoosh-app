@@ -399,7 +399,9 @@ export default function RecipeDetailScreen({
                       <Text style={styles.ingredientAmount}>
                         {adjustedAmount} {ingredient.unit}
                       </Text>
-                      <Text style={styles.ingredientCategory}>{ingredient.category}</Text>
+                      {ingredient.category && !['Ingredient', 'General', 'Other'].includes(ingredient.category) && (
+                        <Text style={styles.ingredientCategory}>{ingredient.category}</Text>
+                      )}
                     </View>
                   </TouchableOpacity>
                 )

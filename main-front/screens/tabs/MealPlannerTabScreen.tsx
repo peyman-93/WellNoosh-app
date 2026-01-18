@@ -5,6 +5,7 @@ import { ScreenWrapper } from '../../src/components/layout/ScreenWrapper'
 import { mealPlannerService, MealPlanEntry, MealSlot } from '../../src/services/mealPlannerService'
 import { MealPlanChatModal } from '../../src/components/modals/MealPlanChatModal'
 import { MealDetailModal } from '../../src/components/modals/MealDetailModal'
+import { getLocalDateString } from '../../src/services/nutritionService'
 
 const MEAL_SLOTS: { key: MealSlot; label: string; icon: string }[] = [
   { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -38,7 +39,7 @@ export default function MealPlannerTabScreen() {
     day.setDate(startDate.getDate() + i)
     weekDays.push({
       date: day,
-      dateStr: day.toISOString().split('T')[0],
+      dateStr: getLocalDateString(day),
       dayName: day.toLocaleDateString('en-US', { weekday: 'short' }),
       dayNumber: day.getDate(),
       isToday: day.toDateString() === new Date().toDateString()
@@ -57,7 +58,7 @@ export default function MealPlannerTabScreen() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [startOfWeek.toISOString()])
+  }, [getLocalDateString(startOfWeek)])
 
   useEffect(() => {
     setLoading(true)

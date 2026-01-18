@@ -114,7 +114,7 @@ class PersonalizedRecipe(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str = Field(description="Recipe name")
     description: str = Field(description="Brief description of the dish")
-    servings: int = Field(default=2)
+    servings: int = Field(default=1)
     tags: List[str] = Field(default_factory=list)
     ingredients: List[RecipeIngredient] = Field(default_factory=list)
     instructions: List[str] = Field(default_factory=list)
@@ -399,7 +399,7 @@ class PersonalizedRecipeAgent:
             'breakfast': PersonalizedRecipe(
                 name="Fresh Fruit & Avocado Bowl",
                 description="A refreshing bowl of seasonal fruits with creamy avocado",
-                servings=2,
+                servings=1,
                 tags=["healthy", "quick", "allergen-free"],
                 ingredients=[
                     RecipeIngredient(name="mixed berries", amount="1 cup", category="Fruit"),
@@ -421,7 +421,7 @@ class PersonalizedRecipeAgent:
             'lunch': PersonalizedRecipe(
                 name="Grilled Chicken & Vegetable Bowl",
                 description="Lean protein with colorful roasted vegetables over quinoa",
-                servings=2,
+                servings=1,
                 tags=["healthy", "protein", "allergen-free"],
                 ingredients=[
                     RecipeIngredient(name="chicken breast", amount="200g", category="Protein"),
@@ -447,7 +447,7 @@ class PersonalizedRecipeAgent:
             'dinner': PersonalizedRecipe(
                 name="Herb-Roasted Salmon with Sweet Potato",
                 description="Omega-3 rich salmon with roasted sweet potato and asparagus",
-                servings=2,
+                servings=1,
                 tags=["healthy", "omega-3", "allergen-free"],
                 ingredients=[
                     RecipeIngredient(name="salmon fillet", amount="250g", category="Protein"),
@@ -472,7 +472,7 @@ class PersonalizedRecipeAgent:
             'snack': PersonalizedRecipe(
                 name="Fresh Veggie Sticks with Hummus",
                 description="Crunchy vegetables with creamy chickpea dip",
-                servings=2,
+                servings=1,
                 tags=["healthy", "vegan", "quick"],
                 ingredients=[
                     RecipeIngredient(name="carrots", amount="2 medium", category="Vegetable"),

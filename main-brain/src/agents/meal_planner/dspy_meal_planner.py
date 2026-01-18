@@ -177,6 +177,7 @@ class Nutrition(BaseModel):
     protein: int = Field(description="Protein in grams per serving")
     carbs: int = Field(description="Carbohydrates in grams per serving")
     fat: int = Field(description="Fat in grams per serving")
+    fiber: int = Field(default=0, description="Fiber in grams per serving")
 
 
 class GeneratedMeal(BaseModel):
@@ -383,7 +384,7 @@ RULES:
                     name=str(meal_data.get('name', 'Delicious Meal')),
                     description=str(meal_data.get('description', '')),
                     cookTime=cook_time,
-                    servings=int(meal_data.get('servings', 2) or 2),
+                    servings=int(meal_data.get('servings', 1) or 1),
                     difficulty=str(meal_data.get('difficulty', 'Easy')),
                     tags=meal_data.get('tags', []) or [],
                     ingredients=[
@@ -519,7 +520,7 @@ RULES:
             name=fallback['name'],
             description=fallback['description'],
             cookTime=fallback['cookTime'],
-            servings=2,
+            servings=1,
             difficulty=fallback['difficulty'],
             tags=fallback['tags'],
             ingredients=[Ingredient(**ing) for ing in fallback['ingredients']],

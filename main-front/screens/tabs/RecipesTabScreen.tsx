@@ -216,7 +216,7 @@ export default function RecipesTabScreen({ route, navigation }: { route: any, na
       rating: recipe.rating || 4.5,
       tags: recipe.tags || [recipe.category || 'General', recipe.area || 'International'].filter(Boolean),
       description: recipe.description || `A delicious ${recipe.category || ''} recipe${recipe.area ? ` from ${recipe.area}` : ''}.`,
-      baseServings: recipe.servings || 4,
+      baseServings: recipe.servings || 1,
       ingredients,
       instructions: instructionsList,
       calories,
