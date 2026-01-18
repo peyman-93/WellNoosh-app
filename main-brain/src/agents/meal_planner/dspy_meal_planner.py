@@ -235,6 +235,15 @@ class GenerateDayMealsSignature(dspy.Signature):
     - NEVER repeat the exact same meal name within a week
     - Snacks should vary in type (fruit, nuts, yogurt, vegetables)
     - Each regeneration should produce COMPLETELY NEW and CREATIVE meal ideas
+    
+    COMPLETE MEAL REQUIREMENTS - CRITICAL:
+    - EVERY meal must be a COMPLETE, BALANCED DISH - NOT just a list of ingredients
+    - Each meal must have a proper NAME that describes an actual dish (e.g., "Grilled Chicken Salad", "Vegetable Stir-Fry with Tofu", "Salmon with Roasted Vegetables")
+    - NEVER generate meals that are just raw ingredients (e.g., "Rice and Olive Oil" is NOT a valid meal)
+    - Each meal must include at least 4-6 ingredients that form a cohesive recipe
+    - Each meal must have clear cooking instructions (at least 3-5 steps)
+    - Breakfast should be complete meals like: Oatmeal with fruits and nuts, Eggs with vegetables, Smoothie bowls, Avocado toast with toppings
+    - Lunch and Dinner must be complete main courses with protein, vegetables, and optionally grains
     """
 
     user_profile: str = dspy.InputField(desc="User health profile with allergies, diet style, health goals, cooking skill")
@@ -244,7 +253,7 @@ class GenerateDayMealsSignature(dspy.Signature):
     variety_seed: str = dspy.InputField(desc="Random cuisine/style hint for variety: e.g., 'Mediterranean focus', 'Asian-inspired', 'Mexican flavors'")
     target_calories: int = dspy.InputField(desc="Target total calories for the day")
 
-    day_meals_json: str = dspy.OutputField(desc="JSON array of 3-4 meals (breakfast, lunch, dinner, optional snack). Each meal: {name, description, cookTime, servings, difficulty, tags, ingredients: [{name, amount, category}], instructions: [steps], nutrition: {calories, protein, carbs, fat}, meal_slot}")
+    day_meals_json: str = dspy.OutputField(desc="JSON array of 3-4 meals (breakfast, lunch, dinner, optional snack). Each meal MUST BE A COMPLETE RECIPE: {name (full dish name, NOT just ingredients), description, cookTime, servings, difficulty, tags, ingredients: [{name, amount, category}] (at least 4 ingredients), instructions: [steps] (at least 3 steps), nutrition: {calories, protein, carbs, fat, fiber}, meal_slot}")
 
 
 
@@ -369,7 +378,8 @@ RULES:
                     calories=int(raw_nutrition.get('calories', 400) or 400),
                     protein=int(raw_nutrition.get('protein', 25) or 25),
                     carbs=int(raw_nutrition.get('carbs', 40) or 40),
-                    fat=int(raw_nutrition.get('fat', 15) or 15)
+                    fat=int(raw_nutrition.get('fat', 15) or 15),
+                    fiber=int(raw_nutrition.get('fiber', 5) or 5)
                 )
                 
                 # Safely convert cookTime to string (AI might return integer like 10 instead of "10 mins")
@@ -440,7 +450,7 @@ RULES:
                     'Transfer to a bowl and top with sliced banana',
                     'Drizzle with honey and sprinkle almonds'
                 ],
-                'nutrition': {'calories': 350, 'protein': 12, 'carbs': 55, 'fat': 10}
+                'nutrition': {'calories': 350, 'protein': 12, 'carbs': 55, 'fat': 10, 'fiber': 6}
             },
             'lunch': {
                 'name': 'Grilled Chicken Salad',
@@ -463,7 +473,7 @@ RULES:
                     'Combine greens, tomatoes, and cucumber in a bowl',
                     'Top with sliced chicken and drizzle with olive oil and lemon'
                 ],
-                'nutrition': {'calories': 420, 'protein': 38, 'carbs': 12, 'fat': 24}
+                'nutrition': {'calories': 420, 'protein': 38, 'carbs': 12, 'fat': 24, 'fiber': 4}
             },
             'dinner': {
                 'name': 'Baked Salmon with Vegetables',
@@ -489,7 +499,7 @@ RULES:
                     'Place salmon on sheet with vegetables, bake 12-15 minutes',
                     'Serve with lemon wedges'
                 ],
-                'nutrition': {'calories': 520, 'protein': 42, 'carbs': 35, 'fat': 22}
+                'nutrition': {'calories': 520, 'protein': 42, 'carbs': 35, 'fat': 22, 'fiber': 7}
             },
             'snack': {
                 'name': 'Greek Yogurt Parfait',
@@ -509,7 +519,7 @@ RULES:
                     'Repeat layers with remaining ingredients',
                     'Drizzle with honey and serve immediately'
                 ],
-                'nutrition': {'calories': 250, 'protein': 18, 'carbs': 30, 'fat': 6}
+                'nutrition': {'calories': 250, 'protein': 18, 'carbs': 30, 'fat': 6, 'fiber': 3}
             }
         }
 

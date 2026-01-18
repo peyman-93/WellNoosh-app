@@ -296,6 +296,7 @@ Important:
         protein_g?: number;
         carbs_g?: number;
         fat_g?: number;
+        fiber_g?: number;
       }> = [];
       
       if (parsed.meals && Array.isArray(parsed.meals)) {
@@ -312,7 +313,8 @@ Important:
                 calories: meal.calories || undefined,
                 protein_g: meal.protein_g || undefined,
                 carbs_g: meal.carbs_g || undefined,
-                fat_g: meal.fat_g || undefined
+                fat_g: meal.fat_g || undefined,
+                fiber_g: meal.fiber_g || undefined
               });
             }
           }

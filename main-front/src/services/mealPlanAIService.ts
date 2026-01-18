@@ -33,6 +33,7 @@ export interface Nutrition {
   protein: number;
   carbs: number;
   fat: number;
+  fiber?: number;
 }
 
 export interface GeneratedMeal {
@@ -57,6 +58,7 @@ export interface GeneratedMeal {
   protein_g?: number;
   carbs_g?: number;
   fat_g?: number;
+  fiber_g?: number;
 }
 
 // DSPy Enhanced Meal Types (matching RecommendationCard format)
@@ -71,6 +73,7 @@ export interface DSPyNutrition {
   protein: number;
   carbs: number;
   fat: number;
+  fiber?: number;
 }
 
 export interface DSPyMeal {
@@ -212,7 +215,8 @@ class MealPlanAIService {
         calories: meal.nutrition?.calories || meal.calories,
         protein_g: meal.nutrition?.protein || meal.protein_g,
         carbs_g: meal.nutrition?.carbs || meal.carbs_g,
-        fat_g: meal.nutrition?.fat || meal.fat_g
+        fat_g: meal.nutrition?.fat || meal.fat_g,
+        fiber_g: meal.nutrition?.fiber || meal.fiber_g
       }));
 
       return {

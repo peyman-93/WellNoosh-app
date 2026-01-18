@@ -21,7 +21,6 @@ interface DailyReflection {
   mood_rating: number
   energy_level: number
   sleep_quality: number
-  water_intake: number
   notes: string
   wins: string
   gratitude: string
@@ -63,7 +62,6 @@ export default function DailyReflectionTabScreen() {
     mood_rating: 3,
     energy_level: 3,
     sleep_quality: 3,
-    water_intake: 0,
     notes: '',
     wins: '',
     gratitude: ''
@@ -104,7 +102,6 @@ export default function DailyReflectionTabScreen() {
         mood_rating: reflection.mood_rating,
         energy_level: reflection.energy_level,
         sleep_quality: reflection.sleep_quality,
-        water_intake: reflection.water_intake || 0,
         notes: reflection.notes || '',
         wins: reflection.wins || '',
         gratitude: reflection.gratitude || '',
@@ -216,25 +213,6 @@ export default function DailyReflectionTabScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Water Intake (glasses)</Text>
-          <View style={styles.waterRow}>
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-              <TouchableOpacity
-                key={num}
-                style={[
-                  styles.waterButton,
-                  (reflection.water_intake || 0) >= num && num > 0 && styles.waterButtonFilled
-                ]}
-                onPress={() => updateValue('water_intake', num)}
-              >
-                <Text style={styles.waterEmoji}>{num === 0 ? '❌' : '💧'}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={styles.waterCount}>{reflection.water_intake || 0} glasses</Text>
         </View>
 
         <View style={styles.section}>

@@ -37,13 +37,27 @@ type DayCount = 1 | 3 | 5 | 7
 type MealsPerDay = 3 | 4 | 5
 type FastingOption = 'none' | '16:8' | '18:6' | '20:4' | 'omad'
 
-const FASTING_OPTIONS: { value: FastingOption; label: string; description: string }[] = [
-  { value: 'none', label: 'None', description: 'No fasting - eat throughout the day' },
-  { value: '16:8', label: '16:8', description: 'Fast 16 hours, eat within 8 hours' },
-  { value: '18:6', label: '18:6', description: 'Fast 18 hours, eat within 6 hours' },
-  { value: '20:4', label: '20:4', description: 'Fast 20 hours, eat within 4 hours' },
-  { value: 'omad', label: 'OMAD', description: 'One Meal A Day' }
+const FASTING_OPTIONS: { value: FastingOption; label: string; description: string; maxMeals: MealsPerDay }[] = [
+  { value: 'none', label: 'None', description: 'No fasting - eat throughout the day', maxMeals: 5 },
+  { value: '16:8', label: '16:8', description: 'Fast 16 hours, eat within 8 hours', maxMeals: 4 },
+  { value: '18:6', label: '18:6', description: 'Fast 18 hours, eat within 6 hours', maxMeals: 3 },
+  { value: '20:4', label: '20:4', description: 'Fast 20 hours, eat within 4 hours', maxMeals: 3 },
+  { value: 'omad', label: 'OMAD', description: 'One Meal A Day', maxMeals: 3 }
 ]
+
+const getMaxMealsForFasting = (fasting: FastingOption): MealsPerDay => {
+  const option = FASTING_OPTIONS.find(o => o.value === fasting)
+  return option?.maxMeals || 5
+}
+
+const isMealsCountValidForFasting = (meals: MealsPerDay, fasting: FastingOption): boolean => {
+  if (fasting === 'none') return true
+  if (fasting === '16:8') return meals <= 4
+  if (fasting === '18:6') return meals <= 3
+  if (fasting === '20:4') return meals <= 3
+  if (fasting === 'omad') return meals <= 3
+  return true
+}
 
 export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStartDate }: MealPlanChatModalProps) {
   const { userData } = useUserData()
@@ -113,6 +127,13 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
       }])
     }
   }, [visible])
+
+  useEffect(() => {
+    if (!isMealsCountValidForFasting(mealsPerDay, fastingOption)) {
+      const maxMeals = getMaxMealsForFasting(fastingOption)
+      setMealsPerDay(Math.min(mealsPerDay, maxMeals) as MealsPerDay)
+    }
+  }, [fastingOption])
 
   function buildGreeting(): string {
     const userName = userData?.fullName?.split(' ')[0] || ''
@@ -553,18 +574,34 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
                     <Text style={[styles.toggleText, mealsPerDay === 3 && styles.toggleTextActive]}>3 meals</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.toggleBtn, mealsPerDay === 4 && styles.toggleBtnActive]}
-                    onPress={() => setMealsPerDay(4)}
-                    disabled={isGeneratingPlan}
+                    style={[
+                      styles.toggleBtn, 
+                      mealsPerDay === 4 && styles.toggleBtnActive,
+                      !isMealsCountValidForFasting(4, fastingOption) && styles.toggleBtnDisabled
+                    ]}
+                    onPress={() => isMealsCountValidForFasting(4, fastingOption) && setMealsPerDay(4)}
+                    disabled={isGeneratingPlan || !isMealsCountValidForFasting(4, fastingOption)}
                   >
-                    <Text style={[styles.toggleText, mealsPerDay === 4 && styles.toggleTextActive]}>4 meals</Text>
+                    <Text style={[
+                      styles.toggleText, 
+                      mealsPerDay === 4 && styles.toggleTextActive,
+                      !isMealsCountValidForFasting(4, fastingOption) && styles.toggleTextDisabled
+                    ]}>4 meals</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.toggleBtn, mealsPerDay === 5 && styles.toggleBtnActive]}
-                    onPress={() => setMealsPerDay(5)}
-                    disabled={isGeneratingPlan}
+                    style={[
+                      styles.toggleBtn, 
+                      mealsPerDay === 5 && styles.toggleBtnActive,
+                      !isMealsCountValidForFasting(5, fastingOption) && styles.toggleBtnDisabled
+                    ]}
+                    onPress={() => isMealsCountValidForFasting(5, fastingOption) && setMealsPerDay(5)}
+                    disabled={isGeneratingPlan || !isMealsCountValidForFasting(5, fastingOption)}
                   >
-                    <Text style={[styles.toggleText, mealsPerDay === 5 && styles.toggleTextActive]}>5 meals</Text>
+                    <Text style={[
+                      styles.toggleText, 
+                      mealsPerDay === 5 && styles.toggleTextActive,
+                      !isMealsCountValidForFasting(5, fastingOption) && styles.toggleTextDisabled
+                    ]}>5 meals</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -826,6 +863,10 @@ const styles = StyleSheet.create({
   toggleBtnActive: {
     backgroundColor: '#6B8E23',
   },
+  toggleBtnDisabled: {
+    backgroundColor: '#E5E7EB',
+    opacity: 0.5,
+  },
   toggleText: {
     fontSize: 13,
     fontWeight: '500',
@@ -834,6 +875,9 @@ const styles = StyleSheet.create({
   },
   toggleTextActive: {
     color: '#FFFFFF',
+  },
+  toggleTextDisabled: {
+    color: '#9CA3AF',
   },
   dateScrollView: {
     marginBottom: 8,
