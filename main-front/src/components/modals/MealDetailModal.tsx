@@ -272,7 +272,7 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
             </View>
           </View>
 
-          {(meal.calories != null || meal.protein_g != null || meal.carbs_g != null || meal.fat_g != null) ? (
+          {(meal.calories != null || meal.protein_g != null || meal.carbs_g != null || meal.fat_g != null || meal.fiber_g != null) ? (
             <View style={styles.nutritionBar}>
               {meal.calories != null && (
                 <View style={styles.nutritionItem}>
@@ -296,6 +296,12 @@ export function MealDetailModal({ visible, onClose, meal, onMealCooked, onMealRe
                 <View style={styles.nutritionItem}>
                   <Text style={styles.nutritionValue}>{meal.fat_g}g</Text>
                   <Text style={styles.nutritionLabel}>fat</Text>
+                </View>
+              )}
+              {meal.fiber_g != null && (
+                <View style={styles.nutritionItem}>
+                  <Text style={styles.nutritionValue}>{meal.fiber_g}g</Text>
+                  <Text style={styles.nutritionLabel}>fiber</Text>
                 </View>
               )}
             </View>

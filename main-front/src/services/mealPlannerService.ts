@@ -37,6 +37,7 @@ export interface CreateMealPlanEntry {
   protein_g?: number;
   carbs_g?: number;
   fat_g?: number;
+  fiber_g?: number;
 }
 
 export interface UpdateMealPlanEntry {
@@ -149,7 +150,8 @@ export const mealPlannerService = {
       calories: entry.calories,
       protein_g: entry.protein_g,
       carbs_g: entry.carbs_g,
-      fat_g: entry.fat_g
+      fat_g: entry.fat_g,
+      fiber_g: entry.fiber_g
     }));
 
     const { data, error } = await supabase

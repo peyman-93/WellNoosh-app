@@ -350,7 +350,8 @@ export function MealPlanChatModal({ visible, onClose, onPlanGenerated, weekStart
         calories: meal.calories,
         protein_g: meal.protein_g,
         carbs_g: meal.carbs_g,
-        fat_g: meal.fat_g
+        fat_g: meal.fat_g,
+        fiber_g: meal.fiber_g
       }))
       
       await mealPlannerService.bulkAddMeals(mealsToSave)
